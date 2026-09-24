@@ -1,0 +1,162 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "RETIVA Core API",
+    "description": "Provider-agnostic, healthcare-ready API for AI-assisted Diabetic Retinopathy screening.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "type": "string", "enum": ["PATIENT", "HEALTHCARE_WORKER", "OPHTHALMOLOGIST", "ADMIN"] },
+          "fullName": { "type": "string" }
+        }
+      },
+      "Patient": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "nik": { "type": "string", "example": "3201015504850001" },
+          "fullName": { "type": "string" },
+          "birthDate": { "type": "string", "format": "date" },
+          "gender": { "type": "string", "enum": ["MALE", "FEMALE"] },
+          "phone": { "type": "string", "nullable": true }
+        }
+      },
+      "Screening": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "patientId": { "type": "string", "format": "uuid" },
+          "conductedById": { "type": "string", "format": "uuid" },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "IMAGE_UPLOADED",
+              "QUALITY_CHECK",
+              "RETAKE_REQUIRED",
+              "AI_ANALYZED",
+              "HUMAN_REVIEW",
+              "SCREENING_COMPLETED",
+              "FOLLOW_UP_REQUIRED",
+              "REFERRAL_RECOMMENDED",
+              "FOLLOW_UP_COMPLETED"
+            ]
+          }
+        }
+      },
+      "AIResult": {
+        "type": "object",
+        "properties": {
+          "predictedClass": { "type": "string", "enum": ["NO_DR", "MILD_DR", "MODERATE_DR", "SEVERE_DR", "PROLIFERATIVE_DR"] },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "rawProbabilities": { "type": "object" },
+          "isHighRisk": { "type": "boolean" }
+        }
+      },
+      "ReliabilityAssessment": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["ANALYZE", "HUMAN_REVIEW", "RETAKE"] },
+          "score": { "type": "number" },
+          "requiresHumanReview": { "type": "boolean" },
+          "reasoning": { "type": "string", "nullable": true }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Register user",
+        "security": [],
+        "responses": { "201": { "description": "User created" } }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "User login",
+        "security": [],
+        "responses": { "200": { "description": "JWT issued" } }
+      }
+    },
+    "/patients": {
+      "get": { "summary": "Search patients" },
+      "post": { "summary": "Create patient record" }
+    },
+    "/patients/{id}": {
+      "get": { "summary": "Get patient details" },
+      "put": { "summary": "Update patient details" }
+    },
+    "/screenings": {
+      "post": { "summary": "Initiate screening" },
+      "get": { "summary": "Search screenings" }
+    },
+    "/screenings/{id}/images": {
+      "post": { "summary": "Upload retinal image (OD/OS)" }
+    },
+    "/screenings/{id}/quality-check": {
+      "post": { "summary": "Execute Image Quality Gate" }
+    },
+    "/screenings/{id}/analyze": {
+      "post": { "summary": "Run EfficientNet-B3 inference & Reliability Gate" }
+    },
+    "/reviews/pending": {
+      "get": { "summary": "Ophthalmologist human review queue" }
+    },
+    "/reviews/{screeningId}": {
+      "post": { "summary": "Submit ophthalmologist confirmation or override" }
+    },
+    "/facilities/match": {
+      "post": { "summary": "Deterministic rule-based facility matching" }
+    },
+    "/referrals": {
+      "post": { "summary": "Issue referral recommendation" }
+    },
+    "/follow-ups": {
+      "post": { "summary": "Schedule patient follow-up" }
+    },
+    "/history/patients/{patientId}": {
+      "get": { "summary": "Longitudinal patient screening history timeline" }
+    },
+    "/audit-logs": {
+      "get": { "summary": "Query audit logs (Admin only)" }
+    },
+    "/models": {
+      "get": { "summary": "List all registered AI model versions" },
+      "post": { "summary": "Register a new AI model version (Admin only)" }
+    },
+    "/models/active": {
+      "get": { "summary": "Get currently active AI model version & thresholds" }
+    },
+    "/models/{id}": {
+      "get": { "summary": "Get model version details by ID" }
+    },
+    "/models/{id}/activate": {
+      "put": { "summary": "Set model version as active (Admin only)" }
+    }
+  }
+}

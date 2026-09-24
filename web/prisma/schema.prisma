@@ -1,0 +1,516 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// 1. AUTH & USER MANAGEMENT
+// ==========================================
+
+enum UserRole {
+  PATIENT
+  HEALTHCARE_WORKER
+  OPHTHALMOLOGIST
+  ADMIN
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         UserRole  @default(PATIENT)
+  fullName     String    @map("full_name")
+  phoneNumber  String?   @map("phone_number")
+  facilityId   String?   @map("facility_id")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  patient           Patient?
+  facility          Facility?        @relation(fields: [facilityId], references: [id])
+  screeningsConducted Screening[]    @relation("ConductedScreenings")
+  reviewsConducted   HumanReview[]   @relation("OphthalmologistReviews")
+  auditLogs         AuditLog[]       @relation("UserAuditLogs")
+  notifications     Notification[]
+
+  @@map("users")
+}
+
+// ==========================================
+// 2. PATIENT & DIABETES PROFILE
+// ==========================================
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+model Patient {
+  id               String           @id @default(uuid())
+  userId           String?          @unique @map("user_id")
+  nik              String           @unique // 16 digit Indonesian National Identification Number
+  fullName         String           @map("full_name")
+  birthDate        DateTime         @map("birth_date")
+  gender           Gender
+  phone            String?
+  address          String?
+  emergencyContact String?          @map("emergency_contact")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  user             User?            @relation(fields: [userId], references: [id])
+  diabetesProfile  DiabetesProfile?
+  screenings       Screening[]
+  referrals        Referral[]
+  followUps        FollowUp[]
+
+  @@index([nik])
+  @@index([fullName])
+  @@map("patients")
+}
+
+enum DiabetesType {
+  TYPE_1
+  TYPE_2
+  GESTATIONAL
+  UNKNOWN
+}
+
+enum TreatmentType {
+  INSULIN
+  ORAL_MEDICATION
+  DIET_AND_LIFESTYLE
+  COMBINATION
+  NONE
+  UNKNOWN
+}
+
+model DiabetesProfile {
+  id               String         @id @default(uuid())
+  patientId        String         @unique @map("patient_id")
+  diabetesType     DiabetesType   @default(TYPE_2) @map("diabetes_type")
+  yearOfDiagnosis  Int?           @map("year_of_diagnosis")
+  currentTreatment TreatmentType  @default(ORAL_MEDICATION) @map("current_treatment")
+  lastHbA1c        Float?         @map("last_hba1c")
+  lastHbA1cDate    DateTime?      @map("last_hba1c_date")
+  systolicBp       Int?           @map("systolic_bp") // mmHg
+  diastolicBp      Int?           @map("diastolic_bp") // mmHg
+  isSmoker         Boolean        @default(false) @map("is_smoker")
+  notes            String?
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  patient          Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("diabetes_profiles")
+}
+
+// ==========================================
+// 3. SCREENING & WORKFLOW STATE MACHINE
+// ==========================================
+
+enum ScreeningStatus {
+  CREATED
+  IMAGE_UPLOADED
+  QUALITY_CHECK
+  RETAKE_REQUIRED
+  AI_ANALYZED
+  HUMAN_REVIEW
+  SCREENING_COMPLETED
+  FOLLOW_UP_REQUIRED
+  REFERRAL_RECOMMENDED
+  FOLLOW_UP_COMPLETED
+}
+
+model Screening {
+  id             String          @id @default(uuid())
+  patientId      String          @map("patient_id")
+  conductedById  String          @map("conducted_by_id")
+  facilityId     String?         @map("facility_id")
+  status         ScreeningStatus @default(CREATED)
+  notes          String?
+  metadata       Json?           // Extensible clinical metadata
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  patient        Patient         @relation(fields: [patientId], references: [id])
+  conductedBy    User            @relation("ConductedScreenings", fields: [conductedById], references: [id])
+  facility       Facility?       @relation(fields: [facilityId], references: [id])
+  
+  images         RetinalImage[]
+  aiResults      AIResult[]
+  reliability    ReliabilityAssessment?
+  humanReview    HumanReview?
+  recommendation Recommendation?
+  referrals      Referral[]
+  followUps      FollowUp[]
+
+  @@index([patientId])
+  @@index([status])
+  @@map("screenings")
+}
+
+// ==========================================
+// 4. RETINAL IMAGE & QUALITY GATE
+// ==========================================
+
+enum EyePosition {
+  OD // Oculus Dexter (Mata Kanan)
+  OS // Oculus Sinister (Mata Kiri)
+}
+
+model RetinalImage {
+  id           String        @id @default(uuid())
+  screeningId  String        @map("screening_id")
+  eye          EyePosition   // Right (OD) or Left (OS)
+  storageKey   String        @map("storage_key") // Object storage path (e.g. screenings/id/od.jpg) - NEVER BLOB!
+  mimeType     String        @map("mime_type")
+  checksum     String        // SHA-256 integrity hash
+  fileSizeBytes Int?         @map("file_size_bytes")
+  uploadedAt   DateTime      @default(now()) @map("uploaded_at")
+
+  // Relations
+  screening    Screening     @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+  qualityCheck QualityCheck?
+
+  @@index([screeningId])
+  @@map("retinal_images")
+}
+
+enum QualityRetakeReason {
+  BLURRY
+  TOO_DARK
+  TOO_BRIGHT
+  INSUFFICIENT_FOV
+  CATARACT_OPACITY
+  OTHER
+}
+
+model QualityCheck {
+  id                 String               @id @default(uuid())
+  retinalImageId     String               @unique @map("retinal_image_id")
+  passed             Boolean
+  overallScore       Float                @map("overall_score")
+  blurScore          Float?               @map("blur_score")
+  illuminationScore  Float?               @map("illumination_score")
+  fovScore           Float?               @map("fov_score")
+  retakeReason       QualityRetakeReason? @map("retake_reason")
+  retakeInstructions String?              @map("retake_instructions")
+  checkedAt          DateTime             @default(now()) @map("checked_at")
+
+  // Relations
+  retinalImage       RetinalImage         @relation(fields: [retinalImageId], references: [id], onDelete: Cascade)
+
+  @@map("quality_checks")
+}
+
+// ==========================================
+// 5. AI RESULT & MODEL VERSIONING
+// ==========================================
+
+enum DRClassification {
+  NO_DR             // Stage 0: Tidak ada retinopati diabetik
+  MILD_DR           // Stage 1: Retinopati Diabetik Non-Proliferatif Ringan
+  MODERATE_DR       // Stage 2: Retinopati Diabetik Non-Proliferatif Sedang
+  SEVERE_DR         // Stage 3: Retinopati Diabetik Non-Proliferatif Berat
+  PROLIFERATIVE_DR  // Stage 4: Retinopati Diabetik Proliferatif (PDR)
+}
+
+model ModelVersion {
+  id              String     @id @default(uuid())
+  modelName       String     @default("efficientnet-b3") @map("model_name")
+  version         String     @unique // e.g. "efficientnet-b3-v1.0.0"
+  pipelineVersion String     @map("pipeline_version") // e.g. "dr-pipe-v1.2"
+  weightsHash     String     @map("weights_hash") // Integrity checksum of weights
+  isActive        Boolean    @default(true) @map("is_active")
+  deployedAt      DateTime   @default(now()) @map("deployed_at")
+
+  // Relations
+  aiResults       AIResult[]
+
+  @@map("model_versions")
+}
+
+model AIResult {
+  id                 String           @id @default(uuid())
+  screeningId        String           @map("screening_id")
+  modelVersionId     String           @map("model_version_id")
+  predictedClass     DRClassification @map("predicted_class")
+  confidence         Float
+  rawProbabilities   Json             @map("raw_probabilities") // Object with probabilities for all 5 classes
+  inferenceDurationMs Int?            @map("inference_duration_ms")
+  inferenceTimestamp DateTime         @default(now()) @map("inference_timestamp")
+
+  // Relations
+  screening          Screening        @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+  modelVersion       ModelVersion     @relation(fields: [modelVersionId], references: [id])
+
+  @@index([screeningId])
+  @@map("ai_results")
+}
+
+// ==========================================
+// 6. RELIABILITY GATE & HUMAN REVIEW
+// ==========================================
+
+enum ReliabilityStatus {
+  ANALYZE       // Reliable -> Auto proceed to recommendation
+  HUMAN_REVIEW  // Borderline / Low Confidence -> Specialist review mandatory
+  RETAKE        // Degraded or ambiguous image -> Prompt retake
+}
+
+model ReliabilityAssessment {
+  id                  String            @id @default(uuid())
+  screeningId         String            @unique @map("screening_id")
+  status              ReliabilityStatus
+  score               Float             // Overall composite reliability score [0.0 - 1.0]
+  confidenceThreshold Float             @map("confidence_threshold")
+  qualityThreshold    Float             @map("quality_threshold")
+  reasoning           String?
+  assessedAt          DateTime          @default(now()) @map("assessed_at")
+
+  // Relations
+  screening           Screening         @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+
+  @@map("reliability_assessments")
+}
+
+enum HumanReviewStatus {
+  PENDING
+  CONFIRMED_AI
+  OVERRIDDEN
+}
+
+model HumanReview {
+  id             String            @id @default(uuid())
+  screeningId    String            @unique @map("screening_id")
+  reviewerId     String            @map("reviewer_id")
+  reviewStatus   HumanReviewStatus @default(PENDING) @map("review_status")
+  confirmedClass DRClassification? @map("confirmed_class")
+  clinicalNotes  String?           @map("clinical_notes")
+  reviewedAt     DateTime          @default(now()) @map("reviewed_at")
+
+  // Relations
+  screening      Screening         @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+  reviewer       User              @relation("OphthalmologistReviews", fields: [reviewerId], references: [id])
+
+  @@map("human_reviews")
+}
+
+// ==========================================
+// 7. RECOMMENDATION ENGINE (RULES-BASED)
+// ==========================================
+
+enum RecommendedAction {
+  ROUTINE_ANNUAL_SCREENING
+  FOLLOW_UP_6_MONTHS
+  FOLLOW_UP_3_MONTHS
+  SPECIALIST_OPHTHALMOLOGY_REFERRAL
+  URGENT_SURGICAL_CONSULTATION
+  IMAGE_RETAKE
+}
+
+enum UrgencyLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Recommendation {
+  id                String            @id @default(uuid())
+  screeningId       String            @unique @map("screening_id")
+  summary           String
+  recommendedAction RecommendedAction @map("recommended_action")
+  urgencyLevel      UrgencyLevel      @default(LOW) @map("urgency_level")
+  referralIndicated Boolean           @default(false) @map("referral_indicated")
+  clinicalGuideline String?           @map("clinical_guideline") // e.g. "Perdami 2024 / ADA 2024"
+  generatedAt       DateTime          @default(now()) @map("generated_at")
+
+  // Relations
+  screening         Screening         @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+
+  @@map("recommendations")
+}
+
+// ==========================================
+// 8. HEALTHCARE FACILITY, REFERRAL & FOLLOW-UP
+// ==========================================
+
+enum BPJSStatus {
+  ACCEPTED
+  NOT_AVAILABLE
+  NEEDS_CONFIRMATION
+}
+
+model Facility {
+  id           String              @id @default(uuid())
+  name         String
+  address      String
+  latitude     Float
+  longitude    Float
+  bpjsStatus   BPJSStatus          @default(NEEDS_CONFIRMATION) @map("bpjs_status")
+  isVerified   Boolean             @default(false) @map("is_verified")
+  contactPhone String?             @map("contact_phone")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  // Relations
+  users        User[]
+  screenings   Screening[]
+  services     FacilityService[]
+  insurances   FacilityInsurance[]
+  referrals    Referral[]
+
+  @@map("facilities")
+}
+
+model FacilityService {
+  id          String   @id @default(uuid())
+  facilityId  String   @map("facility_id")
+  serviceName String   @map("service_name") // e.g. "RETINA_SPECIALIST", "LASER_PHOTOCOAGULATION", "OCT"
+  description String?
+
+  // Relations
+  facility    Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@map("facility_services")
+}
+
+model FacilityInsurance {
+  id            String   @id @default(uuid())
+  facilityId    String   @map("facility_id")
+  insuranceName String   @map("insurance_name") // e.g. "BPJS_KESEHATAN", "MANDIRI_INHEALTH"
+  status        String   // "ACTIVE", "REQUIRES_PRIOR_AUTHORIZATION"
+
+  // Relations
+  facility      Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@map("facility_insurances")
+}
+
+enum ReferralStatus {
+  RECOMMENDED
+  ISSUED
+  ACCEPTED_BY_FACILITY
+  PATIENT_ATTENDED
+  EXPIRED
+  CANCELLED
+}
+
+model Referral {
+  id               String         @id @default(uuid())
+  screeningId      String         @map("screening_id")
+  patientId        String         @map("patient_id")
+  targetFacilityId String         @map("target_facility_id")
+  urgency          UrgencyLevel   @default(MEDIUM)
+  reason           String
+  clinicalSummary  String         @map("clinical_summary")
+  status           ReferralStatus @default(RECOMMENDED)
+  issuedAt         DateTime?      @map("issued_at")
+  expiresAt        DateTime?      @map("expires_at")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  screening        Screening      @relation(fields: [screeningId], references: [id])
+  patient          Patient        @relation(fields: [patientId], references: [id])
+  targetFacility   Facility       @relation(fields: [targetFacilityId], references: [id])
+
+  @@index([patientId])
+  @@index([targetFacilityId])
+  @@map("referrals")
+}
+
+enum FollowUpStatus {
+  SCHEDULED
+  REMINDER_SENT
+  COMPLETED
+  MISSED
+  CANCELLED
+}
+
+model FollowUp {
+  id              String         @id @default(uuid())
+  patientId       String         @map("patient_id")
+  screeningId     String?        @map("screening_id")
+  dueDate         DateTime       @map("due_date")
+  status          FollowUpStatus @default(SCHEDULED)
+  completionNotes String?        @map("completion_notes")
+  completedAt     DateTime?      @map("completed_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  patient         Patient        @relation(fields: [patientId], references: [id])
+  screening       Screening?     @relation(fields: [screeningId], references: [id])
+
+  @@index([patientId])
+  @@index([dueDate])
+  @@map("follow_ups")
+}
+
+// ==========================================
+// 9. AUDIT TRAIL & NOTIFICATIONS
+// ==========================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?  @map("actor_id")
+  actorRole  String?  @map("actor_role")
+  action     String   // e.g. "PATIENT_CREATED", "SCREENING_QUALITY_PASSED", "AI_INFERENCE_DONE"
+  resource   String   // e.g. "Patient", "Screening", "Referral"
+  resourceId String?  @map("resource_id")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  metadata   Json?    // Detailed diff or context
+  timestamp  DateTime @default(now())
+
+  // Relations
+  actor      User?    @relation("UserAuditLogs", fields: [actorId], references: [id])
+
+  @@index([action])
+  @@index([resource, resourceId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+enum NotificationChannel {
+  IN_APP
+  WHATSAPP
+  SMS
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String              @map("user_id")
+  channel   NotificationChannel @default(IN_APP)
+  title     String
+  message   String
+  status    NotificationStatus  @default(PENDING)
+  payload   Json?
+  sentAt    DateTime?           @map("sent_at")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  // Relations
+  user      User                @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("notifications")
+}

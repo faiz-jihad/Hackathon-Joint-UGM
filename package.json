@@ -1,0 +1,21 @@
+{
+  "name": "retiva-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "web"
+  ],
+  "scripts": {
+    "dev": "npm --prefix web run dev",
+    "build": "npm --prefix web run build",
+    "prisma:generate": "npm --prefix web run prisma:generate",
+    "prisma:push": "npm --prefix web run prisma:push",
+    "test": "npm --prefix web run test",
+    "test:master": "npm --prefix web run test:master",
+    "test:phase1": "npm --prefix web run test:phase1",
+    "test:phase2": "npm --prefix web run test:phase2",
+    "test:phase3": "npm --prefix web run test:phase3",
+    "test:phase4": "npm --prefix web run test:phase4",
+    "test:phase5": "npm --prefix web run test:phase5"
+  }
+}

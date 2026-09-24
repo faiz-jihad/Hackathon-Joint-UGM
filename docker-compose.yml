@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: retiva-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: retiva
+      POSTGRES_PASSWORD: retivapassword
+      POSTGRES_DB: retiva_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U retiva -d retiva_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2024-01-18T22-51-28Z
+    container_name: retiva-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: retiva-ai-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_VERSION=efficientnet-b3-v1
+      - QUALITY_THRESHOLD=0.75
+      - RELIABILITY_THRESHOLD=0.85
+      - INTERNAL_API_SECRET=retiva-internal-secret-token
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: retiva-web-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://retiva:retivapassword@postgres:5432/retiva_db?schema=public
+      - JWT_SECRET=retiva-super-secret-jwt-key-change-in-production
+      - STORAGE_ENDPOINT=http://minio:9000
+      - STORAGE_BUCKET=retiva-fundus-images
+      - STORAGE_ACCESS_KEY=minioadmin
+      - STORAGE_SECRET_KEY=minioadminpassword
+      - STORAGE_USE_SSL=false
+      - AI_SERVICE_URL=http://ai-service:8000
+      - AI_SERVICE_SECRET=retiva-internal-secret-token
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  minio_data:
