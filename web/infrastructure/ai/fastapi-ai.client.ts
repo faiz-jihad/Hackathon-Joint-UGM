@@ -5,7 +5,7 @@ export class FastAPIAIClient implements AIClient {
   private readonly secretToken: string;
 
   constructor() {
-    this.baseUrl = process.env.AI_SERVICE_URL || "http://localhost:8000";
+    this.baseUrl = process.env.AI_SERVICE_URL || "http://localhost:8003";
     this.secretToken = process.env.AI_INTERNAL_SECRET || "retiva-internal-secret-token";
   }
 

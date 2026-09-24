@@ -91,7 +91,24 @@ Antarmuka web dirancang sesuai spesifikasi `design.md`:
 - Docker & Docker Compose (Opsional, untuk PostgreSQL & MinIO lokal)
 - Python 3.10+ (Opsional, untuk AI Service lokal)
 
-### 4.2 Menjalankan Web Portal & API
+### 4.2 Menjalankan AI Service (FastAPI Microservice - Port 8003)
+```bash
+# Masuk ke direktori ai-service
+cd ai-service
+
+# Buat dan aktifkan virtual environment (Python 3.11+)
+python -m venv .venv
+# Linux/macOS: source .venv/bin/activate | Windows: .venv\Scripts\activate
+
+# Pasang dependensi
+pip install -r requirements.txt
+
+# Jalankan server inferensi AI (Port 8003)
+uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
+```
+Layanan AI aktif di: **`http://localhost:8003`** (Dokumentasi Swagger: `http://localhost:8003/docs`).
+
+### 4.3 Menjalankan Web Portal & API Gateway (Next.js - Port 3000)
 ```bash
 # Masuk ke direktori web
 cd web
@@ -111,9 +128,9 @@ npm run dev
 
 Aplikasi web dapat diakses di browser pada: **`http://localhost:3000`**.
 
-### 4.3 Menjalankan via Docker Compose
+### 4.4 Menjalankan Seluruh Sistem via Docker Compose
 ```bash
-# Menjalankan database PostgreSQL, MinIO Storage, AI Service, dan Web
+# Menjalankan PostgreSQL, MinIO Storage, FastAPI AI Service (8003), dan Next.js Web (3000)
 docker compose up -d
 ```
 

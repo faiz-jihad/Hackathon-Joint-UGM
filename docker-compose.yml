@@ -40,11 +40,12 @@ services:
     container_name: retiva-ai-service
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8003:8003"
     environment:
-      - MODEL_VERSION=efficientnet-b3-v1
-      - QUALITY_THRESHOLD=0.75
-      - RELIABILITY_THRESHOLD=0.85
+      - PORT=8003
+      - MODEL_VERSION=0.1.0
+      - QUALITY_THRESHOLD=0.80
+      - RELIABILITY_THRESHOLD=0.80
       - INTERNAL_API_SECRET=retiva-internal-secret-token
 
   web:
@@ -63,7 +64,7 @@ services:
       - STORAGE_ACCESS_KEY=minioadmin
       - STORAGE_SECRET_KEY=minioadminpassword
       - STORAGE_USE_SSL=false
-      - AI_SERVICE_URL=http://ai-service:8000
+      - AI_SERVICE_URL=http://ai-service:8003
       - AI_SERVICE_SECRET=retiva-internal-secret-token
     depends_on:
       postgres:

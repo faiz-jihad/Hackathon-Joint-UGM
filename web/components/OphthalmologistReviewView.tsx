@@ -19,6 +19,8 @@ interface OphthalmologistReviewViewProps {
 }
 
 export function OphthalmologistReviewView({ screeningId = 'SCR-2026-0891', onAdjudicationSaved }: OphthalmologistReviewViewProps) {
+  const [allScreenings, setAllScreenings] = useState<ScreeningData[]>([]);
+  const [currentId, setCurrentId] = useState<string>(screeningId);
   const [screening, setScreening] = useState<ScreeningData | null>(null);
   const [viewMode, setViewMode] = useState<'fundus' | 'gradcam'>('fundus');
   const [adjudicationAction, setAdjudicationAction] = useState<'CONFIRM_AI' | 'OVERRIDE' | 'REQUEST_RETAKE'>('CONFIRM_AI');
@@ -28,18 +30,45 @@ export function OphthalmologistReviewView({ screeningId = 'SCR-2026-0891', onAdj
   );
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
-  useEffect(() => {
-    const item = clinicalStore.getScreeningById(screeningId) || clinicalStore.getScreenings()[0];
+  const syncScreening = (targetId: string) => {
+    const list = clinicalStore.getScreenings();
+    setAllScreenings(list);
+    const item = list.find((s) => s.id === targetId) || list[0];
     if (item) {
+      setCurrentId(item.id);
       setScreening(item);
       if (item.humanReview?.clinicalNotes) {
         setClinicalNotes(item.humanReview.clinicalNotes);
+      } else {
+        setClinicalNotes(
+          item.aiResult?.drGrade === 'NO_DR'
+            ? 'Fundus tenang, tidak tampak mikroaneurisma ataupun lesi vaskular. Skrining tahunan berkala.'
+            : item.aiResult?.drGrade === 'MILD_NPDR'
+            ? 'Mikroaneurisma minimal tanpa edema makula. Optimasi kontrol glikemik dan evaluasi 6 bulan.'
+            : item.aiResult?.drGrade === 'MODERATE_NPDR'
+            ? 'Tampak mikroaneurisma fokal pada kuadran temporal superior dan beberapa bercak perdarahan retina. Rujuk ke spesialis mata.'
+            : 'Perdarahan intraretina luas multipel kuadran sesuai aturan 4-2-1. Rujukan cito vitreoretina.'
+        );
       }
       if (item.humanReview?.overrideGrade) {
         setOverrideGrade(item.humanReview.overrideGrade);
+      } else if (item.aiResult?.drGrade) {
+        setOverrideGrade(item.aiResult.drGrade);
       }
     }
+  };
+
+  useEffect(() => {
+    syncScreening(screeningId);
+    const unsubscribe = clinicalStore.subscribe(() => {
+      syncScreening(currentId);
+    });
+    return () => unsubscribe();
   }, [screeningId]);
+
+  const handleSelectScreening = (newId: string) => {
+    syncScreening(newId);
+  };
 
   const handleSave = () => {
     if (!screening) return;
@@ -54,7 +83,7 @@ export function OphthalmologistReviewView({ screeningId = 'SCR-2026-0891', onAdj
     setSavedSuccess(true);
     setTimeout(() => {
       onAdjudicationSaved();
-    }, 1500);
+    }, 1200);
   };
 
   if (!screening) {
@@ -74,8 +103,23 @@ export function OphthalmologistReviewView({ screeningId = 'SCR-2026-0891', onAdj
             Ajudikasi citra fundus retina, inspeksi aktivasi model Grad-CAM, dan penetapan tatalaksana rujukan formal.
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span className="code-inline" style={{ fontSize: '0.8125rem' }}>No. Berkas: {screening.id}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <label htmlFor="screening-picker" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--slate-600)' }}>Pilih Berkas:</label>
+            <select
+              id="screening-picker"
+              className="form-control"
+              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', width: 'auto' }}
+              value={currentId}
+              onChange={(e) => handleSelectScreening(e.target.value)}
+            >
+              {allScreenings.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.id} — {s.patientName} ({s.eye}) [{s.humanReview?.status === 'CONFIRMED_AI' ? 'Sudah Ditelaah' : 'Menunggu'}]
+                </option>
+              ))}
+            </select>
+          </div>
           <span className={`badge ${screening.humanReview?.status === 'CONFIRMED_AI' ? 'badge-pass' : 'badge-review'}`}>
             Status: {screening.humanReview?.status === 'CONFIRMED_AI' ? 'Sudah Ditelaah' : 'Menunggu Telaah'}
           </span>
@@ -138,27 +182,55 @@ export function OphthalmologistReviewView({ screeningId = 'SCR-2026-0891', onAdj
               </div>
 
               {viewMode === 'fundus' ? (
-                <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--slate-300)' }}>
-                  <div style={{ width: '160px', height: '160px', borderRadius: '50%', background: 'radial-gradient(circle at 35% 40%, #c2410c 0%, #7c2d12 40%, #451a03 70%, #000000 100%)', margin: '0 auto 1.5rem auto', position: 'relative', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.8)' }}>
-                    <div style={{ position: 'absolute', top: '45%', left: '22%', width: '28px', height: '34px', borderRadius: '50%', backgroundColor: '#fed7aa', opacity: 0.85, filter: 'blur(1px)' }} />
-                    <div style={{ position: 'absolute', top: '50%', right: '35%', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#431407', opacity: 0.9 }} />
-                    <div style={{ position: 'absolute', top: '35%', right: '30%', width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
-                    <div style={{ position: 'absolute', top: '40%', right: '28%', width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#dc2626' }} />
-                    <div style={{ position: 'absolute', top: '60%', right: '32%', width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#b91c1c' }} />
+                screening.aiResult?.overlayUrl ? (
+                  <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--slate-300)' }}>
+                    <img
+                      src={screening.aiResult.overlayUrl}
+                      alt="Citra Funduskopi Digital"
+                      style={{ maxHeight: '220px', maxWidth: '100%', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 0.5rem auto' }}
+                    />
+                    <div style={{ fontSize: '0.8125rem', color: '#ffffff', fontWeight: 600 }}>Citra Funduskopi Digital {screening.eye}</div>
+                    <div style={{ fontSize: '0.725rem', color: 'var(--slate-400)', marginTop: '0.2rem' }}>
+                      SHA-256 Integritas: <span className="code-inline" style={{ color: '#ffffff', backgroundColor: 'transparent' }}>{screening.imageHash.substring(0, 16)}...</span>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.8125rem', color: '#ffffff', fontWeight: 600 }}>Citra Funduskopi Digital {screening.eye}</div>
-                  <div style={{ fontSize: '0.725rem', color: 'var(--slate-400)', marginTop: '0.2rem' }}>
-                    SHA-256 Integritas: <span className="code-inline" style={{ color: '#ffffff', backgroundColor: 'transparent' }}>{screening.imageHash.substring(0, 16)}...</span>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--slate-300)' }}>
+                    <div style={{ width: '160px', height: '160px', borderRadius: '50%', background: 'radial-gradient(circle at 35% 40%, #c2410c 0%, #7c2d12 40%, #451a03 70%, #000000 100%)', margin: '0 auto 1.5rem auto', position: 'relative', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.8)' }}>
+                      <div style={{ position: 'absolute', top: '45%', left: '22%', width: '28px', height: '34px', borderRadius: '50%', backgroundColor: '#fed7aa', opacity: 0.85, filter: 'blur(1px)' }} />
+                      <div style={{ position: 'absolute', top: '50%', right: '35%', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#431407', opacity: 0.9 }} />
+                      <div style={{ position: 'absolute', top: '35%', right: '30%', width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+                      <div style={{ position: 'absolute', top: '40%', right: '28%', width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#dc2626' }} />
+                      <div style={{ position: 'absolute', top: '60%', right: '32%', width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#b91c1c' }} />
+                    </div>
+                    <div style={{ fontSize: '0.8125rem', color: '#ffffff', fontWeight: 600 }}>Citra Funduskopi Digital {screening.eye}</div>
+                    <div style={{ fontSize: '0.725rem', color: 'var(--slate-400)', marginTop: '0.2rem' }}>
+                      SHA-256 Integritas: <span className="code-inline" style={{ color: '#ffffff', backgroundColor: 'transparent' }}>{screening.imageHash.substring(0, 16)}...</span>
+                    </div>
                   </div>
-                </div>
+                )
               ) : (
-                <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--slate-300)' }}>
-                  <div style={{ width: '160px', height: '160px', borderRadius: '50%', background: 'radial-gradient(circle at 65% 45%, #ef4444 0%, #f59e0b 35%, #10b981 60%, #1e3a8a 85%)', margin: '0 auto 1.5rem auto', opacity: 0.85, filter: 'blur(2px)' }} />
-                  <div style={{ fontSize: '0.8125rem', color: '#ffffff', fontWeight: 600 }}>Peta Aktivasi Grad-CAM (Heatmap)</div>
-                  <div style={{ fontSize: '0.725rem', color: 'var(--slate-400)', marginTop: '0.2rem' }}>
-                    Fokus Aktivasi Model: {screening.aiResult?.gradCamFocus || 'Area Lesi Retina'}
+                screening.aiResult?.heatmapUrl ? (
+                  <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--slate-300)' }}>
+                    <img
+                      src={screening.aiResult.heatmapUrl}
+                      alt="Peta Grad-CAM"
+                      style={{ maxHeight: '220px', maxWidth: '100%', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 0.5rem auto' }}
+                    />
+                    <div style={{ fontSize: '0.8125rem', color: '#ffffff', fontWeight: 600 }}>Peta Aktivasi Grad-CAM (Heatmap)</div>
+                    <div style={{ fontSize: '0.725rem', color: 'var(--slate-400)', marginTop: '0.2rem' }}>
+                      Fokus Aktivasi Model: {screening.aiResult?.gradCamFocus || 'Area Lesi Retina'}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--slate-300)' }}>
+                    <div style={{ width: '160px', height: '160px', borderRadius: '50%', background: 'radial-gradient(circle at 65% 45%, #ef4444 0%, #f59e0b 35%, #10b981 60%, #1e3a8a 85%)', margin: '0 auto 1.5rem auto', opacity: 0.85, filter: 'blur(2px)' }} />
+                    <div style={{ fontSize: '0.8125rem', color: '#ffffff', fontWeight: 600 }}>Peta Aktivasi Grad-CAM (Heatmap)</div>
+                    <div style={{ fontSize: '0.725rem', color: 'var(--slate-400)', marginTop: '0.2rem' }}>
+                      Fokus Aktivasi Model: {screening.aiResult?.gradCamFocus || 'Area Lesi Retina'}
+                    </div>
+                  </div>
+                )
               )}
             </div>
 

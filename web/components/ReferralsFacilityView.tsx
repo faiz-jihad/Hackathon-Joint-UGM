@@ -9,7 +9,7 @@ import {
   ArrowRightIcon,
   ShieldCheckIcon,
 } from './Icons';
-import { clinicalStore, FacilityData, ReferralData } from '../lib/clinical-store';
+import { clinicalStore, FacilityData, ReferralData, PatientData } from '../lib/clinical-store';
 
 interface ReferralsFacilityViewProps {
   initialPatientName?: string;
@@ -17,18 +17,67 @@ interface ReferralsFacilityViewProps {
 
 export function ReferralsFacilityView({ initialPatientName = 'Bambang Sudarmono' }: ReferralsFacilityViewProps) {
   const [facilities, setFacilities] = useState<FacilityData[]>([]);
+  const [patients, setPatients] = useState<PatientData[]>([]);
   const [selectedFacilityId, setSelectedFacilityId] = useState<string>('FAC-001');
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('P-001');
   const [patientName, setPatientName] = useState<string>(initialPatientName);
+  const [urgencyDays, setUrgencyDays] = useState<number>(30);
+  const [indication, setIndication] = useState<string>(
+    'E11.319 - Type 2 diabetes with nonproliferative diabetic retinopathy'
+  );
   const [clinicalNotes, setClinicalNotes] = useState<string>(
     'Mohon evaluasi lanjutan vitreoretina dan pertimbangan Optical Coherence Tomography (OCT) untuk menyingkirkan Diabetic Macular Edema (DME). Pasien telah diskrining di FKTP Puskesmas Mlati II.'
   );
   const [issuedReferrals, setIssuedReferrals] = useState<ReferralData[]>([]);
   const [latestIssued, setLatestIssued] = useState<ReferralData | null>(null);
 
-  useEffect(() => {
-    setFacilities(clinicalStore.getFacilities());
+  const syncData = () => {
+    const facs = clinicalStore.getFacilities();
+    const pats = clinicalStore.getPatients();
+    setFacilities(facs);
+    setPatients(pats);
     setIssuedReferrals(clinicalStore.getReferrals());
+
+    if (pats.length > 0 && !pats.find((p) => p.id === selectedPatientId)) {
+      const first = pats[0];
+      setSelectedPatientId(first.id);
+      setPatientName(first.name);
+    }
+  };
+
+  useEffect(() => {
+    syncData();
+    const unsubscribe = clinicalStore.subscribe(() => {
+      syncData();
+    });
+    return () => unsubscribe();
   }, []);
+
+  const handlePatientChange = (pId: string) => {
+    setSelectedPatientId(pId);
+    const p = patients.find((item) => item.id === pId);
+    if (p) {
+      setPatientName(p.name);
+      // Dynamically check latest screening for this patient to auto-populate indication
+      const allScreenings = clinicalStore.getScreenings();
+      const patientScr = allScreenings.find((s) => s.patientId === p.id || s.patientNik === p.nik);
+      if (patientScr && patientScr.aiResult) {
+        if (patientScr.aiResult.drGrade === 'SEVERE_NPDR' || patientScr.aiResult.drGrade === 'PDR') {
+          setIndication('E11.319 - Type 2 diabetes with severe nonproliferative diabetic retinopathy');
+          setUrgencyDays(14);
+          setClinicalNotes(`Rujukan prioritas untuk evaluasi fotokoagulasi laser (PRP). Temuan skrining: ${patientScr.aiResult.drLabel} pada mata ${patientScr.eye}.`);
+        } else if (patientScr.aiResult.drGrade === 'MODERATE_NPDR') {
+          setIndication('E11.319 - Type 2 diabetes with moderate nonproliferative diabetic retinopathy');
+          setUrgencyDays(30);
+          setClinicalNotes(`Rujukan untuk pemeriksaan slit-lamp dan OCT makula. Temuan skrining: ${patientScr.aiResult.drLabel} pada mata ${patientScr.eye}.`);
+        } else {
+          setIndication('E11.9 - Type 2 diabetes mellitus without complications');
+          setUrgencyDays(60);
+          setClinicalNotes(`Evaluasi rutin retina berkala di poli mata.`);
+        }
+      }
+    }
+  };
 
   const selectedFacility = facilities.find((f) => f.id === selectedFacilityId) || facilities[0];
 
@@ -36,12 +85,12 @@ export function ReferralsFacilityView({ initialPatientName = 'Bambang Sudarmono'
     if (!selectedFacility) return;
 
     const newRef = clinicalStore.createReferral({
-      patientId: 'P-001',
+      patientId: selectedPatientId || 'P-001',
       patientName,
       facilityId: selectedFacility.id,
       facilityName: selectedFacility.name,
-      indication: 'E11.319 - Type 2 diabetes with nonproliferative diabetic retinopathy',
-      urgencyDays: 30,
+      indication,
+      urgencyDays,
       notes: clinicalNotes,
     });
 
@@ -169,14 +218,47 @@ export function ReferralsFacilityView({ initialPatientName = 'Bambang Sudarmono'
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="referral-patient-input">Nama Pasien Yang Dirujuk:</label>
-                  <input
-                    id="referral-patient-input"
-                    type="text"
+                  <label className="form-label" htmlFor="referral-patient-select">Pilih Pasien Terdaftar:</label>
+                  <select
+                    id="referral-patient-select"
                     className="form-control"
-                    value={patientName}
-                    onChange={(e) => setPatientName(e.target.value)}
-                  />
+                    value={selectedPatientId}
+                    onChange={(e) => handlePatientChange(e.target.value)}
+                  >
+                    {patients.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.nik}) — {p.diabetesProfile.type === 'TYPE_2' ? 'DM Tipe 2' : 'DM Tipe 1'}, HbA1c: {p.diabetesProfile.hba1c}%
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid-2">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="referral-patient-input">Nama Pasien:</label>
+                    <input
+                      id="referral-patient-input"
+                      type="text"
+                      className="form-control"
+                      value={patientName}
+                      onChange={(e) => setPatientName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="referral-urgency-select">Batas Waktu Rujukan:</label>
+                    <select
+                      id="referral-urgency-select"
+                      className="form-control"
+                      value={urgencyDays}
+                      onChange={(e) => setUrgencyDays(Number(e.target.value))}
+                    >
+                      <option value={14}>14 Hari Kalender (Prioritas Cito / Severe)</option>
+                      <option value={30}>30 Hari Kalender (Standar FKRTL / Moderate)</option>
+                      <option value={60}>60 Hari Kalender (Rujukan Elektif)</option>
+                      <option value={90}>90 Hari Kalender (Follow-up Berkala)</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="form-group">
@@ -185,9 +267,8 @@ export function ReferralsFacilityView({ initialPatientName = 'Bambang Sudarmono'
                     id="referral-indication-input"
                     type="text"
                     className="form-control"
-                    value="E11.319 - Type 2 diabetes with nonproliferative diabetic retinopathy"
-                    readOnly
-                    style={{ backgroundColor: 'var(--slate-100)' }}
+                    value={indication}
+                    onChange={(e) => setIndication(e.target.value)}
                   />
                 </div>
 

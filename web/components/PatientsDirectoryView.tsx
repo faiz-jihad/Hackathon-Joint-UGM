@@ -23,6 +23,8 @@ export function PatientsDirectoryView({ onStartScreeningForPatient }: PatientsDi
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [screenings, setScreenings] = useState<ScreeningData[]>([]);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [dmFilter, setDmFilter] = useState<string>('ALL');
+  const [sortBy, setSortBy] = useState<string>('DEFAULT');
 
   // New Patient Form State
   const [newNik, setNewNik] = useState<string>('');
@@ -35,7 +37,18 @@ export function PatientsDirectoryView({ onStartScreeningForPatient }: PatientsDi
   const [newTreatment, setNewTreatment] = useState<'LIFESTYLE' | 'ORAL' | 'INSULIN' | 'COMBINATION'>('ORAL');
 
   const loadData = () => {
-    const list = clinicalStore.getPatients(searchTerm);
+    let list = clinicalStore.getPatients(searchTerm);
+    if (dmFilter !== 'ALL') {
+      list = list.filter((p) => p.diabetesProfile.type === dmFilter);
+    }
+    if (sortBy === 'NAME') {
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === 'HBA1C') {
+      list = [...list].sort((a, b) => b.diabetesProfile.hba1c - a.diabetesProfile.hba1c);
+    } else if (sortBy === 'AGE') {
+      list = [...list].sort((a, b) => b.age - a.age);
+    }
+
     setPatients(list);
     if (list.length > 0 && (!selectedPatientId || !list.find((p) => p.id === selectedPatientId))) {
       setSelectedPatientId(list[0].id);
@@ -45,7 +58,17 @@ export function PatientsDirectoryView({ onStartScreeningForPatient }: PatientsDi
 
   useEffect(() => {
     loadData();
-  }, [searchTerm]);
+    const unsubscribe = clinicalStore.subscribe(() => {
+      loadData();
+    });
+    return () => unsubscribe();
+  }, [searchTerm, dmFilter, sortBy]);
+
+  const handleDeletePatient = (patient: PatientData) => {
+    if (confirm(`Hapus rekam medis pasien ${patient.name} (NIK: ${patient.nik})?`)) {
+      clinicalStore.deletePatient(patient.id);
+    }
+  };
 
   const selectedPatient = patients.find((p) => p.id === selectedPatientId) || patients[0];
 
@@ -231,7 +254,7 @@ export function PatientsDirectoryView({ onStartScreeningForPatient }: PatientsDi
             <div className="card-title">Daftar Pasien Terdaftar</div>
             <span className="badge badge-neutral">{patients.length} Pasien</span>
           </div>
-          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
@@ -244,6 +267,32 @@ export function PatientsDirectoryView({ onStartScreeningForPatient }: PatientsDi
               <div style={{ position: 'absolute', left: '0.65rem', top: '0.65rem', color: 'var(--slate-400)' }}>
                 <SearchIcon size={15} />
               </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <select
+                className="form-control"
+                style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                value={dmFilter}
+                onChange={(e) => setDmFilter(e.target.value)}
+              >
+                <option value="ALL">Semua Tipe DM</option>
+                <option value="TYPE_2">DM Tipe 2</option>
+                <option value="TYPE_1">DM Tipe 1</option>
+                <option value="GESTATIONAL">DM Gestasional</option>
+              </select>
+
+              <select
+                className="form-control"
+                style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="DEFAULT">Urutkan: Bawaan</option>
+                <option value="NAME">Nama (A-Z)</option>
+                <option value="HBA1C">HbA1c Tertinggi</option>
+                <option value="AGE">Usia Tertua</option>
+              </select>
             </div>
           </div>
           <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
@@ -288,14 +337,24 @@ export function PatientsDirectoryView({ onStartScreeningForPatient }: PatientsDi
             <div className="card">
               <div className="card-header">
                 <div className="card-title">Profil Pasien & Status Diabetes</div>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={() => onStartScreeningForPatient(selectedPatient.nik)}
-                >
-                  <EyeIcon size={14} />
-                  <span>Skrining Pasien Ini</span>
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ color: 'var(--status-retake-text)' }}
+                    onClick={() => handleDeletePatient(selectedPatient)}
+                  >
+                    Hapus Pasien
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => onStartScreeningForPatient(selectedPatient.nik)}
+                  >
+                    <EyeIcon size={14} />
+                    <span>Skrining Pasien Ini</span>
+                  </button>
+                </div>
               </div>
               <div className="card-body">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>

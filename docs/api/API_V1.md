@@ -395,20 +395,101 @@ Mengambil riwayat mutasi dan aksi penting dalam sistem RETIVA (Role: `ADMIN`).
         "timestamp": "2026-09-24T07:15:30.000Z",
         "ipAddress": "192.168.1.10",
         "userAgent": "RETIVA-Mobile/1.0.0",
-        "metadata": {
-          "modelVersion": "efficientnet-b3-v1.0.0",
-          "predictedClass": "MODERATE_DR",
-          "confidence": 0.88,
-          "reliabilityScore": 0.90
-        }
-      }
-    ],
-    "meta": {
-      "total": 1,
-      "limit": 50,
-      "offset": 0
-    }
-  }
-  ```
+
+---
+
+## 12. Direct Screening & FastAPI AI Microservice (Port 8003)
+
+Untuk memfasilitasi integrasi langsung antara antarmuka React klien dan model pembelajaran mesin, RETIVA menyediakan endpoint proxy terpadu serta microservice FastAPI independen berkecepatan tinggi.
+
+### 12.1 Next.js Direct Screening Proxy (`POST /api/v1/screenings/direct-screen`)
+Menerima citra fundus langsung dari form unggah klien dan meneruskannya ke AI Service Port 8003 secara transparan.
+- **Content-Type**: `multipart/form-data`
+- **Fields**:
+  - `image` / `file`: Berkas citra retina (JPEG/PNG)
+  - `screening_id`: ID skrining (opsional)
+- **Response (200 OK)**:
+  Objek lengkap mencakup **3 Komponen Terhubung**:
+  1. `quality`: Evaluasi ketajaman blur (Laplacian), pencahayaan (luminansi), cakupan FOV 45°, dan resolusi.
+  2. `prediction`: Klasifikasi 5 derajat ICDR (`No DR`, `Mild`, `Moderate`, `Severe`, `Proliferative DR`) dan distribusi probabilitas.
+  3. `reliability`: Status keputusan (`ANALYZE`, `HUMAN_REVIEW`, atau `RETAKE`), margin pembeda, entropi informasi, dan visualisasi `explainability` (URL base64 Grad-CAM heatmap & overlay).
+
+---
+
+### 12.2 FastAPI Microservice Endpoints (`http://localhost:8003`)
+
+| Method | Endpoint | Deskripsi |
+| :--- | :--- | :--- |
+| `GET` | `/health` | Memeriksa ketersediaan layanan AI, model aktif, dan status Quality/Reliability Gate |
+| `GET` | `/api/v1/model/info` | Mengambil metadata model, resolusi input [300, 300, 3], dan ambang batas keandalan |
+| `POST` | `/api/v1/screen` | Endpoint skrining utama (eksekusi Quality Gate &rarr; Classifier &rarr; Reliability Gate &rarr; Grad-CAM) |
+| `POST` | `/api/v1/quality/check` | Evaluasi kendali mutu citra independen (RETAKE vs ANALYZE) |
+| `POST` | `/api/v1/reliability/check` | Evaluasi keandalan klinis independen (confidence, margin, entropy) |
+| `POST` | `/api/v1/explainability/gradcam` | Pembuatan peta panas lesi retina Grad-CAM dan citra tumpang tindih |
+
+#### Contoh Pemanggilan cURL Skrining Langsung:
+```bash
+curl -X POST http://localhost:8003/api/v1/screen \
+  -F "image=@sample_fundus.jpg" \
+  -F "screening_id=scr_demo_01"
+```
+
+#### Skema Respons Skrining (200 OK - ANALYZE):
+```json
+{
+  "screening_id": "scr_demo_01",
+  "status": "ANALYZE",
+  "quality": {
+    "passed": true,
+    "score": 0.88,
+    "checks": {
+      "blur": { "passed": true, "score": 0.91, "details": "Sharpness variance: 142.5" },
+      "brightness": { "passed": true, "score": 0.85, "details": "Optimal illumination" },
+      "field_of_view": { "passed": true, "score": 0.89, "details": "Aperture coverage: 65.2%" },
+      "dimensions": { "passed": true, "score": 1.0, "details": "Resolution 512x512 meets requirements" }
+    },
+    "decision": "ANALYZE",
+    "reason": null,
+    "instructions": null
+  },
+  "prediction": {
+    "class": "Moderate",
+    "predicted_class": "Moderate",
+    "class_index": 2,
+    "confidence": 0.84,
+    "probabilities": {
+      "No DR": 0.02,
+      "Mild": 0.07,
+      "Moderate": 0.84,
+      "Severe": 0.05,
+      "Proliferative DR": 0.02
+    },
+    "model_version": "0.1.0",
+    "inference_time_ms": 24.3
+  },
+  "reliability": {
+    "status": "ANALYZE",
+    "score": 0.83,
+    "confidence": 0.84,
+    "margin": 0.77,
+    "entropy": 0.82,
+    "message": "The screening result indicates that further assessment may be appropriate. This result is not a diagnosis. Please consult a healthcare professional.",
+    "reason": "Prediction confidence, margin, and entropy satisfy clinical reliability thresholds."
+  },
+  "explainability": {
+    "available": true,
+    "heatmap_url": "data:image/jpeg;base64,...",
+    "overlay_url": "data:image/jpeg;base64,...",
+    "reason": null
+  },
+  "model": {
+    "name": "EfficientNet-B3",
+    "version": "0.1.0",
+    "classes": ["No DR", "Mild", "Moderate", "Severe", "Proliferative DR"]
+  },
+  "safety_notice": "The screening result indicates that further assessment may be appropriate. This result is not a diagnosis. Please consult a healthcare professional.",
+  "processing_time_ms": 78.4
+}
+```
 
 

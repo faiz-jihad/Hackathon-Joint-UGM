@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AppHeader } from '../components/AppHeader';
+import { AdminSidebar } from '../components/AdminSidebar';
+import { AdminTopBar } from '../components/AdminTopBar';
 import { DisclaimerBanner } from '../components/DisclaimerBanner';
 import { DashboardView } from '../components/DashboardView';
 import { ScreeningWorkflowView } from '../components/ScreeningWorkflowView';
@@ -17,13 +18,19 @@ export default function HomePage() {
   const [referralPatient, setReferralPatient] = useState<string>('Bambang Sudarmono');
   const [screeningNik, setScreeningNik] = useState<string>('3404071203720001');
   const [pendingReviewCount, setPendingReviewCount] = useState<number>(0);
+  const [patientCount, setPatientCount] = useState<number>(0);
 
   const refreshCounts = () => {
     setPendingReviewCount(clinicalStore.getPendingReviews().length);
+    setPatientCount(clinicalStore.getPatients().length);
   };
 
   useEffect(() => {
     refreshCounts();
+    const unsubscribe = clinicalStore.subscribe(() => {
+      refreshCounts();
+    });
+    return () => unsubscribe();
   }, [activeTab]);
 
   const handleOpenReview = (screeningId: string) => {
@@ -42,70 +49,79 @@ export default function HomePage() {
   };
 
   return (
-    <div className="app-container">
-      <AppHeader
+    <div className="admin-shell">
+      {/* Left Fixed Admin Sidebar */}
+      <AdminSidebar
         activeTab={activeTab}
         onTabChange={(tab) => {
           setActiveTab(tab);
           refreshCounts();
         }}
         reviewCount={pendingReviewCount}
+        patientCount={patientCount}
       />
-      <DisclaimerBanner />
 
-      <main className="main-content">
-        {activeTab === 'dashboard' && (
-          <DashboardView
-            onStartScreening={() => setActiveTab('screening')}
-            onOpenReview={handleOpenReview}
-          />
-        )}
+      {/* Right Admin Viewport */}
+      <div className="admin-viewport">
+        <AdminTopBar
+          activeTab={activeTab}
+          onStartScreening={() => setActiveTab('screening')}
+        />
 
-        {activeTab === 'screening' && (
-          <ScreeningWorkflowView
-            prefilledNik={screeningNik}
-            onGoToReview={handleOpenReview}
-            onGoToReferrals={handleGoToReferrals}
-          />
-        )}
+        <DisclaimerBanner />
 
-        {activeTab === 'review' && (
-          <OphthalmologistReviewView
-            screeningId={selectedScreeningId}
-            onAdjudicationSaved={() => {
-              refreshCounts();
-              setActiveTab('dashboard');
-            }}
-          />
-        )}
+        <main className="admin-scrollable-content">
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              onStartScreening={() => setActiveTab('screening')}
+              onOpenReview={handleOpenReview}
+            />
+          )}
 
-        {activeTab === 'patients' && (
-          <PatientsDirectoryView
-            onStartScreeningForPatient={handleStartScreeningForPatient}
-          />
-        )}
+          {activeTab === 'screening' && (
+            <ScreeningWorkflowView
+              prefilledNik={screeningNik}
+              onGoToReview={handleOpenReview}
+              onGoToReferrals={handleGoToReferrals}
+            />
+          )}
 
-        {activeTab === 'referrals' && (
-          <ReferralsFacilityView
-            initialPatientName={referralPatient}
-          />
-        )}
+          {activeTab === 'review' && (
+            <OphthalmologistReviewView
+              screeningId={selectedScreeningId}
+              onAdjudicationSaved={() => {
+                refreshCounts();
+                setActiveTab('dashboard');
+              }}
+            />
+          )}
 
-        {activeTab === 'audit' && (
-          <AuditRegistryView />
-        )}
-      </main>
+          {activeTab === 'patients' && (
+            <PatientsDirectoryView
+              onStartScreeningForPatient={handleStartScreeningForPatient}
+            />
+          )}
 
-      <footer style={{ borderTop: '1px solid var(--border-subtle)', backgroundColor: '#ffffff', padding: '1.25rem 1.5rem', marginTop: 'auto' }}>
-        <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--slate-500)' }}>
-          <div>
-            <strong>RETIVA v1.0.0</strong> — Platform Skrining Retinopati Diabetik Nasional. Dikembangkan sesuai Standar Pelayanan Kedokteran Perdami & Konsensus ADA 2024.
-          </div>
-          <div>
-            Kepatuhan Keamanan Data: Permenkes No. 24 Tahun 2022 &amp; UU Perlindungan Data Pribadi No. 27 Tahun 2022.
-          </div>
-        </div>
-      </footer>
+          {activeTab === 'referrals' && (
+            <ReferralsFacilityView
+              initialPatientName={referralPatient}
+            />
+          )}
+
+          {activeTab === 'audit' && (
+            <AuditRegistryView />
+          )}
+
+          <footer style={{ marginTop: '2.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.725rem', color: 'var(--slate-500)' }}>
+            <div>
+              <strong>RETIVA Clinical Admin v1.0.0</strong> — Sistem Pendukung Keputusan Klinis Skrining Retinopati Diabetik.
+            </div>
+            <div>
+              Standar Regulasi: Permenkes No. 24/2022 &amp; UU PDP No. 27/2022 • Interoperabilitas SatuSehat.
+            </div>
+          </footer>
+        </main>
+      </div>
     </div>
   );
 }
