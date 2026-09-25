@@ -38,7 +38,7 @@ class TFLiteModel(BaseModelInterface):
                 self.interpreter.allocate_tensors()
                 logger.info("Loaded TFLite model using tensorflow from %s", self.model_path)
             except Exception as e:
-                logger.warning("Could not load TFLite interpreter: %s. Using Mock model.", e)
+                logger.warning("Could not load TFLite interpreter from %s: %s", self.model_path, e)
                 self.interpreter = None
 
     def predict(self, input_tensor: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray]]:
@@ -47,14 +47,23 @@ class TFLiteModel(BaseModelInterface):
         input_details = self.interpreter.get_input_details()
         output_details = self.interpreter.get_output_details()
 
+        # Handle NCHW vs NHWC tensor shapes
+        expected_shape = input_details[0]['shape']
+        if len(expected_shape) == 4 and expected_shape[1] == 3 and input_tensor.shape[-1] == 3:
+            feed_tensor = np.transpose(input_tensor, (0, 3, 1, 2))
+        else:
+            feed_tensor = input_tensor
+
         # Handle quantization if uint8/int8
         if input_details[0]['dtype'] == np.uint8:
-            input_scale, input_zero_point = input_details[0]['quantization']
-            input_tensor = (input_tensor / input_scale + input_zero_point).astype(np.uint8)
+            input_scale, input_zero_point = input_details[0].get('quantization', (1.0, 0))
+            if input_scale == 0:
+                input_scale = 1.0
+            feed_tensor = (feed_tensor / input_scale + input_zero_point).astype(np.uint8)
         else:
-            input_tensor = input_tensor.astype(np.float32)
+            feed_tensor = feed_tensor.astype(np.float32)
 
-        self.interpreter.set_tensor(input_details[0]['index'], input_tensor)
+        self.interpreter.set_tensor(input_details[0]['index'], feed_tensor)
         self.interpreter.invoke()
         output_data = self.interpreter.get_tensor(output_details[0]['index'])[0]
 
@@ -65,29 +74,86 @@ class TFLiteModel(BaseModelInterface):
         else:
             probs = output_data
 
-        return probs, None
+        # Extract intermediate feature map for Grad-CAM if available from multi-output graph
+        feature_map = None
+        if len(output_details) > 1:
+            try:
+                feature_map = self.interpreter.get_tensor(output_details[1]['index'])[0]
+            except Exception:
+                feature_map = None
+
+        return probs, feature_map
 
 class PyTorchModel(BaseModelInterface):
-    """PyTorch model loader if model.pt or model.pth is provided."""
+    """
+    Robust PyTorch model loader supporting:
+    - TorchScript models (*.pt)
+    - Full nn.Module checkpoints (*.pt, *.pth)
+    - State dictionaries (state_dict / OrderedDict)
+    - Convolutional feature map hooks for Grad-CAM explainability
+    """
     def __init__(self, model_path: str):
         self.model_path = model_path
         self.model = None
+        self.device = None
+        self.last_feature_map: Optional[np.ndarray] = None
         self._load()
 
     def _load(self):
         try:
             import torch
-            self.torch = torch
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            loaded = None
+
+            # 1. Try loading as TorchScript first
             try:
-                # First try torchscript
-                self.model = torch.jit.load(self.model_path, map_location=self.device)
+                loaded = torch.jit.load(self.model_path, map_location=self.device)
             except Exception:
-                # Try standard torch.load
-                self.model = torch.load(self.model_path, map_location=self.device)
-            if hasattr(self.model, "eval"):
+                # 2. Try torch.load (compatible with PyTorch 2.4+ and 2.6+ weights_only)
+                try:
+                    loaded = torch.load(self.model_path, map_location=self.device, weights_only=False)
+                except TypeError:
+                    loaded = torch.load(self.model_path, map_location=self.device)
+
+            # 3. Handle loaded object
+            if isinstance(loaded, torch.nn.Module):
+                self.model = loaded
+            elif isinstance(loaded, dict):
+                # Loaded is a state_dict; construct torchvision EfficientNet-B3 architecture
+                try:
+                    import torchvision.models as models
+                    net = models.efficientnet_b3(weights=None)
+                    # Replace classification head with 5-class linear layer
+                    in_features = net.classifier[1].in_features
+                    net.classifier[1] = torch.nn.Linear(in_features, 5)
+
+                    state_dict = loaded.get('state_dict', loaded.get('model', loaded))
+                    # Remove 'module.' prefixes from DataParallel training
+                    clean_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
+                    net.load_state_dict(clean_dict, strict=False)
+                    self.model = net.to(self.device)
+                    logger.info("Instantiated torchvision EfficientNet-B3 and loaded state_dict.")
+                except Exception as ex_net:
+                    logger.warning("Could not construct EfficientNet-B3 for state_dict: %s", ex_net)
+                    self.model = None
+
+            if self.model is not None and hasattr(self.model, "eval"):
                 self.model.eval()
-            logger.info("Loaded PyTorch model from %s on device %s", self.model_path, self.device)
+
+                # Attach forward hook on the last feature layer for Grad-CAM
+                if hasattr(self.model, "features"):
+                    def _hook(module, inp, out):
+                        self.last_feature_map = out.detach().cpu().numpy()
+                    try:
+                        self.model.features.register_forward_hook(_hook)
+                    except Exception:
+                        pass
+
+                logger.info("Successfully initialized PyTorch model from %s on %s", self.model_path, self.device)
+            else:
+                logger.warning("PyTorch model object is invalid or uncallable from %s", self.model_path)
+                self.model = None
+
         except Exception as e:
             logger.warning("Could not load PyTorch model from %s: %s", self.model_path, e)
             self.model = None
@@ -96,16 +162,34 @@ class PyTorchModel(BaseModelInterface):
         if self.model is None:
             raise RuntimeError("PyTorch model is not initialized.")
         import torch
-        # input_tensor is (1, 300, 300, 3) -> transpose to (1, 3, 300, 300)
+
+        # input_tensor is NHWC shape (1, 300, 300, 3) in [0.0, 1.0]
+        # Transpose to NCHW: (1, 3, 300, 300)
         tensor = torch.from_numpy(input_tensor).permute(0, 3, 1, 2).float().to(self.device)
+
+        # Apply standard ImageNet normalization
+        mean = torch.tensor([0.485, 0.456, 0.406], device=self.device).view(1, 3, 1, 1)
+        std = torch.tensor([0.229, 0.224, 0.225], device=self.device).view(1, 3, 1, 1)
+        norm_tensor = (tensor - mean) / std
+
+        self.last_feature_map = None
         with torch.no_grad():
-            output = self.model(tensor)
+            output = self.model(norm_tensor)
             if isinstance(output, tuple):
                 logits = output[0]
             else:
                 logits = output
             probs = torch.softmax(logits, dim=-1).squeeze(0).cpu().numpy()
-        return probs, None
+
+        # Format Grad-CAM feature map from hook if captured
+        feature_map = None
+        if self.last_feature_map is not None:
+            if self.last_feature_map.ndim == 4:  # (1, C, H, W) -> (H, W, C)
+                feature_map = np.transpose(self.last_feature_map[0], (1, 2, 0))
+            else:
+                feature_map = self.last_feature_map
+
+        return probs, feature_map
 
 class ONNXModel(BaseModelInterface):
     """ONNX Runtime model loader if model.onnx is provided."""
@@ -127,10 +211,10 @@ class ONNXModel(BaseModelInterface):
         if not self.session:
             raise RuntimeError("ONNX session is not initialized.")
         input_name = self.session.get_inputs()[0].name
-        # Check expected shape: NCHW or NHWC
         expected_shape = self.session.get_inputs()[0].shape
-        if len(expected_shape) == 4 and expected_shape[1] == 3:
-            # NCHW
+
+        # Check expected shape: NCHW or NHWC
+        if len(expected_shape) == 4 and expected_shape[1] == 3 and input_tensor.shape[-1] == 3:
             feed_tensor = np.transpose(input_tensor, (0, 3, 1, 2)).astype(np.float32)
         else:
             feed_tensor = input_tensor.astype(np.float32)
@@ -142,7 +226,16 @@ class ONNXModel(BaseModelInterface):
             probs = exp_vals / np.sum(exp_vals)
         else:
             probs = output_data
-        return probs, None
+
+        feature_map = None
+        if len(outputs) > 1:
+            raw_feat = outputs[1][0]
+            if raw_feat.ndim == 3 and raw_feat.shape[0] > 16:  # C, H, W -> H, W, C
+                feature_map = np.transpose(raw_feat, (1, 2, 0))
+            else:
+                feature_map = raw_feat
+
+        return probs, feature_map
 
 class MockEfficientNetB3(BaseModelInterface):
     """
