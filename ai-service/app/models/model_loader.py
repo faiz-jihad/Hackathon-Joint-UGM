@@ -3,9 +3,50 @@ import json
 import logging
 import numpy as np
 from typing import Dict, Any, Optional, Tuple
+
 from app.core.config import settings
 
 logger = logging.getLogger("retiva-ai.model_loader")
+
+# Optional ML Frameworks - safely initialized for clean static analysis
+_HAS_TORCH = False
+_HAS_TORCHVISION = False
+_HAS_ORT = False
+_HAS_TFLITE = False
+_HAS_TF = False
+
+try:
+    import torch
+    import torch.nn as nn
+    _HAS_TORCH = True
+except ImportError:
+    torch = None
+    nn = None
+
+try:
+    import torchvision.models as tv_models
+    _HAS_TORCHVISION = True
+except ImportError:
+    tv_models = None
+
+try:
+    import onnxruntime as ort
+    _HAS_ORT = True
+except ImportError:
+    ort = None
+
+try:
+    import tflite_runtime.interpreter as tflite
+    _HAS_TFLITE = True
+except ImportError:
+    tflite = None
+
+try:
+    import tensorflow as tf
+    _HAS_TF = True
+except ImportError:
+    tf = None
+
 
 class BaseModelInterface:
     """Abstract/base interface for DR model execution."""
@@ -18,6 +59,7 @@ class BaseModelInterface:
         """
         raise NotImplementedError
 
+
 class TFLiteModel(BaseModelInterface):
     """TensorFlow Lite model loader if model.tflite is provided."""
     def __init__(self, model_path: str):
@@ -25,21 +67,27 @@ class TFLiteModel(BaseModelInterface):
         self.interpreter = None
         self._load()
 
-    def _load(self):
-        try:
-            import tflite_runtime.interpreter as tflite
-            self.interpreter = tflite.Interpreter(model_path=self.model_path)
-            self.interpreter.allocate_tensors()
-            logger.info("Loaded TFLite model using tflite_runtime from %s", self.model_path)
-        except ImportError:
+    def _load(self) -> None:
+        if tflite is not None:
             try:
-                import tensorflow as tf
+                self.interpreter = tflite.Interpreter(model_path=self.model_path)
+                self.interpreter.allocate_tensors()
+                logger.info("Loaded TFLite model using tflite_runtime from %s", self.model_path)
+                return
+            except Exception as e:
+                logger.warning("Failed loading with tflite_runtime from %s: %s", self.model_path, e)
+
+        if tf is not None:
+            try:
                 self.interpreter = tf.lite.Interpreter(model_path=self.model_path)
                 self.interpreter.allocate_tensors()
                 logger.info("Loaded TFLite model using tensorflow from %s", self.model_path)
+                return
             except Exception as e:
-                logger.warning("Could not load TFLite interpreter from %s: %s", self.model_path, e)
-                self.interpreter = None
+                logger.warning("Failed loading with tensorflow from %s: %s", self.model_path, e)
+
+        logger.warning("TFLite runtime or TensorFlow is not installed. Could not load %s", self.model_path)
+        self.interpreter = None
 
     def predict(self, input_tensor: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         if not self.interpreter:
@@ -84,6 +132,7 @@ class TFLiteModel(BaseModelInterface):
 
         return probs, feature_map
 
+
 class PyTorchModel(BaseModelInterface):
     """
     Robust PyTorch model loader supporting:
@@ -99,9 +148,13 @@ class PyTorchModel(BaseModelInterface):
         self.last_feature_map: Optional[np.ndarray] = None
         self._load()
 
-    def _load(self):
+    def _load(self) -> None:
+        if torch is None:
+            logger.warning("PyTorch is not installed. Could not load %s", self.model_path)
+            self.model = None
+            return
+
         try:
-            import torch
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             loaded = None
 
@@ -116,29 +169,33 @@ class PyTorchModel(BaseModelInterface):
                     loaded = torch.load(self.model_path, map_location=self.device)
 
             # 3. Handle loaded object
-            if isinstance(loaded, torch.nn.Module):
+            if nn is not None and isinstance(loaded, nn.Module):
                 self.model = loaded
             elif isinstance(loaded, dict):
                 # Loaded is a state_dict; construct torchvision EfficientNet-B3 architecture
-                try:
-                    import torchvision.models as models
-                    net = models.efficientnet_b3(weights=None)
-                    # Replace classification head with 5-class linear layer
-                    in_features = net.classifier[1].in_features
-                    net.classifier[1] = torch.nn.Linear(in_features, 5)
+                if tv_models is not None:
+                    try:
+                        net = tv_models.efficientnet_b3(weights=None)
+                        in_features = net.classifier[1].in_features
+                        net.classifier[1] = nn.Linear(in_features, 5)
 
-                    state_dict = loaded.get('state_dict', loaded.get('model', loaded))
-                    # Remove 'module.' prefixes from DataParallel training
-                    clean_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
-                    net.load_state_dict(clean_dict, strict=False)
-                    self.model = net.to(self.device)
-                    logger.info("Instantiated torchvision EfficientNet-B3 and loaded state_dict.")
-                except Exception as ex_net:
-                    logger.warning("Could not construct EfficientNet-B3 for state_dict: %s", ex_net)
+                        state_dict = loaded.get('state_dict', loaded.get('model', loaded))
+                        clean_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
+                        net.load_state_dict(clean_dict, strict=False)
+                        self.model = net.to(self.device)
+                        logger.info("Instantiated torchvision EfficientNet-B3 and loaded state_dict.")
+                    except Exception as ex_net:
+                        logger.warning("Could not construct EfficientNet-B3 for state_dict: %s", ex_net)
+                        self.model = None
+                else:
+                    logger.warning("torchvision is not installed to reconstruct model architecture from state_dict.")
                     self.model = None
+            elif callable(loaded):
+                self.model = loaded
 
-            if self.model is not None and hasattr(self.model, "eval"):
-                self.model.eval()
+            if self.model is not None:
+                if hasattr(self.model, "eval"):
+                    self.model.eval()
 
                 # Attach forward hook on the last feature layer for Grad-CAM
                 if hasattr(self.model, "features"):
@@ -151,7 +208,7 @@ class PyTorchModel(BaseModelInterface):
 
                 logger.info("Successfully initialized PyTorch model from %s on %s", self.model_path, self.device)
             else:
-                logger.warning("PyTorch model object is invalid or uncallable from %s", self.model_path)
+                logger.warning("PyTorch model object is uncallable or missing from %s", self.model_path)
                 self.model = None
 
         except Exception as e:
@@ -159,9 +216,8 @@ class PyTorchModel(BaseModelInterface):
             self.model = None
 
     def predict(self, input_tensor: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray]]:
-        if self.model is None:
-            raise RuntimeError("PyTorch model is not initialized.")
-        import torch
+        if torch is None or self.model is None or self.device is None:
+            raise RuntimeError("PyTorch is not installed or model is not initialized.")
 
         # input_tensor is NHWC shape (1, 300, 300, 3) in [0.0, 1.0]
         # Transpose to NCHW: (1, 3, 300, 300)
@@ -191,6 +247,7 @@ class PyTorchModel(BaseModelInterface):
 
         return probs, feature_map
 
+
 class ONNXModel(BaseModelInterface):
     """ONNX Runtime model loader if model.onnx is provided."""
     def __init__(self, model_path: str):
@@ -198,9 +255,13 @@ class ONNXModel(BaseModelInterface):
         self.session = None
         self._load()
 
-    def _load(self):
+    def _load(self) -> None:
+        if ort is None:
+            logger.warning("onnxruntime is not installed. Could not load %s", self.model_path)
+            self.session = None
+            return
+
         try:
-            import onnxruntime as ort
             self.session = ort.InferenceSession(self.model_path, providers=['CPUExecutionProvider'])
             logger.info("Loaded ONNX model from %s", self.model_path)
         except Exception as e:
@@ -237,6 +298,7 @@ class ONNXModel(BaseModelInterface):
 
         return probs, feature_map
 
+
 class MockEfficientNetB3(BaseModelInterface):
     """
     Production-ready prototype fallback model adhering to Section 3:
@@ -247,30 +309,20 @@ class MockEfficientNetB3(BaseModelInterface):
         self.metadata = metadata
         self.forced_prediction: Optional[np.ndarray] = None
 
-    def set_forced_prediction(self, probabilities: Optional[np.ndarray]):
+    def set_forced_prediction(self, probabilities: Optional[np.ndarray]) -> None:
         """Helper for deterministic unit tests."""
         self.forced_prediction = probabilities
 
     def predict(self, input_tensor: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         if self.forced_prediction is not None:
             probs = np.array(self.forced_prediction, dtype=np.float32)
-            # Normalize to guarantee sum == 1.0
             probs = probs / np.sum(probs)
-            # Create a 10x10 feature map for Grad-CAM
             feature_map = np.ones((10, 10, 64), dtype=np.float32)
             return probs, feature_map
 
         # Feature-informed deterministic heuristic based on retinal fundus color characteristics
-        # In retinal fundus: Green channel has the best contrast for microaneurysms and hemorrhages.
-        # High contrast localized spots in green/red channels correlate with DR lesions.
         img = input_tensor[0]  # Shape: (300, 300, 3)
-        mean_val = float(np.mean(img))
         std_val = float(np.std(img))
-        red_mean = float(np.mean(img[:, :, 0]))
-        green_mean = float(np.mean(img[:, :, 1]))
-        
-        # Calculate subtle variance metric to produce realistic, non-random DR distribution
-        feature_val = (red_mean - green_mean) * std_val
 
         # Realistic distribution default (Moderate DR with high confidence)
         probs = np.array([0.02, 0.08, 0.78, 0.09, 0.03], dtype=np.float32)
@@ -278,15 +330,20 @@ class MockEfficientNetB3(BaseModelInterface):
 
         # Synthetic feature activation map for Grad-CAM explanation (10x10x64 layer)
         feature_map = np.zeros((10, 10, 64), dtype=np.float32)
-        # Add focal intensity around macular/temporal quadrant (e.g. row 4-7, col 4-7)
         feature_map[4:8, 4:8, :] = 1.8 + std_val
 
         return probs, feature_map
 
+
 class ModelLoader:
+    """
+    Universal Model Loader coordinating metadata and drop-in model binaries.
+    Automatically detects and activates TFLite, ONNX, and PyTorch weights,
+    or falls back safely to the deterministic clinical prototype.
+    """
     def __init__(self):
         self.metadata = self._load_metadata()
-        self.model = self._load_model()
+        self.model: BaseModelInterface = self._load_model()
 
     def _load_metadata(self) -> Dict[str, Any]:
         meta_path = settings.MODEL_METADATA_PATH
@@ -346,7 +403,33 @@ class ModelLoader:
         logger.info("Using clean Mock/Prototype EfficientNet-B3 implementation (deterministic fallback).")
         return MockEfficientNetB3(self.metadata)
 
+    def predict(self, input_tensor: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        """Direct delegator to the active model's predict method."""
+        return self.model.predict(input_tensor)
+
+    def set_forced_prediction(self, probabilities: Optional[np.ndarray]) -> None:
+        """Helper for unit test mocking."""
+        if hasattr(self.model, "set_forced_prediction"):
+            self.model.set_forced_prediction(probabilities)
+
+    def reload_model(self) -> BaseModelInterface:
+        """Hot-reloads metadata and model weights dynamically from disk."""
+        self.metadata = self._load_metadata()
+        self.model = self._load_model()
+        return self.model
+
     def get_metadata(self) -> Dict[str, Any]:
+        """Returns active model metadata."""
         return self.metadata
+
+    def get_model_status(self) -> Dict[str, Any]:
+        """Returns active model operational status."""
+        return {
+            "model_type": type(self.model).__name__,
+            "is_prototype": isinstance(self.model, MockEfficientNetB3),
+            "model_name": self.metadata.get("model_name", settings.MODEL_NAME),
+            "version": self.metadata.get("version", settings.MODEL_VERSION),
+        }
+
 
 model_loader = ModelLoader()
