@@ -67,6 +67,83 @@ class TFLiteModel(BaseModelInterface):
 
         return probs, None
 
+class PyTorchModel(BaseModelInterface):
+    """PyTorch model loader if model.pt or model.pth is provided."""
+    def __init__(self, model_path: str):
+        self.model_path = model_path
+        self.model = None
+        self._load()
+
+    def _load(self):
+        try:
+            import torch
+            self.torch = torch
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            try:
+                # First try torchscript
+                self.model = torch.jit.load(self.model_path, map_location=self.device)
+            except Exception:
+                # Try standard torch.load
+                self.model = torch.load(self.model_path, map_location=self.device)
+            if hasattr(self.model, "eval"):
+                self.model.eval()
+            logger.info("Loaded PyTorch model from %s on device %s", self.model_path, self.device)
+        except Exception as e:
+            logger.warning("Could not load PyTorch model from %s: %s", self.model_path, e)
+            self.model = None
+
+    def predict(self, input_tensor: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        if self.model is None:
+            raise RuntimeError("PyTorch model is not initialized.")
+        import torch
+        # input_tensor is (1, 300, 300, 3) -> transpose to (1, 3, 300, 300)
+        tensor = torch.from_numpy(input_tensor).permute(0, 3, 1, 2).float().to(self.device)
+        with torch.no_grad():
+            output = self.model(tensor)
+            if isinstance(output, tuple):
+                logits = output[0]
+            else:
+                logits = output
+            probs = torch.softmax(logits, dim=-1).squeeze(0).cpu().numpy()
+        return probs, None
+
+class ONNXModel(BaseModelInterface):
+    """ONNX Runtime model loader if model.onnx is provided."""
+    def __init__(self, model_path: str):
+        self.model_path = model_path
+        self.session = None
+        self._load()
+
+    def _load(self):
+        try:
+            import onnxruntime as ort
+            self.session = ort.InferenceSession(self.model_path, providers=['CPUExecutionProvider'])
+            logger.info("Loaded ONNX model from %s", self.model_path)
+        except Exception as e:
+            logger.warning("Could not load ONNX session from %s: %s", self.model_path, e)
+            self.session = None
+
+    def predict(self, input_tensor: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        if not self.session:
+            raise RuntimeError("ONNX session is not initialized.")
+        input_name = self.session.get_inputs()[0].name
+        # Check expected shape: NCHW or NHWC
+        expected_shape = self.session.get_inputs()[0].shape
+        if len(expected_shape) == 4 and expected_shape[1] == 3:
+            # NCHW
+            feed_tensor = np.transpose(input_tensor, (0, 3, 1, 2)).astype(np.float32)
+        else:
+            feed_tensor = input_tensor.astype(np.float32)
+
+        outputs = self.session.run(None, {input_name: feed_tensor})
+        output_data = outputs[0][0]
+        if np.min(output_data) < 0 or np.max(output_data) > 1.0 or not np.isclose(np.sum(output_data), 1.0, atol=0.05):
+            exp_vals = np.exp(output_data - np.max(output_data))
+            probs = exp_vals / np.sum(exp_vals)
+        else:
+            probs = output_data
+        return probs, None
+
 class MockEfficientNetB3(BaseModelInterface):
     """
     Production-ready prototype fallback model adhering to Section 3:
@@ -141,12 +218,39 @@ class ModelLoader:
 
     def _load_model(self) -> BaseModelInterface:
         model_path = settings.MODEL_PATH
-        if os.path.exists(model_path):
-            tflite_model = TFLiteModel(model_path)
-            if tflite_model.interpreter is not None:
-                return tflite_model
+        
+        # Check explicit path first
+        candidates = [model_path]
+        
+        # Also check common default paths in the model directory
+        model_dir = os.path.dirname(model_path) or "models/efficientnet_b3"
+        candidates.extend([
+            os.path.join(model_dir, "model.tflite"),
+            os.path.join(model_dir, "model.onnx"),
+            os.path.join(model_dir, "model.pt"),
+            os.path.join(model_dir, "model.pth"),
+        ])
 
-        logger.info("Using clean Mock/Prototype EfficientNet-B3 implementation.")
+        for candidate in candidates:
+            if candidate and os.path.exists(candidate):
+                ext = os.path.splitext(candidate)[1].lower()
+                if ext == ".tflite":
+                    tflite_model = TFLiteModel(candidate)
+                    if tflite_model.interpreter is not None:
+                        logger.info("Successfully activated TFLite model: %s", candidate)
+                        return tflite_model
+                elif ext == ".onnx":
+                    onnx_model = ONNXModel(candidate)
+                    if onnx_model.session is not None:
+                        logger.info("Successfully activated ONNX model: %s", candidate)
+                        return onnx_model
+                elif ext in (".pt", ".pth"):
+                    pytorch_model = PyTorchModel(candidate)
+                    if pytorch_model.model is not None:
+                        logger.info("Successfully activated PyTorch model: %s", candidate)
+                        return pytorch_model
+
+        logger.info("Using clean Mock/Prototype EfficientNet-B3 implementation (deterministic fallback).")
         return MockEfficientNetB3(self.metadata)
 
     def get_metadata(self) -> Dict[str, Any]:
