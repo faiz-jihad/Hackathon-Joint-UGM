@@ -1,8 +1,8 @@
 import { UserRepository } from "@/domain/auth/user.repository";
-import { User, UserRole } from "@/domain/auth/user.entity";
+import { User, UserRole, normalizeUserRole, formatRoleDisplayName } from "@/domain/auth/user.entity";
 import { PasswordHasher } from "@/domain/auth/password-hasher.interface";
 import { TokenService, TokenPayload } from "@/domain/auth/token-service.interface";
-import { ConflictError, UnauthorizedError, NotFoundError } from "@/domain/common/errors";
+import { ConflictError, UnauthorizedError, NotFoundError, ForbiddenError } from "@/domain/common/errors";
 
 export interface RegisterDTO {
   email: string;
@@ -11,11 +11,13 @@ export interface RegisterDTO {
   role?: UserRole;
   phoneNumber?: string;
   facilityId?: string;
+  nik?: string;
 }
 
 export interface LoginDTO {
   email: string;
   password: string;
+  role?: UserRole;
 }
 
 export interface AuthResponseDTO {
@@ -80,16 +82,69 @@ export class AuthService {
   async login(dto: LoginDTO): Promise<AuthResponseDTO> {
     const user = await this.userRepository.findByEmail(dto.email);
     if (!user) {
-      throw new UnauthorizedError("Invalid email or password.");
+      throw new NotFoundError("Akun belum terdaftar di sistem RETIVA.", dto.email);
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedError("User account is inactive. Please contact administrator.");
+      throw new UnauthorizedError("Akun dinonaktifkan. Silakan hubungi administrator.");
+    }
+
+    const targetRole = normalizeUserRole(dto.role);
+    if (targetRole && user.role !== targetRole) {
+      throw new ForbiddenError(
+        `Akun ini memiliki peran ${formatRoleDisplayName(user.role)}, bukan ${formatRoleDisplayName(targetRole)}.`
+      );
     }
 
     const isValid = await this.passwordHasher.compare(dto.password, user.passwordHash);
     if (!isValid) {
-      throw new UnauthorizedError("Invalid email or password.");
+      throw new UnauthorizedError("Kata sandi yang Anda masukkan salah.");
+    }
+
+    const tokenPayload: TokenPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      facilityId: user.facilityId,
+    };
+
+    const token = this.tokenService.generateToken(tokenPayload);
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        facilityId: user.facilityId,
+      },
+    };
+  }
+
+  async loginWithGoogleProfile(profile: {
+    email: string;
+    fullName: string;
+    role?: UserRole;
+    facilityId?: string;
+  }): Promise<AuthResponseDTO> {
+    const user = await this.userRepository.findByEmail(profile.email);
+
+    if (!user) {
+      throw new UnauthorizedError(
+        `Email ${profile.email} belum terdaftar di sistem RETIVA. Silakan daftar terlebih dahulu atau gunakan email yang terdaftar.`
+      );
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedError("Akun dinonaktifkan. Silakan hubungi administrator.");
+    }
+
+    const targetRole = normalizeUserRole(profile.role);
+    if (targetRole && user.role !== targetRole) {
+      throw new ForbiddenError(
+        `Akun ini memiliki peran ${formatRoleDisplayName(user.role)}, bukan ${formatRoleDisplayName(targetRole)}.`
+      );
     }
 
     const tokenPayload: TokenPayload = {

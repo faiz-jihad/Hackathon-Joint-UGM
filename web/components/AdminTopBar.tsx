@@ -1,14 +1,35 @@
 import React from 'react';
-import { ShieldCheckIcon, EyeIcon, CheckIcon } from './Icons';
+import { AdminNotificationCenter } from './AdminNotificationCenter';
+import { UserIcon } from './Icons';
 
 interface AdminTopBarProps {
   activeTab: string;
   onStartScreening: () => void;
+  onSwitchCharacter?: () => void;
+  onLogout?: () => void;
+  onNavigateTab?: (tab: string) => void;
+  currentRole?: 'admin' | 'dokter' | 'pengguna' | null;
+  currentUser?: {
+    fullName?: string;
+    email?: string;
+    role?: string;
+  } | null;
 }
 
-export function AdminTopBar({ activeTab, onStartScreening }: AdminTopBarProps) {
+export function AdminTopBar({
+  activeTab,
+  onStartScreening,
+  onSwitchCharacter,
+  onLogout,
+  onNavigateTab,
+  currentRole = 'admin',
+  currentUser,
+}: AdminTopBarProps) {
   const titles: Record<string, { section: string; title: string }> = {
     dashboard: { section: 'Alur Skrining', title: 'Dashboard & Antrean Aktif' },
+    users: { section: 'Master Data', title: 'Daftar Pengguna' },
+    roles: { section: 'Master Data', title: 'Data Master Role & Hak Akses' },
+    'doctor-verification': { section: 'Verifikasi', title: 'Verifikasi Akun Dokter' },
     screening: { section: 'Alur Skrining', title: 'Skrining Baru Bilateral (OD/OS)' },
     review: { section: 'Alur Skrining', title: 'Portal Telaah Spesialis Mata & Grad-CAM' },
     patients: { section: 'Manajemen Rekam Medis', title: 'Direktori Pasien & Riwayat Longitudinal' },
@@ -26,30 +47,42 @@ export function AdminTopBar({ activeTab, onStartScreening }: AdminTopBarProps) {
         <span className="admin-breadcrumb-current">{current.title}</span>
       </div>
 
-      <div className="admin-topbar-actions">
-        {/* Compliance Badge */}
-        <div className="header-status-badge" style={{ backgroundColor: 'var(--slate-50)' }}>
-          <ShieldCheckIcon size={14} style={{ color: 'var(--brand-700)' }} />
-          <span>Perdami &amp; ADA 2024</span>
-        </div>
+      {/* Topbar Right Actions: Notification Center & Profile */}
+      <div className="admin-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        {/* Central Notification Bell Component */}
+        <AdminNotificationCenter onNavigateTab={onNavigateTab} />
 
-        {/* System Health */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--slate-600)', padding: '0.35rem 0.65rem', backgroundColor: 'var(--status-pass-bg)', border: '1px solid var(--status-pass-border)', borderRadius: '9999px' }}>
-          <CheckIcon size={12} style={{ color: 'var(--status-pass-text)' }} />
-          <span style={{ fontWeight: 600, color: 'var(--status-pass-text)' }}>Sistem Normal</span>
-        </div>
-
-        {/* Quick Screening CTA */}
-        {activeTab !== 'screening' && (
+        {/* User Profile Avatar */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            paddingLeft: '0.75rem',
+            borderLeft: '1px solid #E2E8F0',
+          }}
+        >
           <button
             type="button"
-            className="btn btn-primary btn-sm"
-            onClick={onStartScreening}
+            onClick={onSwitchCharacter || onLogout}
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '50%',
+              backgroundColor: '#E3F2FD',
+              border: '1.5px solid #BBDEFB',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#0D47A1',
+              cursor: onSwitchCharacter || onLogout ? 'pointer' : 'default',
+              transition: 'all 0.2s ease',
+              padding: 0,
+            }}
+            title={currentUser?.email ? `Akun: ${currentUser.email}` : 'Profil Pengguna'}
           >
-            <EyeIcon size={14} />
-            <span>+ Skrining Baru</span>
+            <UserIcon size={17} />
           </button>
-        )}
+        </div>
       </div>
     </header>
   );

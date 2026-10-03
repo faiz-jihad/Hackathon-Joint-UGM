@@ -29,16 +29,65 @@ model User {
   isActive     Boolean   @default(true) @map("is_active")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
 
   // Relations
-  patient           Patient?
-  facility          Facility?        @relation(fields: [facilityId], references: [id])
+  patient             Patient?
+  doctorVerification  DoctorVerification?
+  facility            Facility?        @relation(fields: [facilityId], references: [id])
   screeningsConducted Screening[]    @relation("ConductedScreenings")
   reviewsConducted   HumanReview[]   @relation("OphthalmologistReviews")
   auditLogs         AuditLog[]       @relation("UserAuditLogs")
   notifications     Notification[]
 
   @@map("users")
+}
+
+// ==========================================
+// 1.1 DOCTOR CREDENTIALS & VERIFICATION
+// ==========================================
+
+enum DoctorVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum KKICheckStatus {
+  MATCHED
+  UNVERIFIED
+  FAILED
+}
+
+model DoctorVerification {
+  id                String                   @id @default(uuid())
+  userId            String?                  @unique @map("user_id")
+  fullName          String                   @map("full_name")
+  email             String                   @map("email")
+  phoneNumber       String                   @map("phone_number")
+  sipNumber         String                   @map("sip_number")
+  strNumber         String                   @map("str_number")
+  primaryFacility   String                   @map("primary_facility")
+  subSpecialty      String                   @map("sub_specialty")
+  status            DoctorVerificationStatus @default(PENDING)
+  kkiCheck          KKICheckStatus           @default(UNVERIFIED) @map("kki_check")
+  verificationNotes String?                  @map("verification_notes")
+  verifiedBy        String?                  @map("verified_by")
+  verifiedAt        DateTime?                @map("verified_at")
+  strFileName       String?                  @map("str_file_name")
+  sipFileName       String?                  @map("sip_file_name")
+  strFileSize       String?                  @map("str_file_size")
+  sipFileSize       String?                  @map("sip_file_size")
+  strDataUrl        String?                  @map("str_data_url") @db.Text
+  sipDataUrl        String?                  @map("sip_data_url") @db.Text
+  submittedAt       DateTime                 @default(now()) @map("submitted_at")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+
+  // Relations
+  user              User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("doctor_verifications")
 }
 
 // ==========================================

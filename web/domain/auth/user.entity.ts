@@ -1,4 +1,18 @@
-export type UserRole = "PATIENT" | "HEALTHCARE_WORKER" | "OPHTHALMOLOGIST" | "ADMIN";
+export type UserRole = "PATIENT" | "HEALTHCARE_WORKER" | "OPHTHALMOLOGIST" | "ADMIN" | "DOKTER" | "PENGGUNA";
+
+export function normalizeUserRole(role?: UserRole | string): UserRole | undefined {
+  if (!role) return undefined;
+  if (role === "DOKTER") return "OPHTHALMOLOGIST";
+  if (role === "PENGGUNA") return "PATIENT";
+  return role as UserRole;
+}
+
+export function formatRoleDisplayName(role?: string): string {
+  if (!role) return "";
+  if (role === "OPHTHALMOLOGIST" || role === "DOKTER") return "DOKTER";
+  if (role === "PATIENT" || role === "PENGGUNA") return "PENGGUNA";
+  return role;
+}
 
 export interface UserProps {
   id: string;

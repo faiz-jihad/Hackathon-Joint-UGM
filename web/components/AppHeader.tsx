@@ -29,7 +29,7 @@ export function AppHeader({ activeTab, onTabChange, reviewCount = 5 }: AppHeader
             <div className="brand-tagline">Skrining Retinopati Diabetik Nasional</div>
           </div>
           <div className="header-status-badge">
-            <ShieldCheckIcon size={14} className="text-teal" />
+            <ShieldCheckIcon size={14} style={{ color: 'var(--brand-700)' }} />
             <span>Perdami & ADA 2024</span>
           </div>
         </div>

@@ -1,19 +1,17 @@
 import { z } from "zod";
 
 export const registerSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number"),
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  role: z.enum(["PATIENT", "HEALTHCARE_WORKER", "OPHTHALMOLOGIST", "ADMIN"]).optional(),
+  email: z.string().email("Format penulisan email tidak valid"),
+  password: z.string().min(6, "Password minimal 6 karakter"),
+  fullName: z.string().min(2, "Nama lengkap minimal 2 karakter"),
+  role: z.enum(["PATIENT", "HEALTHCARE_WORKER", "OPHTHALMOLOGIST", "ADMIN", "DOKTER", "PENGGUNA"]).optional(),
   phoneNumber: z.string().optional(),
   facilityId: z.string().uuid().optional(),
+  nik: z.string().optional(),
 });
 
 export const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email("Format penulisan email tidak valid"),
+  password: z.string().min(1, "Kata sandi wajib diisi"),
+  role: z.enum(["PATIENT", "HEALTHCARE_WORKER", "OPHTHALMOLOGIST", "ADMIN", "DOKTER", "PENGGUNA"]).optional(),
 });

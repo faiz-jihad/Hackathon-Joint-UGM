@@ -1,5 +1,5 @@
 import { UserRepository } from "@/domain/auth/user.repository";
-import { User, UserRole } from "@/domain/auth/user.entity";
+import { User, UserRole, normalizeUserRole } from "@/domain/auth/user.entity";
 import { prisma } from "../prisma/client";
 
 export class PrismaUserRepository implements UserRepository {
@@ -25,7 +25,7 @@ export class PrismaUserRepository implements UserRepository {
         id: user.id,
         email: user.email,
         passwordHash: user.passwordHash,
-        role: user.role,
+        role: (normalizeUserRole(user.role) || "PATIENT") as any,
         fullName: user.fullName,
         phoneNumber: user.phoneNumber,
         facilityId: user.facilityId,
@@ -41,7 +41,7 @@ export class PrismaUserRepository implements UserRepository {
       data: {
         email: user.email,
         passwordHash: user.passwordHash,
-        role: user.role,
+        role: (normalizeUserRole(user.role) || "PATIENT") as any,
         fullName: user.fullName,
         phoneNumber: user.phoneNumber,
         facilityId: user.facilityId,
