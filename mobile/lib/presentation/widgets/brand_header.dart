@@ -16,12 +16,9 @@ class BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          bottom: BorderSide(color: AppColors.border, width: 1),
-        ),
+        color: AppColors.background,
       ),
       child: SafeArea(
         bottom: false,
@@ -36,84 +33,77 @@ class BrandHeader extends StatelessWidget {
               ),
             if (showBack) const SizedBox(width: 12),
 
-            // Retiva Logo Icon (Eye / Retina Aperture symbol)
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primaryDark, AppColors.primaryLight],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            // Retiva Logo Image from Figma (Node 25:95)
+            Image.asset(
+              'assets/images/retiva_logo.png',
+              width: 40,
+              height: 32,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Container(
+                width: 38,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.figmaBlue,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.25),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.visibility,
-                color: Colors.white,
-                size: 22,
+                child: const Icon(Icons.visibility, color: Colors.white, size: 20),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
 
-            // App Title & Tagline
+            // App Title & Tagline (Figma Nodes 25:11 & 25:13)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'Retiva',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySurface,
-                          border: Border.all(color: AppColors.primaryLight.withOpacity(0.5)),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'v1.0',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primaryDark,
-                          ),
-                        ),
-                      ),
-                    ],
+                  const Text(
+                    'Retiva',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.figmaBlue,
+                      letterSpacing: -0.4,
+                      height: 1.25,
+                    ),
                   ),
                   const Text(
-                    'CDSS Skrining Retinopati Diabetik',
+                    'Ophthalmology AI Screening',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontFamily: 'Inter',
+                      fontSize: 10,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.textMuted,
+                      color: AppColors.figmaTextMuted,
+                      height: 1.0,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
 
-            if (trailing != null) trailing!,
+            if (trailing != null)
+              trailing!
+            else
+              // Figma Version Pill (Node 25:14)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.figmaBlueSurface,
+                  border: Border.all(color: const Color(0x332196F3), width: 1),
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: const Text(
+                  'v1.0',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.figmaBlue,
+                    height: 1.2,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

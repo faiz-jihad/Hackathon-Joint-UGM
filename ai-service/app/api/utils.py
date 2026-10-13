@@ -52,19 +52,60 @@ async def resolve_image_bytes(
                 detail="Form field 'image' is required and must be an image file."
             )
 
+        is_known_image_mime = (
+            hasattr(uploaded_file, "content_type")
+            and bool(uploaded_file.content_type)
+            and uploaded_file.content_type.startswith("image/")
+        )
+        is_octet_stream = (
+            hasattr(uploaded_file, "content_type")
+            and bool(uploaded_file.content_type)
+            and uploaded_file.content_type in ("application/octet-stream", "binary/octet-stream")
+        )
+        has_image_ext = False
+        if hasattr(uploaded_file, "filename") and uploaded_file.filename:
+            ext = os.path.splitext(uploaded_file.filename.lower())[1]
+            if ext in (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"):
+                has_image_ext = True
+
+        # Tolak jika tipe konten secara eksplisit bukan citra (mis. application/pdf, text/plain)
         if hasattr(uploaded_file, "content_type") and uploaded_file.content_type:
-            if not uploaded_file.content_type.startswith("image/"):
+            if not (is_known_image_mime or is_octet_stream or has_image_ext):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Uploaded file must be a valid image (JPEG, PNG, etc.)"
                 )
 
         file_bytes = await uploaded_file.read()
+        if not file_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded image file is empty."
+            )
+
         if len(file_bytes) > settings.MAX_IMAGE_SIZE_MB * 1024 * 1024:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=f"Image exceeds maximum allowable size of {settings.MAX_IMAGE_SIZE_MB}MB."
             )
+
+        # Standar Ketat Validasi Integritas Citra Medis (Magic bytes & decoding verification)
+        try:
+            with Image.open(io.BytesIO(file_bytes)) as pil_img:
+                pil_img.verify()
+                if pil_img.format not in ("JPEG", "PNG", "WEBP", "MPO", "TIFF", "BMP"):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Uploaded image format '{pil_img.format}' is unsupported. Allowed: JPEG, PNG."
+                    )
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file must be a valid image (JPEG, PNG, etc.)"
+            )
+
         return file_bytes, str(screening_id) if screening_id else None
 
     # 2. JSON Payload

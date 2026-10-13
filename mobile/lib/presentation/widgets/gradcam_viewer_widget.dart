@@ -1,16 +1,20 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
 class GradCamViewerWidget extends StatefulWidget {
   final File? originalImage;
+  final Uint8List? originalBytes;
   final String? originalBase64;
   final String? gradcamBase64;
 
   const GradCamViewerWidget({
     super.key,
     this.originalImage,
+    this.originalBytes,
     this.originalBase64,
     this.gradcamBase64,
   });
@@ -412,15 +416,27 @@ class _GradCamViewerWidgetState extends State<GradCamViewerWidget> {
       } catch (_) {}
     }
 
-    // 2. If file available
-    if (widget.originalImage != null && widget.originalImage!.existsSync()) {
-      return Image.file(
-        widget.originalImage!,
+    // 2. If raw bytes available (Web & Native compatible)
+    if (widget.originalBytes != null && widget.originalBytes!.isNotEmpty) {
+      return Image.memory(
+        widget.originalBytes!,
         fit: BoxFit.cover,
       );
     }
 
-    // 3. Fallback: stylized clinical fundus
+    // 3. If file available (Native only)
+    if (!kIsWeb && widget.originalImage != null) {
+      try {
+        if (widget.originalImage!.existsSync()) {
+          return Image.file(
+            widget.originalImage!,
+            fit: BoxFit.cover,
+          );
+        }
+      } catch (_) {}
+    }
+
+    // 4. Fallback: stylized clinical fundus
     return Container(
       decoration: const BoxDecoration(
         gradient: RadialGradient(

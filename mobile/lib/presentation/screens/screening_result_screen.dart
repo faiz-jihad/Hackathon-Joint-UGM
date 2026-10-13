@@ -1,460 +1,592 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/clinical_helpers.dart';
 import '../../data/models/screening_result_model.dart';
 import '../../data/models/patient_model.dart';
-import '../widgets/brand_header.dart';
-import '../widgets/custom_button.dart';
-import '../widgets/gradcam_viewer_widget.dart';
-import 'clinical_recommendation_screen.dart';
+import 'retina_insight_screen.dart';
 
 class ScreeningResultScreen extends StatelessWidget {
   final CompleteScreeningResult result;
   final String eyePosition;
   final PatientModel? patient;
+  final Uint8List? originalBytes;
 
   const ScreeningResultScreen({
     super.key,
     required this.result,
     required this.eyePosition,
     this.patient,
+    this.originalBytes,
   });
+
+  int _getSeverityIndex(String predictedClass) {
+    switch (predictedClass.toUpperCase()) {
+      case 'NO_DR':
+        return 0;
+      case 'MILD_DR':
+      case 'MILD':
+        return 1;
+      case 'MODERATE_DR':
+      case 'MODERATE':
+        return 2;
+      case 'SEVERE_DR':
+      case 'SEVERE':
+        return 3;
+      case 'PROLIFERATIVE_DR':
+      case 'PDR':
+        return 4;
+      default:
+        return 2; // Default moderate as in reference frame
+    }
+  }
+
+  String _getSeverityShortName(int index) {
+    switch (index) {
+      case 0:
+        return 'NO DR';
+      case 1:
+        return 'MILD';
+      case 2:
+        return 'MODERATE';
+      case 3:
+        return 'SEVERE';
+      case 4:
+        return 'PDR';
+      default:
+        return 'MODERATE';
+    }
+  }
+
+  String _getClinicalDescription(int index) {
+    switch (index) {
+      case 0:
+        return 'Tidak teridentifikasi tanda-tanda retinopati diabetik pada citra retina. Struktur fovea dan mikrovaskular tampak baik dalam batas normal.';
+      case 1:
+        return 'Teridentifikasi mikroaneurisma minimal pada citra retina tanpa eksudat luas. Disarankan skrining berkala 6-12 bulan sekali.';
+      case 2:
+        return 'Teridentifikasi indikasi retinopati diabetik tingkat sedang pada citra retina. Terdapat tanda awal mikroaneurisma & eksudat halus.';
+      case 3:
+        return 'Teridentifikasi perdarahan intraretina luas (>20 per kuadran) dan kelainan mikrovaskular signifikan. Memerlukan evaluasi spesialis mata segera.';
+      case 4:
+        return 'Teridentifikasi neovaskularisasi aktif atau perdarahan preretina/vitreus berisiko tinggi. Memerlukan penanganan segera dokter spesialis mata.';
+      default:
+        return 'Teridentifikasi indikasi retinopati diabetik tingkat sedang pada citra retina. Terdapat tanda awal mikroaneurisma & eksudat halus.';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final severityTitle = ClinicalHelpers.getSeverityTitle(result.aiResult.predictedClass);
-    final severityDesc = ClinicalHelpers.getSeverityDescription(result.aiResult.predictedClass);
-    final severityColor = ClinicalHelpers.getSeverityColor(result.aiResult.predictedClass);
-    final severitySurface = ClinicalHelpers.getSeveritySurfaceColor(result.aiResult.predictedClass);
-    final isNoDr = result.aiResult.predictedClass == 'NO_DR';
-    final isSevereOrPdr = result.aiResult.predictedClass == 'SEVERE_DR' || result.aiResult.predictedClass == 'PROLIFERATIVE_DR';
+    final severityIndex = _getSeverityIndex(result.aiResult.predictedClass);
+    final severityName = _getSeverityShortName(severityIndex);
+    final severityFullTitle = ClinicalHelpers.getSeverityTitle(result.aiResult.predictedClass);
+    final confidencePct = (result.aiResult.confidence * 100).toStringAsFixed(1);
+    final scanNumber = patient != null && patient!.nik.length >= 3
+        ? patient!.nik.substring(patient!.nik.length - 3)
+        : result.screeningId.length >= 3
+            ? result.screeningId.substring(result.screeningId.length - 3)
+            : '001';
+    final eyeLabel = eyePosition == 'OD' ? 'Mata Kanan (OD)' : 'Mata Kiri (OS)';
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
-            const BrandHeader(showBack: true),
+            // Top App Bar
+            _buildTopAppBar(context),
+
+            // Scrollable Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Result Header Badge
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.statusGreenSurface,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.statusGreen),
-                          ),
-                          child: const Text(
-                            '11. HASIL SKRINING — KEANDALAN TINGGI',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.statusGreen,
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.primarySurface,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            'Oculus ${eyePosition == "OD" ? "Dextra (OD)" : "Sinistra (OS)"}',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primaryDark),
-                          ),
-                        ),
-                      ],
-                    ),
+                    // Stepper Breadcrumb (Langkah 4 dari 4)
+                    _buildStepperBreadcrumb(),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
 
-                    // Patient Banner (Demographics & Glycaemic context)
-                    if (patient != null) _buildPatientContextBanner(patient!),
-
-                    const SizedBox(height: 12),
-
-                    // Severity Classification Card (Figma 30:1290)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: severitySurface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: severityColor.withOpacity(0.4), width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: severityColor.withOpacity(0.08),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: severityColor,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  'Skala ICDR',
-                                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.85),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  isNoDr ? 'ICD-10: E11.9' : 'ICD-10: E11.319',
-                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: severityColor),
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                '${(result.aiResult.confidence * 100).toStringAsFixed(1)}% Keyakinan',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: severityColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            severityTitle,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: severityColor,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            severityDesc,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textPrimary,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Grad-CAM Explainability Heatmap Viewer (Figma 30:1511 & 36:1714)
+                    // Heading 3
                     const Text(
-                      'Peta Atensi Grad-CAM & Bukti Citra',
+                      'Hasil Pemeriksaan Retina',
                       style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                        fontFamily: 'Inter',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0D47A1),
+                        letterSpacing: -0.2,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    GradCamViewerWidget(
-                      gradcamBase64: result.gradcamImageBase64,
-                      originalBase64: result.rawImageBase64,
-                    ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
-                    // Clinical Lesion Feature Analysis Matrix (Ophthalmologist Grade)
-                    _buildLesionMatrixCard(isNoDr, isSevereOrPdr),
-
-                    const SizedBox(height: 20),
-
-                    // 5-Class Probability Distribution Chart
-                    _buildProbabilitiesCard(result.aiResult.rawProbabilities),
-
-                    const SizedBox(height: 20),
-
-                    // Permenkes 24/2022 & Electronic Medical Record Security Box
-                    _buildRmeSecurityCard(),
-
-                    const SizedBox(height: 24),
-
-                    // Next Action Button
-                    CustomButton(
-                      label: 'Lihat Rekomendasi & Faskes Rujukan',
-                      icon: Icons.assignment_outlined,
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ClinicalRecommendationScreen(
-                              result: result,
-                              eyePosition: eyePosition,
-                              patient: patient,
-                            ),
-                          ),
-                        );
-                      },
+                    // Main Result Card
+                    _buildMainResultCard(
+                      severityName: severityName,
+                      severityFullTitle: severityFullTitle,
+                      confidencePct: confidencePct,
+                      severityIndex: severityIndex,
                     ),
 
                     const SizedBox(height: 12),
 
-                    // Secondary Action: Tele-consultation Request with Sp.M
-                    OutlinedButton.icon(
-                      onPressed: () => _showTeleconsultationSheet(context),
-                      icon: const Icon(Icons.support_agent, size: 18, color: AppColors.primaryDark),
-                      label: const Text(
-                        'Konsultasi Tele-Oftalmologi (Sp.M Mitra)',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primaryDark),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 48),
-                        side: const BorderSide(color: AppColors.primary),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
+                    // Quick Retina Image Thumbnail Strip
+                    _buildQuickThumbnailStrip(scanNumber, eyeLabel),
+
+                    const SizedBox(height: 12),
+
+                    // Medical Disclaimer Card (Consistent Blue Medical Palette)
+                    _buildMedicalDisclaimerCard(),
+
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
+
+            // Bottom CTA Actions (Fixed Bottom)
+            _buildBottomCta(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPatientContextBanner(PatientModel pat) {
+  Widget _buildTopAppBar(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: () => Navigator.pop(context),
+            borderRadius: BorderRadius.circular(9999),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF1F5F9),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 15,
+                color: Color(0xFF0D47A1),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'Hasil Pemeriksaan',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0D47A1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepperBreadcrumb() {
+    return Container(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0D47A1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text(
+                    '4',
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 1.0,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Langkah 4 dari 4: Hasil Pemeriksaan',
+                style: TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF003178),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              _buildStepIndicator(isCurrent: false),
+              const SizedBox(width: 6),
+              _buildStepIndicator(isCurrent: false),
+              const SizedBox(width: 6),
+              _buildStepIndicator(isCurrent: false),
+              const SizedBox(width: 6),
+              _buildStepIndicator(isCurrent: true),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepIndicator({required bool isCurrent}) {
+    return Container(
+      width: isCurrent ? 24 : 8,
+      height: 6,
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        color: isCurrent ? const Color(0xFF0D47A1) : const Color(0xFFD8E3FB),
+        borderRadius: BorderRadius.circular(9999),
+      ),
+    );
+  }
+
+  Widget _buildMainResultCard({
+    required String severityName,
+    required String severityFullTitle,
+    required String confidencePct,
+    required int severityIndex,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(21),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFDBEAFE)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row: DETEKSI AI vs Confidence
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'DETEKSI AI',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF94A3B8),
+                        letterSpacing: 0.55,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      severityFullTitle,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0D47A1),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text(
+                    'Confidence',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$confidencePct%',
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF2196F3),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Diagnostic Description
+          Text(
+            _getClinicalDescription(severityIndex),
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF475569),
+              height: 1.5,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Divider
+          const Divider(color: Color(0xFFF1F5F9), height: 1),
+
+          const SizedBox(height: 16),
+
+          // Visual Severity Scale
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'TINGKAT KEPARAHAN (SEVERITY)',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF94A3B8),
+                  letterSpacing: 0.4,
+                ),
+              ),
+              Text(
+                severityName,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0D47A1),
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // 5-bar severity meter
+          Row(
+            children: List.generate(5, (index) {
+              final isCurrent = index == severityIndex;
+              return Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(right: index < 4 ? 5 : 0),
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: isCurrent ? const Color(0xFF0D47A1) : const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(9999),
+                    boxShadow: isCurrent
+                        ? const [
+                            BoxShadow(
+                              color: Color(0xFF93C5FD),
+                              spreadRadius: 2.5,
+                              blurRadius: 0,
+                            ),
+                            BoxShadow(
+                              color: Colors.white,
+                              spreadRadius: 1,
+                              blurRadius: 0,
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
+              );
+            }),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Severity labels below bars
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSeverityLabel('No DR', isActive: severityIndex == 0),
+              _buildSeverityLabel('Mild', isActive: severityIndex == 1),
+              _buildSeverityLabel('Moderate', isActive: severityIndex == 2),
+              _buildSeverityLabel('Severe', isActive: severityIndex == 3),
+              _buildSeverityLabel('PDR', isActive: severityIndex == 4),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeverityLabel(String label, {required bool isActive}) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontFamily: 'Inter',
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: isActive ? const Color(0xFF0D47A1) : const Color(0xFF434652),
+        letterSpacing: 0.4,
+      ),
+    );
+  }
+
+  Widget _buildQuickThumbnailStrip(String scanNumber, String eyeLabel) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: AppColors.primarySurface,
-            child: Text(
-              pat.fullName.isNotEmpty ? pat.fullName[0] : 'P',
-              style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primaryDark),
+          // 48x48 rounded thumbnail
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(11),
+              child: originalBytes != null
+                  ? Image.memory(originalBytes!, fit: BoxFit.cover)
+                  : Image.asset(
+                      'assets/images/thumbnail_retina_sample.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Image.asset(
+                        'assets/images/fundus_thumbnail.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
+          // Titles
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${pat.fullName} (${pat.age} th) • ${pat.gender == "MALE" ? "Laki-laki" : "Perempuan"}',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  'Citra Fundus #$scanNumber',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                  ),
                 ),
+                const SizedBox(height: 2),
                 Text(
-                  'NIK: ${pat.nik} ${pat.diabetesProfile != null ? "• HbA1c: ${pat.diabetesProfile!.lastHbA1c}%" : ""}',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  '$eyeLabel • Kualitas ${(result.qualityOD.overallScore * 100).toInt()}%',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF64748B),
+                  ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLesionMatrixCard(bool isNoDr, bool isSevereOrPdr) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.biotech, size: 18, color: AppColors.primary),
-              SizedBox(width: 8),
-              Text(
-                'Analisis Biomarker & Temuan Lesi Mikrovaskular',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 20),
-          _buildLesionRow(
-            'Mikroaneurisma Fokal (Microaneurysms)',
-            isNoDr ? 'Tidak Ditemukan' : 'Terdeteksi (Kuadran Temporal)',
-            isNoDr ? AppColors.statusGreen : AppColors.statusOrange,
-          ),
-          _buildLesionRow(
-            'Perdarahan Intraretina (Dot-blot Hemorrhages)',
-            isNoDr ? 'Tidak Ditemukan' : (isSevereOrPdr ? 'Multikuadran (Aturan 4-2-1)' : 'Tersebar Fokal (< 20 titik)'),
-            isNoDr ? AppColors.statusGreen : (isSevereOrPdr ? AppColors.statusRed : AppColors.statusOrange),
-          ),
-          _buildLesionRow(
-            'Eksudat Keras / Lipid (Hard Exudates)',
-            isNoDr ? 'Nihil' : 'Teramati di Perifovea',
-            isNoDr ? AppColors.statusGreen : AppColors.statusYellow,
-          ),
-          _buildLesionRow(
-            'Cotton Wool Spots (Infark Saraf)',
-            isNoDr ? 'Nihil' : 'Minimal (< 2 area)',
-            isNoDr ? AppColors.statusGreen : AppColors.textSecondary,
-          ),
-          _buildLesionRow(
-            'Neovaskularisasi Papila / Retina (NVD/NVE)',
-            isSevereOrPdr ? 'Risiko Tinggi (PDR)' : 'Tidak Ditemukan (Non-Proliferatif)',
-            isSevereOrPdr ? AppColors.statusRed : AppColors.statusGreen,
-            isLast: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLesionRow(String label, String status, Color color, {bool isLast = false}) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: color.withOpacity(0.3)),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProbabilitiesCard(Map<String, double> probabilities) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.bar_chart, size: 18, color: AppColors.primary),
-              SizedBox(width: 8),
-              Text(
-                'Distribusi Probabilitas Model 5-Kelas ICDR:',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildProbRow('No DR (Normal)', probabilities['NO_DR'] ?? 0.03),
-          _buildProbRow('Mild NPDR (Ringan)', probabilities['MILD_DR'] ?? 0.05),
-          _buildProbRow('Moderate NPDR (Sedang)', probabilities['MODERATE_DR'] ?? 0.88),
-          _buildProbRow('Severe NPDR (Berat)', probabilities['SEVERE_DR'] ?? 0.03),
-          _buildProbRow('PDR (Proliferatif)', probabilities['PROLIFERATIVE_DR'] ?? 0.01),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProbRow(String label, double prob) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        children: [
+          // Tervalidasi badge
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            children: const [
               Text(
-                '${(prob * 100).toStringAsFixed(1)}%',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                'Tervalidasi',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2196F3),
+                ),
+              ),
+              SizedBox(width: 4),
+              Icon(
+                Icons.check_circle_rounded,
+                size: 14,
+                color: Color(0xFF2196F3),
               ),
             ],
-          ),
-          const SizedBox(height: 4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: prob,
-              backgroundColor: AppColors.divider,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                prob > 0.5 ? AppColors.primary : AppColors.textMuted,
-              ),
-              minHeight: 5,
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRmeSecurityCard() {
+  Widget _buildMedicalDisclaimerCard() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
-        color: AppColors.secondarySurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
+        color: const Color(0xB3E3F2FD), // rgba(227,242,253,0.7)
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0x4D2196F3)), // rgba(33,150,243,0.3)
       ),
-      child: const Row(
-        children: [
-          Icon(Icons.lock_outline, size: 18, color: AppColors.secondary),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 20,
+            color: Color(0xFF0D47A1),
+          ),
           SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Kesesuaian RME Permenkes RI No. 24/2022',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  'Catatan Medis:',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0D47A1),
+                  ),
                 ),
-                SizedBox(height: 2),
+                SizedBox(height: 3),
                 Text(
-                  'Integritas citra divalidasi SHA-256 dan siap sinkronisasi ke SATUSEHAT Kemenkes.',
-                  style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                  'Hasil ini merupakan dukungan skrining berbasis AI dan bukan diagnosis medis. Keputusan klinis tetap berada pada dokter spesialis mata.',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF434652),
+                    height: 1.45,
+                  ),
                 ),
               ],
             ),
@@ -464,72 +596,53 @@ class ScreeningResultScreen extends StatelessWidget {
     );
   }
 
-  void _showTeleconsultationSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  Widget _buildBottomCta(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFF1F5F9), width: 1),
+        ),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.support_agent, color: AppColors.primary),
-                SizedBox(width: 8),
-                Text(
-                  'Konsultasi Tele-Oftalmologi Sp.M',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Ajukan permintaan telaah sekunder kepada Dokter Spesialis Mata konsulen yang bertugas hari ini:',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primarySurface,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: AppColors.primaryDark,
-                    child: Icon(Icons.person, color: Colors.white, size: 20),
-                  ),
-                  SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('dr. Bambang Hermanto, Sp.M(K)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                      Text('RS Mata Dr. Yap • Subspesialis Vitreoretina', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                      Text('SIP: 503/4412/SIP-D/2022', style: TextStyle(fontSize: 10, color: AppColors.primaryDark)),
-                    ],
-                  ),
-                ],
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RetinaInsightScreen(
+                result: result,
+                eyePosition: eyePosition,
+                patient: patient,
+                originalBytes: originalBytes,
               ),
             ),
-            const SizedBox(height: 20),
-            CustomButton(
-              label: 'Kirim Permintaan Telaah Konsulen',
-              icon: Icons.send,
-              onPressed: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Permintaan tele-oftalmologi berhasil dikirimkan ke dr. Bambang Hermanto, Sp.M(K).'),
-                    backgroundColor: AppColors.statusGreen,
-                  ),
-                );
-              },
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF0D47A1),
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 2,
+          shadowColor: const Color(0x331E3A8A),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text(
+              'Lihat Insight Retina',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
+            SizedBox(width: 8),
+            Icon(Icons.arrow_forward_rounded, size: 16),
           ],
         ),
       ),

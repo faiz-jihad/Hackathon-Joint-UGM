@@ -30,19 +30,19 @@ except ImportError:
     tv_models = None
 
 try:
-    import onnxruntime as ort
+    import onnxruntime as ort  # type: ignore
     _HAS_ORT = True
 except ImportError:
     ort = None
 
 try:
-    import tflite_runtime.interpreter as tflite
+    import tflite_runtime.interpreter as tflite  # type: ignore
     _HAS_TFLITE = True
 except ImportError:
     tflite = None
 
 try:
-    import tensorflow as tf
+    import tensorflow as tf  # type: ignore
     _HAS_TF = True
 except ImportError:
     tf = None
@@ -179,7 +179,7 @@ class PyTorchModel(BaseModelInterface):
                         in_features = net.classifier[1].in_features
                         net.classifier[1] = nn.Linear(in_features, 5)
 
-                        state_dict = loaded.get('state_dict', loaded.get('model', loaded))
+                        state_dict = loaded.get('model_state_dict', loaded.get('state_dict', loaded.get('model', loaded)))
                         clean_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
                         net.load_state_dict(clean_dict, strict=False)
                         self.model = net.to(self.device)

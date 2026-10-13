@@ -326,17 +326,13 @@ export async function POST(req: NextRequest) {
       console.warn("[direct-screen route]: Database persistence warning:", dbErr);
     }
 
-    // Generate Standard Clinical Recommendation for Client Response
+    // Standard Clinical Recommendation from PERDAMI & ADA 2024 Rules Engine
     const clientRecommendation = {
-      summary: predictedClass === "NO_DR"
-        ? "Tidak ditemukan tanda lesi mikrovaskular retinopati diabetik. Lanjutkan skrining retina tahunan."
-        : "Ditemukan tanda Retinopati Diabetik Non-Proliferatif Sedang. Disarankan rujukan elektif ke Sp.M.",
-      recommendedAction: predictedClass === "NO_DR"
-        ? "ROUTINE_ANNUAL_SCREENING"
-        : "SPECIALIST_OPHTHALMOLOGY_REFERRAL",
-      urgencyLevel: predictedClass === "NO_DR" ? "LOW" : "MEDIUM",
-      referralIndicated: predictedClass !== "NO_DR",
-      clinicalGuideline: "Pedoman Pengelolaan Retinopati Diabetika Perdami & ADA 2024",
+      summary: recResult.summary,
+      recommendedAction: recResult.recommendedAction,
+      urgencyLevel: recResult.urgencyLevel,
+      referralIndicated: recResult.referralIndicated,
+      clinicalGuideline: recResult.clinicalGuideline,
     };
 
     // Format Canonical Response (Unified for Mobile & Web clients)

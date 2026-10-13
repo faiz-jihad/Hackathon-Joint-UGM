@@ -50,50 +50,151 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
-            const BrandHeader(showBack: true),
+            // Standard Figma Retiva Top Bar
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Row(
+                children: [
+                  InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(9999),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 15,
+                        color: Color(0xFF0D47A1),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Riwayat Pemeriksaan',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0D47A1),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Badge Header (Figma 140:658 & 183:573)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondarySurface,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.secondary),
-                      ),
-                      child: const Text(
-                        '17. RIWAYAT PASIEN & TIMELINE LONGITUDINAL',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.secondary,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
+                    // Top Informative Header Section (Figma Frame 140:658)
                     const Text(
-                      'Direktori Pasien & Pemantauan Lesi Retina',
+                      'Riwayat Pemeriksaan',
                       style: TextStyle(
+                        fontFamily: 'Inter',
                         fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                        letterSpacing: -0.3,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0D1E25),
+                        letterSpacing: -0.2,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     const Text(
-                      'Pelacakan riwayat perkembangan lesi mikrovaskular tahunan untuk deteksi dini progresi retinopati diabetik terintegrasi RME.',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                      'Daftar riwayat pemeriksaan foto retina mandiri Anda.',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF434652),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Medical Progress Summary Strip
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE7F6FF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFD0E7F5)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDFF1FB),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.history_rounded,
+                              size: 20,
+                              color: Color(0xFF0D47A1),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Total Pemeriksaan',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF737783),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${_patients.length} Pasien Terdaftar',
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF0D1E25),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'RME Valid',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF047857),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 20),

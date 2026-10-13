@@ -10,7 +10,7 @@ class Settings:
     # Model Configuration
     MODEL_NAME: str = os.getenv("MODEL_NAME", "EfficientNet-B3")
     MODEL_VERSION: str = os.getenv("MODEL_VERSION", "0.1.0")
-    MODEL_PATH: str = os.getenv("MODEL_PATH", "models/efficientnet_b3/model.tflite")
+    MODEL_PATH: str = os.getenv("MODEL_PATH", "models/efficientnet_b3/model.pt")
     MODEL_METADATA_PATH: str = os.getenv("MODEL_METADATA_PATH", "models/efficientnet_b3/metadata.json")
     PIPELINE_VERSION: str = os.getenv("PIPELINE_VERSION", "retiva-pipeline-v1.2")
 

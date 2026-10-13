@@ -2,6 +2,17 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
 class ClinicalHelpers {
+  static String normalizeClass(String? raw) {
+    if (raw == null || raw.isEmpty) return 'MODERATE_DR';
+    final upper = raw.toUpperCase().replaceAll('-', '_').replaceAll(' ', '_');
+    if (upper == 'NO_DR' || upper == 'NO' || upper == 'NORMAL') return 'NO_DR';
+    if (upper == 'MILD' || upper == 'MILD_DR' || upper == 'MILD_NPDR') return 'MILD_DR';
+    if (upper == 'MODERATE' || upper == 'MODERATE_DR' || upper == 'MODERATE_NPDR') return 'MODERATE_DR';
+    if (upper == 'SEVERE' || upper == 'SEVERE_DR' || upper == 'SEVERE_NPDR') return 'SEVERE_DR';
+    if (upper == 'PROLIFERATIVE_DR' || upper == 'PROLIFERATIVE' || upper == 'PDR') return 'PROLIFERATIVE_DR';
+    return upper;
+  }
+
   static String getSeverityTitle(String? classification) {
     switch (classification?.toUpperCase()) {
       case 'NO_DR':

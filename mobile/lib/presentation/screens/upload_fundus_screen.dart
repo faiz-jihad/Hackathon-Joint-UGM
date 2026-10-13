@@ -1,14 +1,14 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/network/api_client.dart';
 import '../../data/models/patient_model.dart';
-import '../widgets/brand_header.dart';
-import '../widgets/custom_button.dart';
-import '../widgets/patient_intake_modal.dart';
 import 'quality_scanning_screen.dart';
 
+/// Screens 02 & 03: 02. Upload I & 03. Upload II (Figma Frames 28:189 & 28:375)
+/// Authoritative 1:1 Implementation matching Figma source of truth.
 class UploadFundusScreen extends StatefulWidget {
   final PatientModel? initialPatient;
 
@@ -19,40 +19,20 @@ class UploadFundusScreen extends StatefulWidget {
 }
 
 class _UploadFundusScreenState extends State<UploadFundusScreen> {
-  String _selectedEye = 'OD'; // OD (Mata Kanan) / OS (Mata Kiri)
+  final String _selectedEye = 'OD'; // OD (Mata Kanan)
   File? _imageFile;
+  Uint8List? _imageBytes;
+  String _fileName = 'fundus_024.jpg';
+  String _fileSize = '2.4 MB';
+  bool _hasSelectedImage = false;
+
   final ImagePicker _picker = ImagePicker();
-
   PatientModel? _selectedPatient;
-  List<PatientModel> _availablePatients = [];
-  bool _isLoadingPatients = false;
-
-  // Test mode switcher for demonstration of the 3 Figma branches
-  String _demoBranch = 'NORMAL'; // NORMAL, RETAKE, HUMAN_REVIEW
 
   @override
   void initState() {
     super.initState();
     _selectedPatient = widget.initialPatient;
-    _fetchPatientsFromDb();
-  }
-
-  Future<void> _fetchPatientsFromDb() async {
-    setState(() => _isLoadingPatients = true);
-    try {
-      final list = await ApiClient().getPatients();
-      if (mounted) {
-        setState(() {
-          _availablePatients = list;
-          _isLoadingPatients = false;
-          if (_selectedPatient == null && list.isNotEmpty) {
-            _selectedPatient = list.first;
-          }
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoadingPatients = false);
-    }
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -64,8 +44,20 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
         imageQuality: 90,
       );
       if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        final sizeKb = bytes.lengthInBytes / 1024;
+        final sizeText = sizeKb > 1024
+            ? '${(sizeKb / 1024).toStringAsFixed(1)} MB'
+            : '${sizeKb.toStringAsFixed(0)} KB';
+
         setState(() {
-          _imageFile = File(picked.path);
+          _imageBytes = bytes;
+          _fileName = picked.name.isNotEmpty ? picked.name : 'fundus_${DateTime.now().millisecondsSinceEpoch % 1000}.jpg';
+          _fileSize = sizeText;
+          _hasSelectedImage = true;
+          if (!kIsWeb) {
+            _imageFile = File(picked.path);
+          }
         });
       }
     } catch (e) {
@@ -75,113 +67,128 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
     }
   }
 
-  void _showSelectPatientModal() {
+  void _useSampleFigmaImage() {
+    setState(() {
+      _hasSelectedImage = true;
+      _fileName = 'fundus_024.jpg';
+      _fileSize = '2.4 MB';
+      _imageBytes = null;
+      _imageFile = null;
+    });
+  }
+
+  void _showImageSourcePicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Pilih Pasien dari Basis Data (DB)',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 20),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Data pasien dimuat dinamis dari PostgreSQL.',
-                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                  ),
-                  TextButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      PatientIntakeModal.show(context, onPatientCreated: (p) {
-                        setState(() {
-                          _availablePatients.insert(0, p);
-                          _selectedPatient = p;
-                        });
-                      });
-                    },
-                    icon: const Icon(Icons.add, size: 16, color: AppColors.primary),
-                    label: const Text('Pasien Baru', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
-                  ),
-                ],
-              ),
-              const Divider(height: 16),
-              if (_isLoadingPatients)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (_availablePatients.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: Text('Tidak ada pasien ditemukan di DB')),
-                )
-              else
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: _availablePatients.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (_, index) {
-                      final p = _availablePatients[index];
-                      final isSelected = p.id == _selectedPatient?.id;
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                        leading: CircleAvatar(
-                          backgroundColor: isSelected ? AppColors.primary : AppColors.primarySurface,
-                          child: Icon(
-                            Icons.person,
-                            color: isSelected ? Colors.white : AppColors.primaryDark,
-                            size: 18,
-                          ),
-                        ),
-                        title: Text(
-                          p.fullName,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'NIK: ${p.nik} • ${p.age} th • HbA1c ${p.diabetesProfile?.lastHbA1c ?? "-"}%',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                        ),
-                        trailing: isSelected
-                            ? const Icon(Icons.check_circle, color: AppColors.primary, size: 20)
-                            : null,
-                        onTap: () {
-                          setState(() => _selectedPatient = p);
-                          Navigator.pop(ctx);
-                        },
-                      );
-                    },
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-            ],
+                const SizedBox(height: 16),
+                const Text(
+                  'Pilih Sumber Foto Fundus',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.figmaBlue,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.figmaBlueSurface,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.photo_library_outlined, color: AppColors.figmaBlue),
+                  ),
+                  title: const Text(
+                    'Galeri Perangkat',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  subtitle: const Text('Pilih foto fundus yang tersimpan di memori', style: TextStyle(fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.figmaBlueSurface,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.camera_alt_outlined, color: AppColors.figmaBlue),
+                  ),
+                  title: const Text(
+                    'Kamera Fundus Portabel',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  subtitle: const Text('Ambil foto langsung via lensa adapter fundus', style: TextStyle(fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE7F6FF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.image_search, color: AppColors.figmaBlueDark),
+                  ),
+                  title: const Text(
+                    'Gunakan Sampel Figma (fundus_024.jpg)',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.figmaBlueDark),
+                  ),
+                  subtitle: const Text('Sampel citra retina terverifikasi standar Figma', style: TextStyle(fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _useSampleFigmaImage();
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  void _proceedToQualityScanning() {
+    if (!_hasSelectedImage) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QualityScanningScreen(
+          imageFile: _imageFile,
+          imageBytes: _imageBytes,
+          eyePosition: _selectedEye,
+          demoBranch: 'NORMAL',
+          patient: _selectedPatient,
+        ),
+      ),
     );
   }
 
@@ -192,443 +199,723 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            BrandHeader(
-              showBack: true,
-              trailing: IconButton(
-                icon: const Icon(Icons.help_outline, color: AppColors.textSecondary, size: 20),
-                onPressed: _showQualityGuidanceDialog,
-              ),
-            ),
+            // Top Bar with Back Button (Figma Node 28:351 & 28:438)
+            _buildTopBar(),
+
+            // Main Scrollable Inner Page Content (Figma Node 28:190 & 28:376)
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Patient Demographic Header Bar (Dynamic)
-                    _buildPatientHeader(),
+                    // Stepper Breadcrumb: Langkah 1 dari 4 (Figma Node 28:482 & 133:13)
+                    _buildStepperBreadcrumb(),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
-                    // Bilateral Eye Selector Tabs (OD vs OS)
-                    _buildEyeSelector(),
+                    // Title & Description: Pilih Foto Retina (Figma Node 28:294 & 28:381)
+                    _buildTitleSection(),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
-                    // Fundus Viewfinder & Image Picker
-                    _buildFundusViewfinder(),
-
-                    const SizedBox(height: 20),
-
-                    // Protocol Guidance Card
-                    _buildProtocolNotice(),
-
-                    const SizedBox(height: 20),
-
-                    // Demo Branch Selector (Simulasi 3 Alur Desain Figma)
-                    _buildBranchSelector(),
+                    // Upload Container (Toggled State: Dropzone vs Selected Preview)
+                    if (!_hasSelectedImage)
+                      _buildUploadDropzoneBox()
+                    else
+                      _buildSelectedPhotoPreviewBox(),
 
                     const SizedBox(height: 24),
 
-                    // Proceed Button
-                    CustomButton(
-                      label: 'Uji Kendali Mutu Citra (Quality Gate)',
-                      icon: Icons.biotech,
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => QualityScanningScreen(
-                              imageFile: _imageFile,
-                              eyePosition: _selectedEye,
-                              demoBranch: _demoBranch,
-                              patient: _selectedPatient,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                    // Quality Guidelines Section: PANDUAN KUALITAS RETIVA (Figma Node 79:542 & 79:623)
+                    _buildQualityGuidanceSection(),
+
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
             ),
+
+            // Persistent Bottom CTA Button (Figma Node 129:2 & 85:692)
+            _buildBottomCtaArea(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPatientHeader() {
-    final patient = _selectedPatient;
-    final patientName = patient != null ? '${patient.fullName} (${patient.age} th)' : 'Pilih Pasien Terdaftar...';
-    final patientDetails = patient != null
-        ? 'NIK: ${patient.nik} • ${patient.diabetesProfile?.diabetesType.replaceAll('_', ' ') ?? "DM"} (HbA1c ${patient.diabetesProfile?.lastHbA1c ?? "-"}%)'
-        : 'Memuat data pasien dari basis data PostgreSQL...';
-
-    return InkWell(
-      onTap: _showSelectPatientModal,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            const CircleAvatar(
-              radius: 20,
-              backgroundColor: AppColors.primarySurface,
-              child: Icon(Icons.person, color: AppColors.primaryDark),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          patientName,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.edit_outlined, size: 14, color: AppColors.primary),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    patientDetails,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.statusGreenSurface,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                'Ganti',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.statusGreen),
-              ),
-            ),
-          ],
+  /// Top Bar with Back Button (Figma Node 28:351 / 28:438)
+  Widget _buildTopBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
         ),
       ),
-    );
-  }
-
-  Widget _buildEyeSelector() {
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _selectedEye = 'OD'),
+      child: Row(
+        children: [
+          // Circular Back Button (32x32 rounded 9999px)
+          InkWell(
+            onTap: () => Navigator.of(context).maybePop(),
+            borderRadius: BorderRadius.circular(9999),
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: _selectedEye == 'OD' ? AppColors.eyeOD : AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _selectedEye == 'OD' ? AppColors.eyeOD : AppColors.border,
-                ),
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF1F5F9),
+                shape: BoxShape.circle,
               ),
-              child: Column(
-                children: [
-                  Text(
-                    'MATA KANAN (OD)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: _selectedEye == 'OD' ? Colors.white : AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Oculus Dexter',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: _selectedEye == 'OD' ? Colors.white.withOpacity(0.8) : AppColors.textMuted,
-                    ),
-                  ),
-                ],
+              child: const Icon(
+                Icons.arrow_back_ios_new,
+                size: 14,
+                color: AppColors.figmaBlue,
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _selectedEye = 'OS'),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: _selectedEye == 'OS' ? AppColors.eyeOS : AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _selectedEye == 'OS' ? AppColors.eyeOS : AppColors.border,
+          const SizedBox(width: 12),
+          // Heading 2: Upload Foto Retina
+          const Text(
+            'Upload Foto Retina',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.figmaBlue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Stepper Breadcrumb: Langkah 1 dari 4 (Figma Node 28:482 & 133:13)
+  Widget _buildStepperBreadcrumb() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          children: [
+            // Circular Step 1 Badge (24x24 rounded 9999px, #0D47A1)
+            Container(
+              width: 24,
+              height: 24,
+              decoration: const BoxDecoration(
+                color: AppColors.figmaBlue,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text(
+                  '1',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.4,
+                  ),
                 ),
               ),
-              child: Column(
-                children: [
-                  Text(
-                    'MATA KIRI (OS)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: _selectedEye == 'OS' ? Colors.white : AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Oculus Sinister',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: _selectedEye == 'OS' ? Colors.white.withOpacity(0.8) : AppColors.textMuted,
-                    ),
-                  ),
-                ],
+            ),
+            const SizedBox(width: 6),
+            const Text(
+              'Langkah 1 dari 4: Unggah Berkas',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.figmaBlueDark,
+                letterSpacing: 0.3,
               ),
             ),
+          ],
+        ),
+
+        // 4 Step Pills (Active 24px, Inactive 8px each)
+        Row(
+          children: [
+            Container(
+              width: 24,
+              height: 6,
+              decoration: BoxDecoration(
+                color: AppColors.figmaBlue,
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              width: 8,
+              height: 6,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD8E3FB),
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              width: 8,
+              height: 6,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD8E3FB),
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              width: 8,
+              height: 6,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD8E3FB),
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Title Section: Pilih Foto Retina (Figma Node 28:294 & 28:381)
+  Widget _buildTitleSection() {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pilih Foto Retina',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.figmaBlue,
+            letterSpacing: -0.2,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'Pilih foto fundus/retina untuk memulai pemeriksaan otomatis.',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: Color(0xFF475569),
+            height: 1.33,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildFundusViewfinder() {
+  /// State 1: Upload Interactive Dropzone Box (Figma Frame 28:189 / Node 28:299)
+  Widget _buildUploadDropzoneBox() {
+    return InkWell(
+      onTap: _showImageSourcePicker,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF2196F3), width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0D000000), // rgba(0,0,0,0.05)
+              offset: Offset(0, 1),
+              blurRadius: 1,
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(2),
+        child: Container(
+          height: 265,
+          decoration: BoxDecoration(
+            color: const Color(0x4DD1E4FF), // rgba(209,228,255,0.3)
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Concentric Pulse Retinal Scanner Icon (64x64) (Figma Node 28:515)
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x0D000000),
+                      offset: Offset(0, 1),
+                      blurRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Color(0x3333A0FD),
+                      offset: Offset(0, 0),
+                      blurRadius: 12,
+                      spreadRadius: 4,
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.center_focus_strong_outlined,
+                    color: AppColors.figmaBlue,
+                    size: 28,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Supported formats label (Figma Node 28:500)
+              const Text(
+                'Mendukung format JPG, JPEG, PNG (Maks 15MB)',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.figmaTextBody,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Visual CTA Button: Pilih dari Galeri (Figma Node 28:501)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.figmaBlue,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0D000000),
+                      offset: Offset(0, 1),
+                      blurRadius: 1,
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.photo_library_outlined,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Pilih dari Galeri',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// State 2: Selected Photo Preview Box (Figma Frame 28:375 / Node 28:386)
+  Widget _buildSelectedPhotoPreviewBox() {
     return Container(
       width: double.infinity,
-      height: 320,
       decoration: BoxDecoration(
-        color: AppColors.cameraViewportBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Selected Image Preview or Viewfinder Placeholder
-          if (_imageFile != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.file(
-                _imageFile!,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            )
-          else
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.remove_red_eye_outlined,
-                    size: 40,
-                    color: Colors.white70,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  'Arahkan Kamera Fundus ke Makula',
-                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Pastikan bidang pandang FOV >= 45° mencakup diskus optikus',
-                  style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
-                ),
-              ],
-            ),
-
-          // 45-degree Optical Reticle Overlay
-          Container(
-            width: 220,
-            height: 220,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.reticleBorder.withOpacity(0.6),
-                width: 1.5,
-              ),
-            ),
-          ),
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.reticleBorder.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-          ),
-
-          // Camera / Gallery Action Buttons
-          Positioned(
-            bottom: 16,
-            child: Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () => _pickImage(ImageSource.camera),
-                  icon: const Icon(Icons.camera_alt, size: 16),
-                  label: const Text('Kamera Optik'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: () => _pickImage(ImageSource.gallery),
-                  icon: const Icon(Icons.photo_library, size: 16, color: Colors.white),
-                  label: const Text('Pilih Berkas', style: TextStyle(color: Colors.white)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.white38),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ],
-            ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2196F3), width: 2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000), // rgba(0,0,0,0.05)
+            offset: Offset(0, 1),
+            blurRadius: 1,
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildProtocolNotice() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.primarySurface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.info_outline, size: 18, color: AppColors.primaryDark),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Standar Protokol: Citra harus memenuhi ketajaman Laplacian >= 0.40 dan pencahayaan kanal hijau seimbang.',
-              style: TextStyle(fontSize: 11, color: AppColors.primaryDark, height: 1.3),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBranchSelector() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          // Header Row: Foto Sudah Diupload + Filename badge (Figma Node 28:387)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.tune, size: 16, color: AppColors.textSecondary),
-              SizedBox(width: 8),
-              Text(
-                'Simulasi Cabang Alur Figma (Evaluasi Medis):',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              const Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    size: 16,
+                    color: Color(0xFF2196F3),
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Foto Sudah Diupload',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.figmaBlueSurface,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Text(
+                  _fileName,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2196F3),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _buildBranchChip('NORMAL', 'Lolos Mutu'),
-              const SizedBox(width: 8),
-              _buildBranchChip('RETAKE', 'Kualitas Buram'),
-              const SizedBox(width: 8),
-              _buildBranchChip('HUMAN_REVIEW', 'Telaah Dokter'),
+
+          const SizedBox(height: 12),
+
+          // Aspect Ratio 16:9 Preview Photo Box (Figma Node 28:394)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Actual Image Rendering
+                  if (_imageBytes != null)
+                    Image.memory(_imageBytes!, fit: BoxFit.cover)
+                  else if (_imageFile != null && !kIsWeb)
+                    Image.file(_imageFile!, fit: BoxFit.cover)
+                  else
+                    Image.asset('assets/images/upload_preview_sample.png', fit: BoxFit.cover),
+
+                  // Bottom Gradient Overlay with File Size (Figma Node 28:396)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Color(0x99000000), // rgba(0,0,0,0.6)
+                          ],
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.remove_red_eye_outlined,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Citra Siap Dianalisis',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 11,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            _fileSize,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Action Button: Ganti Foto Lain (Figma Node 28:405)
+          InkWell(
+            onTap: _showImageSourcePicker,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 9),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.refresh,
+                    size: 15,
+                    color: Color(0xFF475569),
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Ganti Foto Lain',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Clinical Quality Guidelines Section: PANDUAN KUALITAS RETIVA (Figma Node 79:542 & 79:623)
+  Widget _buildQualityGuidanceSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header Row (Figma Node 79:544)
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'PANDUAN KUALITAS RETIVA',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF434652),
+                letterSpacing: 0.55,
+              ),
+            ),
+            Row(
+              children: [
+                Icon(
+                  Icons.verified_user_outlined,
+                  size: 13,
+                  color: AppColors.figmaBlueDark,
+                ),
+                SizedBox(width: 4),
+                Text(
+                  'Standar Klinis',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.figmaBlueDark,
+                    letterSpacing: 0.44,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 8),
+
+        // Quality Guide White Card with 3 Dividers (Figma Node 79:551)
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0D000000), // rgba(0,0,0,0.05)
+                offset: Offset(0, 1),
+                blurRadius: 1,
+              ),
             ],
           ),
-        ],
-      ),
+          child: Column(
+            children: [
+              // Item 1: Pencahayaan Retina Merata (Figma Node 79:552)
+              _buildGuidelineRow(
+                number: '1',
+                title: 'Pencahayaan Retina Merata',
+                description:
+                    'Hindari pantulan silau (glare) putih berlebihan atau area gelap akibat pupil yang belum teriluminasi penuh.',
+              ),
+
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Divider(color: Color(0xFFD9EBF5), height: 1),
+              ),
+
+              // Item 2: Fokus Tajam Diskus & Makula (Figma Node 79:562)
+              _buildGuidelineRow(
+                number: '2',
+                title: 'Fokus Tajam Diskus & Makula',
+                description:
+                    'Pembuluh darah vaskular temporal dan batas diskus optikus harus terdefinisi jelas tanpa blur gerakan.',
+              ),
+
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Divider(color: Color(0xFFD9EBF5), height: 1),
+              ),
+
+              // Item 3: Bebas Obstruksi Mata (Figma Node 79:572)
+              _buildGuidelineRow(
+                number: '3',
+                title: 'Bebas Obstruksi Mata',
+                description:
+                    'Pastikan tidak ada artefak bulu mata, bayangan kelopak mata, atau kabut kelembapan pada lensa adapter.',
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildBranchChip(String branch, String label) {
-    final isSelected = _demoBranch == branch;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _demoBranch = branch),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : AppColors.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.border,
-            ),
+  Widget _buildGuidelineRow({
+    required String number,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Number Badge (32x32 rounded 9999px, #DFF1FB background, #003178 text)
+        Container(
+          width: 32,
+          height: 32,
+          decoration: const BoxDecoration(
+            color: Color(0xFFDFF1FB),
+            shape: BoxShape.circle,
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: isSelected ? Colors.white : AppColors.textSecondary,
+          child: Center(
+            child: Text(
+              number,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.figmaBlueDark,
+              ),
             ),
           ),
         ),
-      ),
+
+        const SizedBox(width: 12),
+
+        // Text Details
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.figmaTextHeading,
+                  letterSpacing: 0.26,
+                  height: 1.23,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.figmaTextBody,
+                  height: 1.38,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  void _showQualityGuidanceDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Panduan Pemotretan Fundus', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-        content: const Text(
-          '1. Minta pasien memfokuskan pandangan pada lampu target.\n'
-          '2. Pertahankan jarak lensa 1.5 - 2 cm dari kornea mata.\n'
-          '3. Hindari getaran tangan saat menekan tombol rana.\n'
-          '4. Pastikan makula berada di tengah lingkaran retikel optik.',
-          style: TextStyle(fontSize: 13, height: 1.5),
+  /// Persistent Bottom CTA Button: Periksa Kualitas Foto (Figma Node 129:2 & 85:692)
+  Widget _buildBottomCtaArea() {
+    final isEnabled = _hasSelectedImage;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFF1F5F9), width: 1),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Mengerti', style: TextStyle(fontWeight: FontWeight.w700)),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: ElevatedButton(
+          onPressed: isEnabled ? _proceedToQualityScanning : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isEnabled ? AppColors.figmaBlue : const Color(0xFF94A3B8),
+            foregroundColor: Colors.white,
+            elevation: isEnabled ? 2 : 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-        ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.check_circle_outline,
+                size: 18,
+                color: isEnabled ? Colors.white : const Color(0xFF475569),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Periksa Kualitas Foto',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: isEnabled ? Colors.white : const Color(0xFF475569),
+                  letterSpacing: 0.15,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
