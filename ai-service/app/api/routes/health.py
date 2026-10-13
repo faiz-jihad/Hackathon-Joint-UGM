@@ -31,6 +31,7 @@ def get_model_info():
             "margin_threshold": settings.RELIABILITY_MARGIN_THRESHOLD,
             "max_entropy": settings.RELIABILITY_MAX_ENTROPY
         },
+        "evaluation_metrics": meta.get("evaluation_metrics", {}),
         "explainability": {
             "gradcam": settings.GRADCAM_ENABLED
         },

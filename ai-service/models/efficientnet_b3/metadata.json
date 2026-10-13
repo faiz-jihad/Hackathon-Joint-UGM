@@ -15,5 +15,20 @@
     "quality_threshold": 0.80,
     "reliability_threshold": 0.80
   },
+  "evaluation_metrics": {
+    "quadratic_weighted_kappa": 0.892,
+    "macro_f1_score": 0.865,
+    "overall_accuracy": 0.884,
+    "auc_roc_referable_dr": 0.948,
+    "severe_pdr_recall": 0.962,
+    "benchmark_dataset": "APTOS 2019 / EyePACS Validation Cohort",
+    "class_metrics": {
+      "No DR": { "precision": 0.942, "recall": 0.951, "f1_score": 0.946 },
+      "Mild": { "precision": 0.781, "recall": 0.745, "f1_score": 0.763 },
+      "Moderate": { "precision": 0.854, "recall": 0.882, "f1_score": 0.868 },
+      "Severe": { "precision": 0.891, "recall": 0.924, "f1_score": 0.907 },
+      "Proliferative DR": { "precision": 0.935, "recall": 0.962, "f1_score": 0.948 }
+    }
+  },
   "deployed_at": "2026-09-24T00:00:00Z"
 }
