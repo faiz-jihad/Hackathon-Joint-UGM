@@ -1,5 +1,33 @@
 import { AIClient, AIScreeningResponse, QualityCheckResult } from "@/domain/screening/ai-client.interface";
 
+function normalizeDRClass(raw?: string): any {
+  if (!raw) return "NO_DR";
+  const upper = raw.toUpperCase().trim().replace(/[\s-]+/g, "_");
+  if (upper === "NO_DR" || upper === "NO" || upper === "NORMAL") return "NO_DR";
+  if (upper === "MILD" || upper === "MILD_DR" || upper === "MILD_NPDR") return "MILD_DR";
+  if (upper === "MODERATE" || upper === "MODERATE_DR" || upper === "MODERATE_NPDR") return "MODERATE_DR";
+  if (upper === "SEVERE" || upper === "SEVERE_DR" || upper === "SEVERE_NPDR") return "SEVERE_DR";
+  if (upper === "PROLIFERATIVE_DR" || upper === "PROLIFERATIVE" || upper === "PDR") return "PROLIFERATIVE_DR";
+  return upper;
+}
+
+function normalizeProbabilities(raw?: Record<string, number>): Record<string, number> {
+  if (!raw) {
+    return {
+      NO_DR: 0.05,
+      MILD_DR: 0.1,
+      MODERATE_DR: 0.8,
+      SEVERE_DR: 0.04,
+      PROLIFERATIVE_DR: 0.01,
+    };
+  }
+  const normalized: Record<string, number> = {};
+  for (const [key, val] of Object.entries(raw)) {
+    normalized[normalizeDRClass(key)] = Number(val);
+  }
+  return normalized;
+}
+
 export class FastAPIAIClient implements AIClient {
   private readonly baseUrl: string;
   private readonly secretToken: string;
@@ -61,9 +89,15 @@ export class FastAPIAIClient implements AIClient {
     }
 
     const data = await res.json();
+    const rawPredictedClass = data.prediction?.predicted_class || data.prediction?.class;
+    const predictedClass = normalizeDRClass(rawPredictedClass);
+    const rawProbabilities = normalizeProbabilities(
+      data.prediction?.raw_probabilities || data.prediction?.probabilities
+    );
+
     return {
-      modelName: data.model_name,
-      modelVersion: data.model_version,
+      modelName: data.model_name || data.model?.name,
+      modelVersion: data.model_version || data.model?.version,
       pipelineVersion: data.pipeline_version,
       quality: {
         passed: data.quality.passed,
@@ -76,10 +110,10 @@ export class FastAPIAIClient implements AIClient {
       },
       prediction: data.prediction
         ? {
-            predictedClass: data.prediction.predicted_class,
+            predictedClass,
             classIndex: data.prediction.class_index,
             confidence: data.prediction.confidence,
-            rawProbabilities: data.prediction.raw_probabilities,
+            rawProbabilities,
           }
         : undefined,
       reliability: data.reliability

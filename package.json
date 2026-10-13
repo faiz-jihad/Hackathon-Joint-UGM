@@ -16,6 +16,10 @@
     "test:phase2": "npm --prefix web run test:phase2",
     "test:phase3": "npm --prefix web run test:phase3",
     "test:phase4": "npm --prefix web run test:phase4",
-    "test:phase5": "npm --prefix web run test:phase5"
+    "test:phase5": "npm --prefix web run test:phase5",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:build": "docker compose build"
   }
 }

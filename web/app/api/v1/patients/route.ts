@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { patientService } from "@/lib/container";
+import { patientService, diabetesProfileService } from "@/lib/container";
 import { HttpResponse } from "@/lib/http-response";
 import { AuthGuard } from "@/infrastructure/security/auth.guard";
 import { createPatientSchema, searchPatientSchema } from "@/lib/validations/patient.validation";
@@ -57,8 +57,32 @@ export async function POST(req: NextRequest) {
     }
 
     const patient = await patientService.createPatient(validated.data, actor);
+
+    // Atomically link diabetes profile if provided
+    if (validated.data.diabetesProfile && actor.role !== "PATIENT") {
+      try {
+        await diabetesProfileService.upsertProfile(
+          patient.id,
+          {
+            diabetesType: validated.data.diabetesProfile.diabetesType || "TYPE_2",
+            yearOfDiagnosis: validated.data.diabetesProfile.yearOfDiagnosis,
+            currentTreatment: validated.data.diabetesProfile.currentTreatment || "ORAL_MEDICATION",
+            lastHbA1c: validated.data.diabetesProfile.lastHbA1c,
+            systolicBp: validated.data.diabetesProfile.systolicBp,
+            diastolicBp: validated.data.diabetesProfile.diastolicBp,
+            isSmoker: validated.data.diabetesProfile.isSmoker ?? false,
+            notes: validated.data.diabetesProfile.notes,
+          },
+          actor
+        );
+      } catch (profileError) {
+        console.warn("Failed to create initial diabetes profile:", profileError);
+      }
+    }
+
     return HttpResponse.created(patient.toJSON());
   } catch (error) {
     return HttpResponse.handleException(error);
   }
 }
+

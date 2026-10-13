@@ -556,9 +556,74 @@ class ClinicalStore {
       if (storedAudit) this.auditLogs = JSON.parse(storedAudit);
 
       this.initialized = true;
+      this.syncWithApi();
     } catch {
       // Fallback to in-memory store
       this.initialized = true;
+      this.syncWithApi();
+    }
+  }
+
+  // Live Database API Synchronization
+  public async syncWithApi() {
+    if (typeof window === 'undefined') return;
+    try {
+      // 1. Fetch live patients from DB via API Gateway
+      const resPatients = await fetch('/api/v1/patients?limit=50', {
+        headers: { 'x-retiva-clinical': 'true' },
+      });
+      if (resPatients.ok) {
+        const json = await resPatients.json();
+        const list = json.data?.patients || json.data;
+        if (Array.isArray(list) && list.length > 0) {
+          this.patients = list.map((p: any) => ({
+            id: p.id,
+            nik: p.nik,
+            name: p.fullName || p.name,
+            age: p.age || (p.birthDate ? Math.max(18, Math.floor((Date.now() - new Date(p.birthDate).getTime()) / (365.25 * 24 * 3600 * 1000))) : 50),
+            gender: p.gender === 'FEMALE' ? 'P' : 'L',
+            phone: p.phone,
+            diabetesProfile: {
+              type: p.diabetesProfile?.diabetesType || 'TYPE_2',
+              durationYears: p.diabetesProfile?.yearOfDiagnosis ? Math.max(1, new Date().getFullYear() - p.diabetesProfile.yearOfDiagnosis) : 5,
+              hba1c: p.diabetesProfile?.lastHbA1c || 7.5,
+              treatment: p.diabetesProfile?.currentTreatment || 'ORAL',
+            },
+            createdAt: p.createdAt || new Date().toISOString(),
+          }));
+          this.persist();
+          this.notify();
+        }
+      }
+
+      // 2. Fetch live facilities from DB via API Gateway
+      const resFacilities = await fetch('/api/v1/facilities?limit=50', {
+        headers: { 'x-retiva-clinical': 'true' },
+      });
+      if (resFacilities.ok) {
+        const json = await resFacilities.json();
+        const list = json.data?.facilities || json.data;
+        if (Array.isArray(list) && list.length > 0) {
+          this.facilities = list.map((f: any) => ({
+            id: f.id,
+            name: f.name,
+            type: f.name.includes('RSUP')
+              ? 'Rumah Sakit Rujukan Nasional (Tipe A)'
+              : (f.name.includes('Puskesmas') ? 'Faskes Primer (FKTP)' : 'Rumah Sakit Khusus Mata'),
+            service: (f.services || []).map((s: any) => s.serviceName || s).join(', ') || 'Layanan Kesehatan Mata',
+            distanceKm: f.distanceKm || 3.5,
+            bpjsStatus: f.bpjsStatus || 'ACCEPTED',
+            bpjsVerified: f.isVerified ?? true,
+            address: f.address,
+            phone: f.contactPhone || '(0274) 562054',
+            schedule: 'Senin - Sabtu: 08:00 - 15:00',
+          }));
+          this.persist();
+          this.notify();
+        }
+      }
+    } catch (e) {
+      console.warn('API sync silently continued with active local store:', e);
     }
   }
 
@@ -630,6 +695,25 @@ class ClinicalStore {
 
     this.persist();
     this.notify();
+
+    // Async persist to Backend API / PostgreSQL Database
+    if (typeof window !== 'undefined') {
+      fetch('/api/v1/patients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-retiva-clinical': 'true',
+        },
+        body: JSON.stringify({
+          nik: newPatient.nik,
+          fullName: newPatient.name,
+          birthDate: new Date(Date.now() - newPatient.age * 365.25 * 24 * 3600 * 1000).toISOString(),
+          gender: newPatient.gender === 'P' ? 'FEMALE' : 'MALE',
+          phone: newPatient.phone || '081234567890',
+        }),
+      }).catch((err) => console.warn('Background DB sync patient creation notice:', err));
+    }
+
     return newPatient;
   }
 

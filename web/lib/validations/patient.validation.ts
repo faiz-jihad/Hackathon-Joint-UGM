@@ -14,6 +14,22 @@ export const createPatientSchema = z.object({
   phone: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
   emergencyContact: z.string().optional().nullable(),
+  diabetesProfile: z
+    .object({
+      diabetesType: z.enum(["TYPE_1", "TYPE_2", "GESTATIONAL", "UNKNOWN"]).optional().default("TYPE_2"),
+      yearOfDiagnosis: z.number().int().optional().nullable(),
+      currentTreatment: z
+        .enum(["INSULIN", "ORAL_MEDICATION", "DIET_AND_LIFESTYLE", "COMBINATION", "NONE", "UNKNOWN"])
+        .optional()
+        .default("ORAL_MEDICATION"),
+      lastHbA1c: z.number().optional().nullable(),
+      systolicBp: z.number().int().optional().nullable(),
+      diastolicBp: z.number().int().optional().nullable(),
+      isSmoker: z.boolean().optional().default(false),
+      notes: z.string().optional().nullable(),
+    })
+    .optional()
+    .nullable(),
 });
 
 export const updatePatientSchema = z.object({

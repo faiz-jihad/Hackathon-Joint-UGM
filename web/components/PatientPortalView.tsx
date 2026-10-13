@@ -13,6 +13,8 @@ import {
   ArrowRightIcon,
 } from './Icons';
 
+import { clinicalStore, PatientData, ScreeningData } from '../lib/clinical-store';
+
 interface PatientPortalViewProps {
   onSwitchCharacter: () => void;
   onLogout?: () => void;
@@ -35,36 +37,72 @@ export function PatientPortalView({
   const [activeSubTab, setActiveSubTab] = useState<'screening' | 'referral' | 'education'>('screening');
   const [showFullDisclaimer, setShowFullDisclaimer] = useState<boolean>(false);
 
-  // Patient Mock Data - Ny. Siti Aminah (matching Pengguna.png)
+  // Dynamic Patient and Screening data sourced from DB via ClinicalStore
+  const [patientData, setPatientData] = useState<PatientData | undefined>(() => {
+    const list = clinicalStore.getPatients();
+    const matched = list.find(
+      (p) =>
+        p.name.toLowerCase().includes(currentUser?.fullName?.toLowerCase() || '') ||
+        p.nik === '3404084501650002'
+    ) || list[0];
+    return matched;
+  });
+
+  const [screeningList, setScreeningList] = useState<ScreeningData[]>(() => {
+    return clinicalStore.getScreenings();
+  });
+
+  React.useEffect(() => {
+    const unsubscribe = clinicalStore.subscribe(() => {
+      const list = clinicalStore.getPatients();
+      const matched = list.find(
+        (p) =>
+          p.name.toLowerCase().includes(currentUser?.fullName?.toLowerCase() || '') ||
+          p.nik === '3404084501650002'
+      ) || list[0];
+      setPatientData(matched);
+      setScreeningList(clinicalStore.getScreenings());
+    });
+    return () => unsubscribe();
+  }, [currentUser]);
+
   const patient = {
-    nik: '3404084501650002',
-    name: 'Ny. Siti Aminah',
-    age: 61,
-    gender: 'Perempuan',
-    phone: '0812-9876-5432',
+    nik: patientData?.nik || '3404084501650002',
+    name: patientData?.name || currentUser?.fullName || 'Ny. Siti Aminah',
+    age: patientData?.age || 61,
+    gender: patientData?.gender === 'P' ? 'Perempuan' : 'Laki-laki',
+    phone: patientData?.phone || '0812-9876-5432',
     address: 'Jl. Kaliurang KM 9.2, Sleman, D.I. Yogyakarta',
     faskesPrimer: 'Puskesmas Sleman (Faskes Tingkat 1)',
-    dmType: 'Diabetes Mellitus Tipe 2',
-    durationYears: 12,
-    hba1c: 9.4,
-    treatment: 'Terapi Insulin Harian & Metformin',
+    dmType: patientData?.diabetesProfile?.type === 'TYPE_1' ? 'Diabetes Mellitus Tipe 1' : 'Diabetes Mellitus Tipe 2',
+    durationYears: patientData?.diabetesProfile?.durationYears || 12,
+    hba1c: patientData?.diabetesProfile?.hba1c || 9.4,
+    treatment: patientData?.diabetesProfile?.treatment === 'INSULIN' ? 'Terapi Insulin Harian & Metformin' : 'Metformin / OHO',
     bpjsNumber: '0001839201948',
   };
 
+  const activeScreening = screeningList.find(
+    (s) => (patientData && s.patientId === patientData.id) || (patientData && s.patientNik === patientData.nik)
+  ) || screeningList[0];
+
   const latestScreening = {
-    screeningId: 'SCR-2026-0891',
-    date: '26 September 2026',
+    screeningId: activeScreening?.id || 'SCR-2026-0891',
+    date: activeScreening?.capturedAt
+      ? new Date(activeScreening.capturedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+      : '26 September 2026',
     time: '09:15 WIB',
     facility: 'Puskesmas Sleman',
     nakes: 'Dewi Sartika, A.Md.Kes',
-    reviewerDoctor: 'dr. Harianto, Sp.M(K)',
-    reviewStatus: 'TERADJUDIKASI (SELESAI DITELAAH)',
+    reviewerDoctor: activeScreening?.humanReview?.reviewerName || 'dr. Harianto, Sp.M(K)',
+    reviewStatus: activeScreening?.humanReview?.status === 'CONFIRMED_AI'
+      ? 'TERADJUDIKASI (SELESAI DITELAAH)'
+      : (activeScreening?.reliabilityLabel || 'TERADJUDIKASI'),
     od: {
       eye: 'Mata Kanan (OD)',
-      grade: 'MODERATE_NPDR',
-      gradeLabel: 'Moderate Non-Proliferative Diabetic Retinopathy',
-      confidence: 89.2,
-      recommendation: 'Rujuk ke Spesialis Mata Poliklinik Vitreoretina dalam 4 minggu.',
+      grade: activeScreening?.aiResult?.drGrade || 'MODERATE_NPDR',
+      gradeLabel: activeScreening?.aiResult?.drLabel || 'Moderate Non-Proliferative Diabetic Retinopathy',
+      confidence: activeScreening?.aiResult?.confidence || 89.2,
+      recommendation: activeScreening?.recommendation?.action || 'Rujuk ke Spesialis Mata Poliklinik Vitreoretina dalam 4 minggu.',
       findings: ['Mikroaneurisma multipel kuadran temporal', 'Hard exudate perifovea', 'Tanpa neovaskularisasi'],
     },
     os: {

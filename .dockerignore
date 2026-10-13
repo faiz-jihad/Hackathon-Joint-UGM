@@ -1,0 +1,20 @@
+# Mobile Flutter workspace (not needed inside server containers)
+mobile/
+
+# Version control & IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+.gemini/
+
+# Node & Python caches
+node_modules/
+__pycache__/
+.venv/
+.next/
+
+# Logs & temp
+*.log
+.DS_Store
+Thumbs.db
