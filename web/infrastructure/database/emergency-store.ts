@@ -450,7 +450,7 @@ export class EmergencyStore {
       });
 
       if (dbIncidents && dbIncidents.length > 0) {
-        let items: EmergencyIncidentDto[] = dbIncidents.map((inc) => ({
+        let items: EmergencyIncidentDto[] = (dbIncidents as any[]).map((inc: any) => ({
           id: inc.id,
           patientId: inc.patientId,
           patientName: inc.patient?.fullName || "Pasien Retiva",
@@ -480,7 +480,7 @@ export class EmergencyStore {
           resolutionNotes: inc.resolutionNotes,
           createdAt: inc.createdAt.toISOString(),
           updatedAt: inc.updatedAt.toISOString(),
-          notifications: inc.notifications.map((n) => ({
+          notifications: (inc.notifications || []).map((n: any) => ({
             id: n.id,
             incidentId: n.incidentId,
             recipientName: n.recipientName,
@@ -495,7 +495,7 @@ export class EmergencyStore {
             createdAt: n.createdAt.toISOString(),
             updatedAt: n.updatedAt.toISOString(),
           })),
-          events: inc.events.map((e) => ({
+          events: (inc.events || []).map((e: any) => ({
             id: e.id,
             incidentId: e.incidentId,
             eventType: e.eventType,
@@ -506,7 +506,7 @@ export class EmergencyStore {
             payload: e.payload,
             createdAt: e.createdAt.toISOString(),
           })),
-          followUps: inc.followUps.map((f) => ({
+          followUps: (inc.followUps || []).map((f: any) => ({
             id: f.id,
             incidentId: f.incidentId,
             authorId: f.authorId,
@@ -602,7 +602,7 @@ export class EmergencyStore {
           resolutionNotes: inc.resolutionNotes,
           createdAt: inc.createdAt.toISOString(),
           updatedAt: inc.updatedAt.toISOString(),
-          notifications: inc.notifications.map((n) => ({
+          notifications: (inc.notifications || []).map((n: any) => ({
             id: n.id,
             incidentId: n.incidentId,
             recipientName: n.recipientName,
@@ -617,7 +617,7 @@ export class EmergencyStore {
             createdAt: n.createdAt.toISOString(),
             updatedAt: n.updatedAt.toISOString(),
           })),
-          events: inc.events.map((e) => ({
+          events: (inc.events || []).map((e: any) => ({
             id: e.id,
             incidentId: e.incidentId,
             eventType: e.eventType,
@@ -628,7 +628,7 @@ export class EmergencyStore {
             payload: e.payload,
             createdAt: e.createdAt.toISOString(),
           })),
-          followUps: inc.followUps.map((f) => ({
+          followUps: (inc.followUps || []).map((f: any) => ({
             id: f.id,
             incidentId: f.incidentId,
             authorId: f.authorId,
@@ -1049,7 +1049,7 @@ export class EmergencyStore {
         orderBy: { isPrimary: "desc" },
       });
       if (dbContacts && dbContacts.length > 0) {
-        return dbContacts.map((c) => ({
+        return (dbContacts as any[]).map((c: any) => ({
           id: c.id,
           patientId: c.patientId,
           name: c.name,

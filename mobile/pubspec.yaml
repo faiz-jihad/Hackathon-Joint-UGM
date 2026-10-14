@@ -1,10 +1,10 @@
-name: retiva_mobile
-description: "RETIVA Mobile Client — Platform Skrining Retinopati Diabetik Nasional untuk Tenaga Kesehatan FKTP & Puskesmas."
-publish_to: 'none'
+name: Retiva
+description: "RETIVA Mobile Client  Platform Skrining Retinopati Diabetik Nasional untuk Tenaga Kesehatan FKTP & Puskesmas."
+publish_to: "none"
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
   flutter: ">=3.10.0"
 
 dependencies:
