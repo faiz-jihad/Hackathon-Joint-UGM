@@ -146,4 +146,10 @@ class ApiConstants {
   // Master Data Endpoints
   static String get masterMeals => '$baseUrl/api/v1/master/meals';
   static String get masterQuestions => '$baseUrl/api/v1/master/questions';
+
+  // Retiva SOS Emergency Endpoints
+  static String get sosActivate => '$baseUrl/api/v1/sos/activate';
+  static String get sosIncidents => '$baseUrl/api/v1/sos/incidents';
+  static String sosIncidentDetail(String id) => '$baseUrl/api/v1/sos/incidents/$id';
+  static String sosContacts(String patientId) => '$baseUrl/api/v1/sos/contacts?patientId=$patientId';
 }

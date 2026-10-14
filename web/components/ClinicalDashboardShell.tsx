@@ -18,6 +18,7 @@ import { UsersMasterView } from './UsersMasterView';
 import { clinicalStore } from '../lib/clinical-store';
 
 import { CareCompanionAdminView } from './CareCompanionAdminView';
+import { EmergencyMonitoringView } from './EmergencyMonitoringView';
 
 const DoctorVerificationView = dynamic(
   () => import('./DoctorVerificationView').then((mod) => mod.DoctorVerificationView),
@@ -230,6 +231,8 @@ export function ClinicalDashboardShell({
               onOpenReview={handleOpenReview}
             />
           )}
+
+          {activeTab === 'sos-monitoring' && <EmergencyMonitoringView />}
 
           {activeTab === 'users' && <UsersMasterView initialTab="users" />}
 

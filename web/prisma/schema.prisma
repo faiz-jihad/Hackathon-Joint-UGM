@@ -39,8 +39,10 @@ model User {
   reviewsConducted   HumanReview[]   @relation("OphthalmologistReviews")
   auditLogs         AuditLog[]       @relation("UserAuditLogs")
   notifications     Notification[]
+  incidentsResponded EmergencyIncident[] @relation("IncidentResponder")
 
   @@map("users")
+
 }
 
 // ==========================================
@@ -122,8 +124,11 @@ model Patient {
   carePlans             CarePlan[]
   careReminders         CareReminder[]
   careProgressLogs      CareProgressLog[]
+  emergencyIncidents    EmergencyIncident[]
+  emergencyContacts     EmergencyContact[]
 
   @@index([nik])
+
   @@index([fullName])
   @@map("patients")
 }
@@ -808,3 +813,150 @@ model MasterDoctorQuestion {
   @@index([isActive])
   @@map("master_doctor_questions")
 }
+
+// ==========================================
+// 8. RETIVA SOS - AGENTIC EMERGENCY RESPONSE SYSTEM
+// ==========================================
+
+enum EmergencyIncidentStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+  CANCELLED
+}
+
+enum EmergencyUrgencyLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model EmergencyIncident {
+  id                  String                  @id @default(uuid())
+  patientId           String                  @map("patient_id")
+  status              EmergencyIncidentStatus @default(ACTIVE)
+  urgencyLevel        EmergencyUrgencyLevel   @default(HIGH) @map("urgency_level")
+  
+  // Clinical symptoms & context
+  symptoms            String[]                @default([])
+  reportedContext     Json?                   @map("reported_context")
+  initialTrigger      String                  @default("PATIENT_APP_BUTTON") @map("initial_trigger") // PATIENT_APP_BUTTON, WIDGET, QUICK_SHORTCUT, FALL_DETECTED
+  
+  // Location telemetry
+  latitude            Float?
+  longitude           Float?
+  accuracyMeters      Float?                  @map("accuracy_meters")
+  locationTimestamp   DateTime?               @map("location_timestamp")
+  locationStatus      String                  @default("PENDING") @map("location_status") // ACCURATE, APPROXIMATE, UNAVAILABLE, PERMISSION_DENIED, STALE
+  locationAddress     String?                 @map("location_address")
+  secureTrackingToken String?                 @unique @map("secure_tracking_token")
+  locationExpiresAt   DateTime?               @map("location_expires_at")
+  
+  // AI Agent Triage Output
+  triageAssessment    Json?                   @map("triage_assessment")
+  triageSummary       String?                 @map("triage_summary") @db.Text
+  recommendedAction   String?                 @map("recommended_action") @db.Text
+  
+  // Responder & lifecycle
+  responderId         String?                 @map("responder_id")
+  acknowledgedAt      DateTime?               @map("acknowledged_at")
+  resolvedAt          DateTime?               @map("resolved_at")
+  resolutionNotes     String?                 @map("resolution_notes") @db.Text
+  
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+
+  // Relations
+  patient             Patient                 @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  responder           User?                   @relation("IncidentResponder", fields: [responderId], references: [id], onDelete: SetNull)
+  events              EmergencyIncidentEvent[]
+  notifications       EmergencyNotification[]
+  followUps           EmergencyFollowUp[]
+
+  @@index([patientId])
+  @@index([status])
+  @@index([urgencyLevel])
+  @@index([createdAt])
+  @@map("emergency_incidents")
+}
+
+model EmergencyContact {
+  id               String   @id @default(uuid())
+  patientId        String   @map("patient_id")
+  name             String
+  relationship     String
+  phoneNumber      String   @map("phone_number")
+  isPrimary        Boolean  @default(false) @map("is_primary")
+  isVerified       Boolean  @default(true) @map("is_verified")
+  preferredChannel String   @default("WHATSAPP") @map("preferred_channel")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  patient          Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([isPrimary])
+  @@map("emergency_contacts")
+}
+
+model EmergencyNotification {
+  id                  String            @id @default(uuid())
+  incidentId          String            @map("incident_id")
+  recipientName       String            @map("recipient_name")
+  recipientPhone      String            @map("recipient_phone")
+  recipientType       String            @map("recipient_type") // EMERGENCY_CONTACT, PUSKESMAS_DOCTOR, AMBULANCE_119, RS_MATA
+  channel             String            // SMS, WHATSAPP, DASHBOARD_PUSH
+  message             String            @db.Text
+  status              String            @default("PENDING") // PENDING, SENT, DELIVERED, FAILED
+  failureReason       String?           @map("failure_reason")
+  deliveryConfirmedAt DateTime?         @map("delivery_confirmed_at")
+  retryCount          Int               @default(0) @map("retry_count")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  incident            EmergencyIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@index([status])
+  @@map("emergency_notifications")
+}
+
+model EmergencyIncidentEvent {
+  id               String            @id @default(uuid())
+  incidentId       String            @map("incident_id")
+  eventType        String            @map("event_type") // SOS_ACTIVATED, LOCATION_CAPTURED, AI_TRIAGE_COMPLETED, NOTIFICATION_DISPATCHED, ACKNOWLEDGED, NOTE_ADDED, RESOLVED, CANCELLED
+  eventTitle       String            @map("event_title")
+  eventDescription String?           @map("event_description") @db.Text
+  actorType        String            @default("SYSTEM") @map("actor_type") // PATIENT, SYSTEM, DOCTOR, RESPONDER, AI_AGENT
+  actorName        String?           @map("actor_name")
+  payload          Json?
+  createdAt        DateTime          @default(now()) @map("created_at")
+
+  // Relations
+  incident         EmergencyIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@index([createdAt])
+  @@map("emergency_incident_events")
+}
+
+model EmergencyFollowUp {
+  id          String            @id @default(uuid())
+  incidentId  String            @map("incident_id")
+  authorId    String?           @map("author_id")
+  authorName  String            @map("author_name")
+  authorRole  String            @default("DOCTOR") @map("author_role")
+  notes       String            @db.Text
+  actionTaken String?           @map("action_taken")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  // Relations
+  incident    EmergencyIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@map("emergency_follow_ups")
+}
+

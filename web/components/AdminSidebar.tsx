@@ -31,6 +31,7 @@ export function AdminSidebar({
   onLogout,
 }: AdminSidebarProps) {
   const [pendingDoctorCount, setPendingDoctorCount] = useState<number>(0);
+  const [activeSosCount, setActiveSosCount] = useState<number>(0);
   const [mounted, setMounted] = useState<boolean>(false);
   const lastKnownNameRef = useRef<string>(currentUser?.fullName || '');
   if (currentUser?.fullName) {
@@ -56,9 +57,26 @@ export function AdminSidebar({
       }
     };
 
+    const fetchSosCount = async () => {
+      try {
+        const res = await fetch('/api/v1/sos/incidents?status=ACTIVE');
+        if (res.ok) {
+          const json = await res.json();
+          setActiveSosCount(json.stats?.active || (json.data || []).length || 0);
+        }
+      } catch {
+        // Fallback
+      }
+    };
+
     updateCount();
+    fetchSosCount();
     window.addEventListener('storage', updateCount);
-    return () => window.removeEventListener('storage', updateCount);
+    const interval = setInterval(fetchSosCount, 15000);
+    return () => {
+      window.removeEventListener('storage', updateCount);
+      clearInterval(interval);
+    };
   }, [activeTab]);
 
   return (
@@ -120,6 +138,40 @@ export function AdminSidebar({
               </span>
               <span>Dashboard &amp; Antrean</span>
             </div>
+          </button>
+
+          {/* Main Menu: Retiva SOS Emergency Monitoring */}
+          <button
+            type="button"
+            className={`admin-nav-btn ${activeTab === 'sos-monitoring' ? 'active' : ''}`}
+            onClick={() => onTabChange('sos-monitoring')}
+            style={activeTab === 'sos-monitoring' ? {} : { borderLeft: activeSosCount > 0 ? '3px solid #EF4444' : undefined }}
+          >
+            <div className="admin-nav-item-left">
+              <span className="admin-nav-icon" style={{ color: activeSosCount > 0 ? '#EF4444' : undefined }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </span>
+              <span>Monitoring SOS</span>
+            </div>
+            {mounted && activeSosCount > 0 && (
+              <span
+                style={{
+                  background: '#EF4444',
+                  color: '#FFFFFF',
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  boxShadow: '0 0 8px rgba(239,68,68,0.5)',
+                }}
+              >
+                {activeSosCount} SOS
+              </span>
+            )}
           </button>
 
           {/* Group Menu: Master Data */}

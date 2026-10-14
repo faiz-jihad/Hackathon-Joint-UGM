@@ -8,6 +8,7 @@ import { CharacterRole } from './CharacterSelectView';
 import { DoctorStatusCheckModal } from './DoctorStatusCheckModal';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 import { SearchIcon } from './Icons';
+import Iridescence from './Iridescence';
 
 interface RoleLoginViewProps {
   role: CharacterRole;
@@ -355,14 +356,40 @@ export function RoleLoginView({
   };
 
   return (
-    <div className="modern-login-wrapper">
-      {/* Background Ambient Lighting */}
-      <div className="modern-ambient-glow glow-top-left" />
-      <div className="modern-ambient-glow glow-bottom-right" />
-      <div className="modern-grid-overlay" />
+    <div className="modern-login-wrapper" style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Iridescence Interactive WebGL Background */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'auto',
+          overflow: 'hidden',
+        }}
+      >
+        <Iridescence
+          color="#8099cc"
+          hueShift={0}
+          saturation={1}
+          brightness={1.5}
+          contrast={1}
+          speed={1}
+          scale={1}
+          detail={8}
+          warp={1}
+          rotation={0}
+          mouseReact
+          amplitude={0.1}
+          stir={0.5}
+          sheen={0.3}
+          clickSwirl
+          grain={0}
+          fade={0}
+        />
+      </div>
 
       {/* Main Centered Floating Container (Matching Reference Image) */}
-      <div className="modern-login-modal">
+      <div className="modern-login-modal" style={{ position: 'relative', zIndex: 10 }}>
         {/* Left Side: Photo Card Banner with slanted edge */}
         <div className="login-visual-card">
           {/* Background Character Image */}

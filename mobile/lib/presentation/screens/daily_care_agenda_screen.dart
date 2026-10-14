@@ -7,6 +7,7 @@ import '../../data/models/daily_agenda_model.dart';
 import '../../data/models/patient_model.dart';
 import 'daily_health_checkin_screen.dart';
 import 'health_progress_screen.dart';
+import 'smart_meal_detail_screen.dart';
 
 class DailyCareAgendaScreen extends StatefulWidget {
   final PatientModel? patient;
@@ -267,7 +268,36 @@ class _DailyCareAgendaScreenState extends State<DailyCareAgendaScreen> {
               ),
               const SizedBox(height: 16),
             ],
+            if (item.category == 'MEAL') ...[
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(46),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SmartMealDetailScreen(
+                        initialCategory: item.id.contains('sarapan')
+                            ? 'BREAKFAST'
+                            : item.id.contains('siang')
+                                ? 'LUNCH'
+                                : 'DINNER',
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.restaurant_menu_rounded, size: 18),
+                label: const Text('💡 Lihat Menu Cerdas & Dampak Glukosa'),
+              ),
+              const SizedBox(height: 12),
+            ],
             Row(
+
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
@@ -689,6 +719,44 @@ class _DailyCareAgendaScreenState extends State<DailyCareAgendaScreen> {
                     item.subtitle,
                     style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.3),
                   ),
+                  if (item.category == 'MEAL') ...[
+                    const SizedBox(height: 6),
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SmartMealDetailScreen(
+                              initialCategory: item.id.contains('sarapan')
+                                  ? 'BREAKFAST'
+                                  : item.id.contains('siang')
+                                      ? 'LUNCH'
+                                      : 'DINNER',
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.restaurant_menu_rounded, size: 12, color: AppColors.primary),
+                            SizedBox(width: 4),
+                            Text(
+                              'Lihat Rekomendasi Menu & Gizi',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+
                   if (item.safetyNote != null && !item.isCompleted) ...[
                     const SizedBox(height: 6),
                     Row(

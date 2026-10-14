@@ -53,13 +53,19 @@ class RetivaCompactWidgetProvider : AppWidgetProvider() {
             val mascotMsg = prefs.getString("flutter.widget_mascot_message", null)
                 ?: prefs.getString("widget_mascot_message", "Halo! Semangat hari ini 💙")
 
+            val nextCategory = prefs.getString("flutter.widget_next_activity_category", null)
+                ?: prefs.getString("widget_next_activity_category", "MEAL")
+            val isMeal = nextCategory.equals("MEAL", ignoreCase = true)
+            val labelText = if (isMeal) "Menu Sehat · $nextTime" else "Berikutnya · $nextTime"
+
             val views = RemoteViews(context.packageName, R.layout.widget_retiva_compact)
 
             views.setTextViewText(R.id.widget_compact_greeting, mascotMsg)
-            views.setTextViewText(R.id.widget_compact_next_label, "Berikutnya · $nextTime")
+            views.setTextViewText(R.id.widget_compact_next_label, labelText)
             views.setTextViewText(R.id.widget_compact_next_title, nextTitle)
             views.setTextViewText(R.id.widget_compact_progress, progressText)
             views.setTextViewText(R.id.widget_compact_progress_sub, "Agenda selesai: $progressText")
+
 
             // Intent to open Agenda screen
             val agendaIntent = Intent(context, MainActivity::class.java).apply {

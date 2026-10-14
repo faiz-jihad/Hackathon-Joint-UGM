@@ -4,6 +4,8 @@ import 'core/constants/app_colors.dart';
 import 'presentation/screens/home_screen.dart';
 import 'presentation/screens/daily_care_agenda_screen.dart';
 import 'presentation/screens/daily_health_checkin_screen.dart';
+import 'presentation/screens/smart_meal_detail_screen.dart';
+import 'presentation/screens/sos_activation_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,8 +68,17 @@ class _RetivaMobileAppState extends State<RetivaMobileApp> {
       _navigatorKey.currentState?.push(
         MaterialPageRoute(builder: (_) => const DailyHealthCheckinScreen()),
       );
+    } else if (route == 'smart_meal_detail') {
+      _navigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => const SmartMealDetailScreen()),
+      );
+    } else if (route == 'sos_activation') {
+      _navigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => const SosActivationScreen()),
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
