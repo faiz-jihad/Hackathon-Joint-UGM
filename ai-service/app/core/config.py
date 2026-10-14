@@ -24,13 +24,13 @@ class Settings:
     ]
 
     # Image Quality Gate Thresholds (Configurable, Section 5 & 19)
-    QUALITY_THRESHOLD: float = float(os.getenv("QUALITY_THRESHOLD", "0.80"))
-    QUALITY_BLUR_THRESHOLD: float = float(os.getenv("QUALITY_BLUR_THRESHOLD", "0.65"))
-    QUALITY_BRIGHTNESS_MIN: float = float(os.getenv("QUALITY_BRIGHTNESS_MIN", "0.20"))
-    QUALITY_BRIGHTNESS_MAX: float = float(os.getenv("QUALITY_BRIGHTNESS_MAX", "0.85"))
-    QUALITY_FOV_MIN: float = float(os.getenv("QUALITY_FOV_MIN", "0.60"))
-    MIN_IMAGE_DIMENSION: int = int(os.getenv("MIN_IMAGE_DIMENSION", "300"))
-    MAX_IMAGE_SIZE_MB: int = int(os.getenv("MAX_IMAGE_SIZE_MB", "10"))
+    QUALITY_THRESHOLD: float = float(os.getenv("QUALITY_THRESHOLD", "0.50"))
+    QUALITY_BLUR_THRESHOLD: float = float(os.getenv("QUALITY_BLUR_THRESHOLD", "0.35"))
+    QUALITY_BRIGHTNESS_MIN: float = float(os.getenv("QUALITY_BRIGHTNESS_MIN", "0.08"))
+    QUALITY_BRIGHTNESS_MAX: float = float(os.getenv("QUALITY_BRIGHTNESS_MAX", "0.92"))
+    QUALITY_FOV_MIN: float = float(os.getenv("QUALITY_FOV_MIN", "0.30"))
+    MIN_IMAGE_DIMENSION: int = int(os.getenv("MIN_IMAGE_DIMENSION", "224"))
+    MAX_IMAGE_SIZE_MB: int = int(os.getenv("MAX_IMAGE_SIZE_MB", "15"))
 
     # Reliability Gate Thresholds (Section 7 & 19)
     RELIABILITY_THRESHOLD: float = float(os.getenv("RELIABILITY_THRESHOLD", "0.80"))

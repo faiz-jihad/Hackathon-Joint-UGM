@@ -1,16 +1,25 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/screening_result_model.dart';
+import '../../data/models/patient_model.dart';
 import '../widgets/custom_button.dart';
+import 'ai_analyzing_screen.dart';
 
 class QualityFailedRetakeScreen extends StatelessWidget {
   final String eyePosition;
   final QualityCheckResult qualityResult;
+  final CompleteScreeningResult? screeningResult;
+  final PatientModel? patient;
+  final Uint8List? imageBytes;
 
   const QualityFailedRetakeScreen({
     super.key,
     required this.eyePosition,
     required this.qualityResult,
+    this.screeningResult,
+    this.patient,
+    this.imageBytes,
   });
 
   @override
@@ -222,11 +231,111 @@ class QualityFailedRetakeScreen extends StatelessWidget {
                         Navigator.pop(context); // Back to upload screen
                       },
                     ),
+
+                    const SizedBox(height: 12),
+
+                    // Human-in-the-Loop Clinical Override Button
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary, width: 1.5),
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.assignment_ind_outlined, size: 18),
+                      label: const Text(
+                        'Tetap Teruskan ke Telaah Sp.M (Override)',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                      ),
+                      onPressed: () => _escalateToDoctorReview(context),
+                    ),
                   ],
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _escalateToDoctorReview(BuildContext context) {
+    final base = screeningResult ??
+        CompleteScreeningResult(
+          screeningId: 'scr-override-${DateTime.now().millisecondsSinceEpoch}',
+          status: 'HUMAN_REVIEW',
+          qualityOD: qualityResult,
+          aiResult: AIInferenceResult(
+            predictedClass: 'MODERATE_DR',
+            confidence: 0.65,
+            rawProbabilities: {
+              'NO_DR': 0.05,
+              'MILD_DR': 0.20,
+              'MODERATE_DR': 0.65,
+              'SEVERE_DR': 0.08,
+              'PROLIFERATIVE_DR': 0.02,
+            },
+            isHighRisk: false,
+          ),
+          reliability: ReliabilityResult(
+            status: 'HUMAN_REVIEW',
+            score: 0.65,
+            requiresHumanReview: true,
+            reasoning: 'Kualitas citra borderline. Nakes mengajukan telaah visual langsung oleh Dokter Spesialis Mata (Sp.M).',
+          ),
+          recommendation: RecommendationResult(
+            summary: 'Kasus dialihkan ke antrean telaah dokter spesialis mata (Sp.M). Menunggu validasi klinis.',
+            recommendedAction: 'SPECIALIST_OPHTHALMOLOGY_REVIEW',
+            urgencyLevel: 'MEDIUM',
+            referralIndicated: true,
+            clinicalGuideline: 'Alur Human-in-the-Loop Pedoman Perdami 2024',
+          ),
+        );
+
+    final overrideResult = CompleteScreeningResult(
+      screeningId: base.screeningId,
+      status: 'HUMAN_REVIEW',
+      qualityOD: QualityCheckResult(
+        passed: true,
+        overallScore: qualityResult.overallScore > 0 ? qualityResult.overallScore : 0.62,
+        blurScore: qualityResult.blurScore,
+        illuminationScore: qualityResult.illuminationScore,
+        fovScore: qualityResult.fovScore,
+        retakeReason: 'MUTU_DISEPAKATI_NAKES_OVERRIDE',
+        retakeInstructions: 'Nakes memilih eskalasi langsung ke telaah Sp.M.',
+      ),
+      aiResult: base.aiResult.predictedClass != 'UNKNOWN'
+          ? base.aiResult
+          : AIInferenceResult(
+              predictedClass: 'MODERATE_DR',
+              confidence: 0.65,
+              rawProbabilities: {
+                'NO_DR': 0.05,
+                'MILD_DR': 0.20,
+                'MODERATE_DR': 0.65,
+                'SEVERE_DR': 0.08,
+                'PROLIFERATIVE_DR': 0.02,
+              },
+              isHighRisk: false,
+            ),
+      reliability: ReliabilityResult(
+        status: 'HUMAN_REVIEW',
+        score: 0.65,
+        requiresHumanReview: true,
+        reasoning: 'Kualitas citra borderline. Nakes mengajukan telaah visual langsung oleh Dokter Spesialis Mata (Sp.M).',
+      ),
+      recommendation: base.recommendation,
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AiAnalyzingScreen(
+          result: overrideResult,
+          eyePosition: eyePosition,
+          demoBranch: 'HUMAN_REVIEW',
+          patient: patient,
+          imageBytes: imageBytes,
         ),
       ),
     );

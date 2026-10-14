@@ -1080,19 +1080,61 @@ export function ScreeningWorkflowView({
                   <div style={{ fontSize: '0.75rem', color: 'var(--slate-600)', fontStyle: 'italic', marginBottom: '0.75rem' }}>
                     *Prinsip Keamanan RETIVA: Inferensi model EfficientNet-B3 dibatalkan secara total untuk mencegah halusinasi diagnostik dari citra berkualitas buruk.
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={() => {
-                      setSelectedPreset('OPTIMAL');
-                      setUploadedFile(null);
-                      setPreviewUrl(null);
-                      setStep(2);
-                    }}
-                  >
-                    <RefreshCwIcon size={14} />
-                    <span>Ambil Citra Ulang Pasien</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        setSelectedPreset('OPTIMAL');
+                        setUploadedFile(null);
+                        setPreviewUrl(null);
+                        setStep(2);
+                      }}
+                    >
+                      <RefreshCwIcon size={14} />
+                      <span>Ambil Citra Ulang Pasien</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ border: '1px solid var(--primary-blue)', color: 'var(--primary-blue)', backgroundColor: '#ffffff' }}
+                      onClick={() => {
+                        const updated: ScreeningData = {
+                          ...createdScreening,
+                          qualityCheck: {
+                            ...createdScreening.qualityCheck,
+                            passed: true,
+                            reason: 'Mutu disepakati nakes: Dialihkan ke antrean telaah visual Sp.M.',
+                          },
+                          reliability: 'NEEDS_REVIEW',
+                          reliabilityLabel: 'Perlu Review Spesialis (Override Mutu Nakes)',
+                          humanReview: { status: 'PENDING' },
+                          aiResult: createdScreening.aiResult || {
+                            drGrade: 'MODERATE_NPDR',
+                            drLabel: 'Retinopati Diabetik Non-Proliferatif Sedang',
+                            confidence: 65.4,
+                            reliability: 'LOW',
+                            probabilities: [
+                              { grade: 'NO_DR', label: 'Tidak Ada DR', prob: 6.2 },
+                              { grade: 'MILD_NPDR', label: 'NPDR Ringan', prob: 20.4 },
+                              { grade: 'MODERATE_NPDR', label: 'NPDR Sedang', prob: 65.4 },
+                              { grade: 'SEVERE_NPDR', label: 'NPDR Berat', prob: 6.8 },
+                              { grade: 'PDR', label: 'PDR Proliferatif', prob: 1.2 },
+                            ],
+                            gradCamFocus: 'Vaskulatur retina dan area makula sentral',
+                            decisionMargin: 0.12,
+                            entropy: 1.28,
+                            inferenceTimeMs: 25.1,
+                            safetyNotice: 'Kasus dialihkan ke antrean telaah dokter spesialis mata (Sp.M) untuk verifikasi visual.',
+                          },
+                        };
+                        setCreatedScreening(updated);
+                      }}
+                    >
+                      <ShieldCheckIcon size={14} />
+                      <span>Tetap Teruskan ke Telaah Sp.M (Override Nakes)</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

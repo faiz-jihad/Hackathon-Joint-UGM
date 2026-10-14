@@ -99,6 +99,9 @@ class _QualityScanningScreenState extends State<QualityScanningScreen> with Sing
                 builder: (_) => QualityFailedRetakeScreen(
                   eyePosition: widget.eyePosition,
                   qualityResult: result.qualityOD,
+                  screeningResult: result,
+                  patient: widget.patient,
+                  imageBytes: widget.imageBytes,
                 ),
               ),
             );

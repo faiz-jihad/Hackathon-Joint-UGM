@@ -44,34 +44,63 @@ class ImageQualityService:
         else:
             raise ValueError("Unsupported image input type.")
 
-    def inspect_blur(self, gray: np.ndarray) -> Tuple[bool, float, str]:
+    def inspect_blur(self, gray: np.ndarray, rgb: Optional[np.ndarray] = None) -> Tuple[bool, float, str]:
         """
         Calculates Laplacian variance to assess optical focus and motion blur.
-        Sharper fundus images yield higher variance.
+        Uses green channel (optimal for retinal vasculature absorption) across
+        retinal patches to reliably detect sharp vessel/disc edges, even when the
+        fovea/macula is naturally smooth and edge-free.
         """
-        # Focus on central 70% to avoid black border edge artifacts
         h, w = gray.shape
-        cy, cx = h // 2, w // 2
-        rh, rw = int(h * 0.35), int(w * 0.35)
-        central_crop = gray[cy - rh: cy + rh, cx - rw: cx + rw]
+        retina_mask = gray > 15
+        retina_pixel_count = np.count_nonzero(retina_mask)
 
-        if central_crop.size == 0:
-            return False, 0.0, "Empty crop"
+        if retina_pixel_count < 100:
+            return False, 0.0, "Empty or non-retinal frame"
 
-        laplacian_var = float(cv2.Laplacian(central_crop, cv2.CV_64F).var())
+        # Use green channel if available (highest vessel absorption / contrast)
+        eval_channel = rgb[:, :, 1] if (rgb is not None and rgb.ndim == 3 and rgb.shape[2] >= 2) else gray
 
-        # Map Laplacian variance to normalized 0-1 score (typical fundus: <40 is very blurry, >120 is crisp)
-        # Using sigmoid-like curve
-        normalized_score = min(1.0, max(0.0, laplacian_var / (laplacian_var + 60.0) * 1.5))
+        # Divide image into 4x4 grid of patches to isolate in-focus vascular arcades / disc
+        grid_h, grid_w = h // 4, w // 4
+        patch_vars = []
+
+        for row in range(4):
+            for col in range(4):
+                y1, y2 = row * grid_h, (row + 1) * grid_h
+                x1, x2 = col * grid_w, (col + 1) * grid_w
+                patch_mask = retina_mask[y1:y2, x1:x2]
+                if np.count_nonzero(patch_mask) > (grid_h * grid_w * 0.35):
+                    patch_data = eval_channel[y1:y2, x1:x2]
+                    var = float(cv2.Laplacian(patch_data, cv2.CV_64F).var())
+                    patch_vars.append(var)
+
+        if not patch_vars:
+            cy, cx = h // 2, w // 2
+            rh, rw = int(h * 0.25), int(w * 0.25)
+            central = eval_channel[cy - rh: cy + rh, cx - rw: cx + rw]
+            patch_vars = [float(cv2.Laplacian(central, cv2.CV_64F).var())] if central.size > 0 else [0.0]
+
+        # Top 35% percentile variance represents the sharpest anatomical structures
+        sorted_vars = sorted(patch_vars, reverse=True)
+        top_k = max(1, int(len(sorted_vars) * 0.35))
+        effective_var = float(np.mean(sorted_vars[:top_k]))
+
+        # Normalization:
+        # Extreme Gaussian blur has variance < 2.0 -> score < 0.20 (triggers RETAKE)
+        # Low/borderline focus: variance 8-15 -> score 0.40 - 0.58
+        # Standard good fundus: variance 25-80+ -> score 0.70 - 0.98
+        normalized_score = min(1.0, max(0.0, (effective_var / (effective_var + 16.0)) * 1.35))
         normalized_score = round(normalized_score, 2)
 
         passed = normalized_score >= self.blur_threshold
-        details = f"Sharpness variance: {round(laplacian_var, 1)} (score: {normalized_score})"
+        details = f"Sharpness variance: {round(effective_var, 1)} (score: {normalized_score})"
         return passed, normalized_score, details
 
     def inspect_brightness(self, gray: np.ndarray) -> Tuple[bool, float, str]:
         """
         Evaluates illumination, underexposure, and glare/overexposure.
+        Supports natural Asian / Indonesian darker fundus melanin pigmentation.
         """
         # Exclude black background (pixel values < 15) to inspect actual fundus retina
         mask = gray > 15
@@ -81,9 +110,9 @@ class ImageQualityService:
         retina_pixels = gray[mask] / 255.0
         mean_lum = float(np.mean(retina_pixels))
 
-        # Optimal mean fundus luminance is typically around 0.35 - 0.70
+        # Check severe underexposure
         if mean_lum < self.brightness_min:
-            score = max(0.0, mean_lum / self.brightness_min * 0.7)
+            score = max(0.0, (mean_lum / self.brightness_min) * 0.45)
             passed = False
             details = f"Underexposed / too dark (luminance: {round(mean_lum, 2)})"
         elif mean_lum > self.brightness_max:
@@ -92,9 +121,12 @@ class ImageQualityService:
             passed = False
             details = f"Overexposed / flash glare (luminance: {round(mean_lum, 2)})"
         else:
-            # Distance from center of ideal range (0.50)
-            dist = abs(mean_lum - 0.50)
-            score = round(1.0 - (dist * 0.8), 2)
+            # Optimal illumination is between 0.15 and 0.70
+            if mean_lum >= 0.15 and mean_lum <= 0.70:
+                dist = abs(mean_lum - 0.42)
+                score = round(max(0.65, 1.0 - (dist * 0.8)), 2)
+            else:
+                score = round(max(0.45, 0.80 - abs(mean_lum - 0.42) * 0.9), 2)
             passed = True
             details = f"Optimal illumination (luminance: {round(mean_lum, 2)})"
 
@@ -103,22 +135,23 @@ class ImageQualityService:
     def inspect_field_of_view(self, gray: np.ndarray) -> Tuple[bool, float, str]:
         """
         Computes fundus circular field-of-view coverage.
-        Standard fundus photography captures a 45-degree circular field.
+        Invariant to widescreen/rectangular frame aspect ratios.
         """
-        # Threshold to identify retina vs non-illuminated surrounding camera aperture
         h, w = gray.shape
-        _, thresh = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
-        retina_area = np.count_nonzero(thresh)
-        total_area = h * w
+        _, thresh = cv2.threshold(gray, 18, 255, cv2.THRESH_BINARY)
+        retina_area = float(np.count_nonzero(thresh))
 
-        # For a circular mask inscribed in a square, ideal coverage is pi / 4 ~= 0.785
-        # We normalize coverage relative to ideal circular aperture (~0.75)
-        raw_ratio = retina_area / float(total_area)
-        normalized_fov = min(1.0, raw_ratio / 0.70)
+        max_inscribed_circle = (np.pi / 4.0) * (min(h, w) ** 2)
+        circle_ratio = retina_area / max(1.0, max_inscribed_circle)
+        frame_ratio = retina_area / float(h * w)
+
+        effective_coverage = max(circle_ratio, frame_ratio)
+        normalized_fov = min(1.0, max(0.0, effective_coverage / 0.55))
+        normalized_fov = round(normalized_fov, 2)
 
         passed = normalized_fov >= self.fov_min
-        details = f"Aperture coverage: {round(raw_ratio * 100, 1)}% of frame"
-        return passed, round(normalized_fov, 2), details
+        details = f"Aperture coverage: {round(effective_coverage * 100, 1)}% of aperture"
+        return passed, normalized_fov, details
 
     def inspect_dimensions(self, h: int, w: int) -> Tuple[bool, float, str]:
         """Checks if input meets clinical minimum resolution."""
@@ -161,18 +194,15 @@ class ImageQualityService:
 
         # Run checks
         dim_passed, dim_score, dim_details = self.inspect_dimensions(h, w)
-        blur_passed, blur_score, blur_details = self.inspect_blur(gray)
+        blur_passed, blur_score, blur_details = self.inspect_blur(gray, rgb=rgb)
         bright_passed, bright_score, bright_details = self.inspect_brightness(gray)
         fov_passed, fov_score, fov_details = self.inspect_field_of_view(gray)
 
         # Weighted composite score
         composite_score = round(
-            0.40 * blur_score + 0.30 * bright_score + 0.20 * fov_score + 0.10 * dim_score,
+            0.35 * blur_score + 0.30 * bright_score + 0.20 * fov_score + 0.15 * dim_score,
             2
         )
-
-        all_checks_passed = dim_passed and blur_passed and bright_passed and fov_passed
-        overall_passed = all_checks_passed and (composite_score >= self.quality_threshold)
 
         checks = QualityChecks(
             blur=QualitySubCheck(passed=blur_passed, score=blur_score, details=blur_details),
@@ -180,6 +210,9 @@ class ImageQualityService:
             field_of_view=QualitySubCheck(passed=fov_passed, score=fov_score, details=fov_details),
             dimensions=QualitySubCheck(passed=dim_passed, score=dim_score, details=dim_details),
         )
+
+        all_checks_passed = dim_passed and blur_passed and bright_passed and fov_passed
+        overall_passed = all_checks_passed and (composite_score >= self.quality_threshold)
 
         if overall_passed:
             decision = "ANALYZE"
@@ -191,7 +224,7 @@ class ImageQualityService:
             instructions_list = []
             if not dim_passed:
                 reasons.append("Resolusi citra terlalu rendah.")
-                instructions_list.append("Gunakan kamera fundus dengan resolusi minimal 300x300 piksel.")
+                instructions_list.append(f"Gunakan kamera fundus dengan resolusi minimal {self.min_dimension}x{self.min_dimension} piksel.")
             if not blur_passed:
                 reasons.append("Citra mengalami blur / tidak fokus.")
                 instructions_list.append("Pastikan kamera fundus stabil dan fokus tepat pada diskus optikus sebelum menangkap citra.")

@@ -6,12 +6,16 @@ class BrandHeader extends StatefulWidget {
   final VoidCallback? onBack;
   final bool showBack;
   final Widget? trailing;
+  final String? badgeText;
+  final String? subtitle;
 
   const BrandHeader({
     super.key,
     this.onBack,
     this.showBack = false,
     this.trailing,
+    this.badgeText,
+    this.subtitle,
   });
 
   @override
@@ -365,9 +369,9 @@ class _BrandHeaderState extends State<BrandHeader> {
                           color: const Color(0xFFE0F2FE),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text(
-                          'FKTP / Faskes',
-                          style: TextStyle(
+                        child: Text(
+                          widget.badgeText ?? 'Portal Pasien',
+                          style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
@@ -379,9 +383,9 @@ class _BrandHeaderState extends State<BrandHeader> {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'Poli Diabetes & Mata • Standar ICDR',
-                    style: TextStyle(
+                  Text(
+                    widget.subtitle ?? 'Pendamping Diabetes & Mata • Standar PERDAMI',
+                    style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 10,
                       fontWeight: FontWeight.w500,

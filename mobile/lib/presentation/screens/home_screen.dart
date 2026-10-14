@@ -27,6 +27,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<PatientModel> _patients = [];
   bool _isLoading = true;
 
+  PatientModel? get _activePatient => _patients.isNotEmpty ? _patients.first : null;
+
   // Design tokens - konsisten
   static const double _spaceXs = 8;
   static const double _spaceSm = 12;
@@ -115,7 +117,10 @@ class _HomeScreenState extends State<HomeScreen> {
         bottom: false,
         child: Column(
           children: [
-            const BrandHeader(),
+            const BrandHeader(
+              badgeText: 'Portal Pasien',
+              subtitle: 'Pendamping Sehat Diabetes & Mata',
+            ),
             if (_isLoading)
               const LinearProgressIndicator(
                 minHeight: 2.5,
@@ -163,11 +168,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    // === RECENT PATIENT ===
+                    // === HASIL SKRINING SAYA ===
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, _spaceLg, 20, 0),
-                        child: _buildRecentPatientSection(),
+                        child: _buildMyScreeningSummarySection(),
                       ),
                     ),
 
@@ -231,7 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 2),
                   const Text(
-                    'Poli Retinopati DM',
+                    'Dashboard Pasien Sehat',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 20,
@@ -363,10 +368,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 11) return 'Selamat pagi, Dokter';
-    if (hour < 15) return 'Selamat siang, Dokter';
-    if (hour < 18) return 'Selamat sore, Dokter';
-    return 'Selamat malam, Dokter';
+    String timeGreeting = 'Selamat pagi';
+    if (hour >= 11 && hour < 15) {
+      timeGreeting = 'Selamat siang';
+    } else if (hour >= 15 && hour < 18) {
+      timeGreeting = 'Selamat sore';
+    } else if (hour >= 18 || hour < 4) {
+      timeGreeting = 'Selamat malam';
+    }
+    final name = _activePatient?.fullName.isNotEmpty == true
+        ? _activePatient!.fullName
+        : 'Bapak Bambang';
+    return '$timeGreeting, $name';
   }
 
   Widget _buildOnlineStatusBadge() {
@@ -464,7 +477,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: Color(0xFFFDE047), size: 12),
                               SizedBox(width: 4),
                               Text(
-                                'AI-POWERED',
+                                'DETEKSI DINI MANDIRI',
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 9,
@@ -480,7 +493,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 14),
                     const Text(
-                      'Skrining Fundus Baru',
+                      'Cek Kesehatan Retina Anda',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 22,
@@ -492,7 +505,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Upload foto OD/OS • Quality Gate AI • Diagnosis ICDR',
+                      'Ambil foto mata kanan (OD) & kiri (OS) • AI menganalisis risiko retinopati & diteruskan ke Sp.M',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 12,
@@ -524,7 +537,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 size: 16, color: Color(0xFF1E5EFF)),
                               SizedBox(width: 8),
                               Text(
-                                'Ambil Foto',
+                                'Mulai Skrining Mandiri',
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 13,
@@ -569,29 +582,47 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildQuickStats() {
     return Row(
       children: [
-        Expanded(child: _buildStatCard(
-          icon: Icons.people_alt_rounded,
-          iconColor: const Color(0xFF1E5EFF),
-          iconBg: const Color(0xFFEFF6FF),
-          value: '${_patients.length}',
-          label: 'Total Pasien',
-        )),
+        Expanded(
+          child: InkWell(
+            onTap: _navigateToDailyCheckIn,
+            borderRadius: BorderRadius.circular(_radiusMd),
+            child: _buildStatCard(
+              icon: Icons.bloodtype_rounded,
+              iconColor: const Color(0xFFE11D48),
+              iconBg: const Color(0xFFFFE4E6),
+              value: '118 mg/dL',
+              label: 'Gula Darah',
+            ),
+          ),
+        ),
         const SizedBox(width: _spaceSm),
-        Expanded(child: _buildStatCard(
-          icon: Icons.auto_awesome_rounded,
-          iconColor: const Color(0xFF059669),
-          iconBg: const Color(0xFFECFDF5),
-          value: '96.4%',
-          label: 'Akurasi AI',
-        )),
+        Expanded(
+          child: InkWell(
+            onTap: _navigateToDailyCare,
+            borderRadius: BorderRadius.circular(_radiusMd),
+            child: _buildStatCard(
+              icon: Icons.task_alt_rounded,
+              iconColor: const Color(0xFF059669),
+              iconBg: const Color(0xFFECFDF5),
+              value: '85%',
+              label: 'Kepatuhan Obat',
+            ),
+          ),
+        ),
         const SizedBox(width: _spaceSm),
-        Expanded(child: _buildStatCard(
-          icon: Icons.schedule_rounded,
-          iconColor: const Color(0xFFD97706),
-          iconBg: const Color(0xFFFFFBEB),
-          value: '24',
-          label: 'Hari Ini',
-        )),
+        Expanded(
+          child: InkWell(
+            onTap: _navigateToHistory,
+            borderRadius: BorderRadius.circular(_radiusMd),
+            child: _buildStatCard(
+              icon: Icons.remove_red_eye_rounded,
+              iconColor: const Color(0xFF1E5EFF),
+              iconBg: const Color(0xFFEFF6FF),
+              value: 'Aman',
+              label: 'Status Retina',
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -653,7 +684,7 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Menu Cepat',
+          'Layanan Perawatan Anda',
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 16,
@@ -666,33 +697,34 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           children: [
             Expanded(child: _buildActionCard(
-              icon: Icons.folder_shared_rounded,
-              iconColor: const Color(0xFF0284C7),
-              bgColor: const Color(0xFFF0F9FF),
-              borderColor: const Color(0xFFBAE6FD),
-              title: 'Rekam Medis',
-              subtitle: 'Database pasien',
-              onTap: _navigateToHistory,
+              icon: Icons.calendar_month_rounded,
+              iconColor: const Color(0xFF1E5EFF),
+              bgColor: const Color(0xFFEFF6FF),
+              borderColor: const Color(0xFFBFDBFE),
+              title: 'Agenda Saya',
+              subtitle: 'Jadwal obat & rawat',
+              onTap: _navigateToDailyCare,
             )),
             const SizedBox(width: _spaceSm),
             Expanded(child: _buildActionCard(
-              icon: Icons.psychology_rounded,
-              iconColor: const Color(0xFF8B5CF6),
-              bgColor: const Color(0xFFF5F3FF),
-              borderColor: const Color(0xFFDDD6FE),
-              title: 'Care AI',
-              subtitle: 'Edukasi & gizi',
-              onTap: _navigateToCareCompanion,
+              icon: Icons.edit_calendar_rounded,
+              iconColor: const Color(0xFF059669),
+              bgColor: const Color(0xFFECFDF5),
+              borderColor: const Color(0xFFA7F3D0),
+              title: 'Check-in Sehat',
+              subtitle: 'Catat gula & tensi',
+              onTap: _navigateToDailyCheckIn,
             )),
             const SizedBox(width: _spaceSm),
             Expanded(child: _buildActionCard(
-              icon: Icons.description_rounded,
-              iconColor: const Color(0xFFFF7A00),
-              bgColor: const Color(0xFFFFF4EC),
-              borderColor: const Color(0xFFFFD8BF),
-              title: 'Rujukan',
-              subtitle: 'Format BPJS',
-              onTap: _navigateToReferral,
+              icon: Icons.restaurant_menu_rounded,
+              iconColor: const Color(0xFFD97706),
+              bgColor: const Color(0xFFFFFBEB),
+              borderColor: const Color(0xFFFDE68A),
+              title: 'Menu Nutrisi',
+              subtitle: 'Porsi 3J diabetes',
+              onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const SmartMealDetailScreen())),
             )),
           ],
         ),
@@ -770,9 +802,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ============ RECENT PATIENT ============
-  Widget _buildRecentPatientSection() {
-    final latestPatient = _patients.isNotEmpty ? _patients.first : null;
+  // ============ HASIL SKRINING SAYA ============
+  Widget _buildMyScreeningSummarySection() {
+    final currentPatient = _activePatient;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -781,7 +813,7 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Pasien Terakhir',
+              'Hasil Skrining Retina Terakhir Saya',
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 16,
@@ -800,7 +832,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Row(
                 children: [
                   Text(
-                    'Lihat Semua',
+                    'Riwayat',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 12,
@@ -817,10 +849,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: _spaceSm),
-        if (latestPatient == null)
+        if (currentPatient == null)
           _buildEmptyPatientCard()
         else
-          _buildPatientCard(latestPatient),
+          _buildPatientCard(currentPatient),
       ],
     );
   }
@@ -838,15 +870,15 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: const BoxDecoration(
-              color: Color(0xFFF1F5F9),
+              color: Color(0xFFEFF6FF),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.person_add_alt_1_rounded,
-              color: Color(0xFF94A3B8), size: 28),
+            child: const Icon(Icons.remove_red_eye_outlined,
+              color: Color(0xFF1E5EFF), size: 28),
           ),
           const SizedBox(height: 12),
           const Text(
-            'Belum Ada Pasien',
+            'Belum Ada Riwayat Skrining',
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 14,
@@ -856,7 +888,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Mulai skrining pasien diabetes pertama',
+            'Lakukan pemeriksaan fundus retina mandiri untuk deteksi dini komplikasi diabetes.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Inter',
@@ -879,7 +911,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 elevation: 0,
               ),
               child: const Text(
-                'Mulai Skrining',
+                'Mulai Skrining Mandiri',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 13,
@@ -900,8 +932,16 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(_radiusMd),
         border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x0A0F172A),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -928,14 +968,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
                         color: Color(0xFF0F172A),
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'NIK: ${patient.nik} • ${patient.age} Thn (${patient.gender == "MALE" ? "L" : "P"})',
+                      'NIK: ${patient.nik} • ${patient.age} Thn (${patient.gender == "MALE" ? "Laki-laki" : "Perempuan"})',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -967,6 +1007,117 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 14),
+
+          // Retina Status Cards (OD & OS)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'STATUS KESEHATAN RETINA',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.verified_rounded, size: 10, color: Color(0xFF059669)),
+                          SizedBox(width: 3),
+                          Text(
+                            'Diverifikasi Sp.M',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF059669),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 16),
+                            SizedBox(width: 6),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Mata Kanan (OD)', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                  Text('Normal (No DR)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF065F46))),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 16),
+                            SizedBox(width: 6),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Mata Kiri (OS)', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                  Text('Normal (No DR)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF065F46))),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Detail indicators
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
@@ -976,16 +1127,16 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               children: [
                 Expanded(child: _buildPatientDetail(
-                  'Terapi', patient.diabetesProfile?.currentTreatment ?? 'Oral Med')),
+                  'Terapi Saat Ini', patient.diabetesProfile?.currentTreatment ?? 'Oral Med')),
                 Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
                 Expanded(child: _buildPatientDetail(
-                  'HbA1c',
+                  'HbA1c Terakhir',
                   patient.diabetesProfile?.lastHbA1c != null
                     ? '${patient.diabetesProfile!.lastHbA1c}%'
                     : '7.8%',
                 )),
                 Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
-                Expanded(child: _buildPatientDetail('Target', 'OD & OS')),
+                Expanded(child: _buildPatientDetail('Skrining Rutin', 'Okt 2027')),
               ],
             ),
           ),
@@ -1024,8 +1175,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // ============ CLINICAL WORKFLOW (Collapsible) ============
   Widget _buildClinicalWorkflow() {
     return _CollapsibleSection(
-      title: 'Alur Klinis Retiva',
-      subtitle: '4 tahap penanganan pasien retinopati DM',
+      title: 'Panduan Alur Perawatan Anda',
+      subtitle: '4 langkah menjaga mata tetap sehat bersama Retiva',
       icon: Icons.alt_route_rounded,
       iconColor: const Color(0xFF1E5EFF),
       iconBg: const Color(0xFFEFF6FF),
@@ -1034,33 +1185,33 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _buildWorkflowStep(
             step: '1',
-            title: 'Anamnesis & Faktor Risiko',
+            title: 'Pemeriksaan Mandiri & Gejala',
             description:
-              'Identifikasi keluhan visual, durasi DM, HbA1c terakhir, dan mata terperiksa.',
+              'Foto mata kanan & kiri dengan adaptor smartphone atau kamera fundus, serta catat keluhan pandangan.',
             color: const Color(0xFFF59E0B),
             isLast: false,
           ),
           _buildWorkflowStep(
             step: '2',
-            title: 'Diagnosis & Verifikasi Sp.M',
+            title: 'Telaah AI & Verifikasi Dokter Sp.M',
             description:
-              'Klasifikasi ICDR, kode ICD-10, heatmap Grad-CAM, validasi dokter spesialis.',
+              'AI Retiva menganalisis risiko mikrovaskular retina dan divalidasi langsung oleh dokter spesialis mata.',
             color: const Color(0xFF1E5EFF),
             isLast: false,
           ),
           _buildWorkflowStep(
             step: '3',
-            title: 'Tindakan & Rujukan BPJS',
+            title: 'Rujukan Terintegrasi BPJS SatuSehat',
             description:
-              'Protokol medis akut, SPK BPJS SatuSehat, pilihan RS Mata rujukan.',
+              'Bila terdeteksi kelainan retina, surat rujukan digital langsung diterbitkan ke RS rujukan mitra.',
             color: const Color(0xFF00C566),
             isLast: false,
           ),
           _buildWorkflowStep(
             step: '4',
-            title: 'Monitoring Berkelanjutan',
+            title: 'Pendampingan Harian & Pola Hidup',
             description:
-              'Jadwal kontrol PERDAMI, target metabolik, nutrisi retina, AI companion.',
+              'Jadwal pengingat obat, monitoring gula darah mandiri, rekomendasi gizi 3J, serta tombol SOS darurat.',
             color: const Color(0xFF8B5CF6),
             isLast: true,
           ),
@@ -1330,7 +1481,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
-                  'Pedoman Klinis PERDAMI',
+                  'Edukasi Pasien Diabetes • PERDAMI',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
@@ -1347,7 +1498,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(
-                  'v2.1',
+                  'Pedoman Sehat',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 10,
@@ -1360,8 +1511,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            '• Skrining fundus wajib minimal 1x/tahun untuk penderita DM tipe 1 & 2.\n'
-            '• Rujukan FKRTL diberikan bila terdeteksi NPDR sedang, berat, atau PDR.',
+            '• Skrining fundus mata wajib minimal 1x per tahun untuk deteksi dini komplikasi retina.\n'
+            '• Jaga gula darah puasa stabil (80-130 mg/dL) & patuhi jadwal obat harian.\n'
+            '• Tekan tombol SOS Darurat merah jika mengalami pandangan kabur mendadak atau melihat bintik hitam.',
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 11,
@@ -1415,8 +1567,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: _navigateToUpload,
               ),
               _buildNavItem(
-                icon: Icons.folder_rounded,
-                label: 'Pasien',
+                icon: Icons.history_rounded,
+                label: 'Riwayat',
                 isActive: false,
                 onTap: _navigateToHistory,
               ),
