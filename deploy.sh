@@ -66,8 +66,7 @@ fi
 # 4. Environment File (.env.production) Configuration
 echo -e "\n${YELLOW}[3/6] Memeriksa konfigurasi Environment (.env.production)...${NC}"
 if [ ! -f ".env.production" ]; then
-  echo -e "${YELLOW}Membuat file .env.production baru dari template...${NC}"
-  cp .env.production.example .env.production
+  echo -e "${YELLOW}Membuat file .env.production baru dengan kredensial aman...${NC}"
 
   # Generate random cryptographically strong secrets
   NEW_JWT_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 32)
@@ -78,11 +77,20 @@ if [ ! -f ".env.production" ]; then
   # Auto-detect Public IP
   SERVER_IP=$(curl -s -4 ifconfig.me || curl -s -4 icanhazip.com || echo "localhost")
 
-  sed -i "s|APP_URL=.*|APP_URL=http://${SERVER_IP}|g" .env.production
-  sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${NEW_DB_PASS}|g" .env.production
-  sed -i "s|MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=${NEW_MINIO_PASS}|g" .env.production
-  sed -i "s|JWT_SECRET=.*|JWT_SECRET=${NEW_JWT_SECRET}|g" .env.production
-  sed -i "s|INTERNAL_API_SECRET=.*|INTERNAL_API_SECRET=${NEW_INTERNAL_SECRET}|g" .env.production
+  cat <<EOF > .env.production
+APP_URL=http://${SERVER_IP}
+POSTGRES_USER=retiva_admin
+POSTGRES_PASSWORD=${NEW_DB_PASS}
+POSTGRES_DB=retiva_production
+MINIO_ROOT_USER=retiva_s3_admin
+MINIO_ROOT_PASSWORD=${NEW_MINIO_PASS}
+JWT_SECRET=${NEW_JWT_SECRET}
+INTERNAL_API_SECRET=${NEW_INTERNAL_SECRET}
+MODEL_VERSION=efficientnet-b3-v1.0.0
+AI_QUALITY_PASS_THRESHOLD=0.75
+AI_RELIABILITY_HIGH_THRESHOLD=0.85
+AI_RELIABILITY_LOW_THRESHOLD=0.60
+EOF
 
   echo -e "${GREEN}✅ .env.production berhasil digenerate dengan kredensial aman acak!${NC}"
   echo -e "IP Terdeteksi: ${SERVER_IP}"

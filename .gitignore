@@ -16,8 +16,11 @@ dist/
 # Environment Variables
 .env
 .env.*
+!.env.example
+!.env.production.example
 web/.env
 web/.env.*
+!web/.env.example
 *.tsbuildinfo
 
 
