@@ -55,7 +55,7 @@ class ReferralLetterScreen extends StatelessWidget {
                       child: const Icon(
                         Icons.arrow_back_ios_new_rounded,
                         size: 15,
-                        color: Color(0xFF0D47A1),
+                        color: Color(0xFF246BFD),
                       ),
                     ),
                   ),
@@ -66,7 +66,7 @@ class ReferralLetterScreen extends StatelessWidget {
                       fontFamily: 'Inter',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF0D47A1),
+                      color: Color(0xFF246BFD),
                     ),
                   ),
                 ],

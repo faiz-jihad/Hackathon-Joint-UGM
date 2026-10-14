@@ -3,13 +3,16 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Mode Environment Backend Retiva
 enum BackendEnvironment {
-  /// Server VPS Online Produksi (Tencent Cloud / Public VPS)
-  onlineVps,
+  /// Subdomain Resmi HTTPS (https://hackathon.mataceria.my.id)
+  onlineDomain,
 
-  /// Server Lokal Laptop via Wi-Fi (Sangat cocok untuk pengujian di HP Fisik yang terhubung ke Wi-Fi yang sama)
+  /// Server IP VPS Langsung (http://43.173.35.200)
+  onlineVpsIp,
+
+  /// Server Lokal Laptop via Wi-Fi (http://192.168.1.13:3000)
   offlineLaptop,
 
-  /// Server Lokal via Android Emulator (10.0.2.2 loopback)
+  /// Server Lokal via Android Emulator (10.0.2.2:3000)
   offlineEmulator,
 
   /// Server Lokal Desktop / Web (localhost:3000)
@@ -22,35 +25,39 @@ class ApiConstants {
   // ===========================================================================
 
   /// Ganti pilihan environment aktif:
-  /// - `BackendEnvironment.onlineVps`      -> Menggunakan VPS (43.173.35.200)
-  /// - `BackendEnvironment.offlineLaptop`   -> Menggunakan IP Wi-Fi Laptop (192.168.1.13:3000)
-  /// - `BackendEnvironment.offlineEmulator` -> Menggunakan Emulator Android (10.0.2.2:3000)
-  /// - `BackendEnvironment.offlineLocalhost`-> Menggunakan Localhost (localhost:3000)
-  static BackendEnvironment currentEnvironment = BackendEnvironment.onlineVps;
+  /// Default: `BackendEnvironment.onlineDomain` -> Menggunakan https://hackathon.mataceria.my.id
+  static BackendEnvironment currentEnvironment = BackendEnvironment.onlineDomain;
 
   // Daftar Endpoint URL
+  static const String domainUrl = 'https://hackathon.mataceria.my.id';
   static const String vpsUrl = 'http://43.173.35.200';
   static const String laptopWifiUrl = 'http://192.168.1.13:3000';
   static const String emulatorUrl = 'http://10.0.2.2:3000';
   static const String localhostUrl = 'http://localhost:3000';
 
-  /// Toggle cepat menggunakan boolean jika diinginkan:
-  /// ApiConstants.isOnline = true  -> Pindah ke VPS
+  /// Toggle cepat menggunakan boolean:
+  /// ApiConstants.isOnline = true  -> Pindah ke Subdomain Resmi HTTPS
   /// ApiConstants.isOnline = false -> Pindah ke Laptop Wi-Fi
-  static bool get isOnline => currentEnvironment == BackendEnvironment.onlineVps;
+  static bool get isOnline =>
+      currentEnvironment == BackendEnvironment.onlineDomain ||
+      currentEnvironment == BackendEnvironment.onlineVpsIp;
   static set isOnline(bool value) {
-    currentEnvironment = value ? BackendEnvironment.onlineVps : BackendEnvironment.offlineLaptop;
+    currentEnvironment = value ? BackendEnvironment.onlineDomain : BackendEnvironment.offlineLaptop;
   }
 
   /// Helper untuk beralih mode secara instan
-  static void useVps() => currentEnvironment = BackendEnvironment.onlineVps;
+  static void useDomain() => currentEnvironment = BackendEnvironment.onlineDomain;
+  static void useVps() => currentEnvironment = BackendEnvironment.onlineDomain;
+  static void useVpsIp() => currentEnvironment = BackendEnvironment.onlineVpsIp;
   static void useLaptopWifi() => currentEnvironment = BackendEnvironment.offlineLaptop;
   static void useEmulator() => currentEnvironment = BackendEnvironment.offlineEmulator;
 
   /// Resolusi Base URL aktif berdasarkan environment terpilih
   static String get defaultBaseUrl {
     switch (currentEnvironment) {
-      case BackendEnvironment.onlineVps:
+      case BackendEnvironment.onlineDomain:
+        return domainUrl;
+      case BackendEnvironment.onlineVpsIp:
         return vpsUrl;
       case BackendEnvironment.offlineLaptop:
         return laptopWifiUrl;

@@ -104,7 +104,7 @@ class _RetinaInsightScreenState extends State<RetinaInsightScreen> {
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 size: 15,
-                color: Color(0xFF0D47A1),
+                color: Color(0xFF246BFD),
               ),
             ),
           ),
@@ -115,7 +115,7 @@ class _RetinaInsightScreenState extends State<RetinaInsightScreen> {
               fontFamily: 'Inter',
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0D47A1),
+              color: Color(0xFF246BFD),
             ),
           ),
         ],
@@ -160,7 +160,7 @@ class _RetinaInsightScreenState extends State<RetinaInsightScreen> {
                       fontFamily: 'Inter',
                       fontSize: 12,
                       fontWeight: !_showHeatmap ? FontWeight.w700 : FontWeight.w600,
-                      color: !_showHeatmap ? const Color(0xFF0D47A1) : const Color(0xFF475569),
+                      color: !_showHeatmap ? const Color(0xFF246BFD) : const Color(0xFF475569),
                     ),
                   ),
                 ),
@@ -195,7 +195,7 @@ class _RetinaInsightScreenState extends State<RetinaInsightScreen> {
                       fontFamily: 'Inter',
                       fontSize: 12,
                       fontWeight: _showHeatmap ? FontWeight.w700 : FontWeight.w600,
-                      color: _showHeatmap ? const Color(0xFF0D47A1) : const Color(0xFF475569),
+                      color: _showHeatmap ? const Color(0xFF246BFD) : const Color(0xFF475569),
                     ),
                   ),
                 ),
@@ -360,7 +360,7 @@ class _RetinaInsightScreenState extends State<RetinaInsightScreen> {
                   fontFamily: 'Inter',
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF0D47A1),
+                  color: Color(0xFF246BFD),
                 ),
               ),
               Container(
@@ -431,7 +431,7 @@ class _RetinaInsightScreenState extends State<RetinaInsightScreen> {
                   fontFamily: 'Inter',
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF0D47A1),
+                  color: Color(0xFF246BFD),
                 ),
               ),
             ],
@@ -476,35 +476,48 @@ class _RetinaInsightScreenState extends State<RetinaInsightScreen> {
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ClinicalRecommendationScreen(
-                result: widget.result,
-                eyePosition: widget.eyePosition,
-                patient: widget.patient,
-              ),
+      child: Container(
+        height: 54,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x40246BFD),
+              blurRadius: 18,
+              offset: Offset(0, 8),
             ),
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF0D47A1),
-          foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 2,
-          shadowColor: const Color(0x331E3A8A),
+          ],
         ),
-        child: const Text(
-          'Lihat Rekomendasi Tindak Lanjut',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ClinicalRecommendationScreen(
+                  result: widget.result,
+                  eyePosition: widget.eyePosition,
+                  patient: widget.patient,
+                ),
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF246BFD),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+          ),
+          child: const Text(
+            'Lihat Rekomendasi Tindak Lanjut',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
           ),
         ),
       ),

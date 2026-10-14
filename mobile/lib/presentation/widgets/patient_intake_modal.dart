@@ -93,7 +93,7 @@ class _PatientIntakeModalState extends State<PatientIntakeModal> {
       ),
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
       child: Column(
@@ -398,23 +398,29 @@ class _PatientIntakeModalState extends State<PatientIntakeModal> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Submit Button
-                    SizedBox(
+                    // Submit Button (Medica Capsule Style)
+                    Container(
                       width: double.infinity,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: _isSubmitting ? null : AppColors.primaryButtonShadow,
+                      ),
                       child: ElevatedButton.icon(
                         onPressed: _isSubmitting ? null : _submitPatient,
                         icon: _isSubmitting
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white))
                             : const Icon(Icons.check_circle_outline, size: 20),
                         label: Text(
                           _isSubmitting ? 'Menyimpan ke Basis Data...' : 'Simpan Rekam Medis Pasien',
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, fontFamily: 'Inter'),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                         ),
                       ),
                     ),

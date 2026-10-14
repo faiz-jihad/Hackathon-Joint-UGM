@@ -27,7 +27,8 @@ class _BrandHeaderState extends State<BrandHeader> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (modalCtx, setModalState) {
-            final isOnline = ApiConstants.currentEnvironment == BackendEnvironment.onlineVps;
+            final isDomain = ApiConstants.currentEnvironment == BackendEnvironment.onlineDomain;
+            final isVpsIp = ApiConstants.currentEnvironment == BackendEnvironment.onlineVpsIp;
             final isLaptop = ApiConstants.currentEnvironment == BackendEnvironment.offlineLaptop;
             final isEmulator = ApiConstants.currentEnvironment == BackendEnvironment.offlineEmulator;
 
@@ -35,7 +36,7 @@ class _BrandHeaderState extends State<BrandHeader> {
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -43,26 +44,26 @@ class _BrandHeaderState extends State<BrandHeader> {
                 children: [
                   Center(
                     child: Container(
-                      width: 40,
-                      height: 4,
+                      width: 44,
+                      height: 5,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFCBD5E1),
-                        borderRadius: BorderRadius.circular(2),
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 20),
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: AppColors.primarySurface,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Icon(Icons.cloud_sync_rounded, color: AppColors.figmaBlue, size: 20),
+                        child: const Icon(Icons.cloud_sync_rounded, color: AppColors.primary, size: 22),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 14),
                       const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,11 +72,12 @@ class _BrandHeaderState extends State<BrandHeader> {
                               'Koneksi Server Faskes',
                               style: TextStyle(
                                 fontFamily: 'Inter',
-                                fontSize: 16,
+                                fontSize: 17,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.figmaTextHeading,
                               ),
                             ),
+                            SizedBox(height: 2),
                             Text(
                               'Pilih endpoint backend aktif untuk pengujian',
                               style: TextStyle(
@@ -91,23 +93,23 @@ class _BrandHeaderState extends State<BrandHeader> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Option 1: VPS Production
+                  // Option 1: Official Subdomain HTTPS
                   _buildServerOption(
-                    title: 'Server VPS Cloud (Online)',
-                    subtitle: 'http://43.173.35.200 (Produksi / Multi-Device)',
-                    isSelected: isOnline,
+                    title: 'Domain Resmi HTTPS (Produksi)',
+                    subtitle: 'https://hackathon.mataceria.my.id',
+                    isSelected: isDomain,
                     isHealthy: true,
-                    icon: Icons.public,
+                    icon: Icons.verified_user_rounded,
                     activeColor: const Color(0xFF059669),
                     onTap: () {
                       setState(() {
-                        ApiConstants.useVps();
+                        ApiConstants.useDomain();
                       });
                       setModalState(() {});
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Tersambung ke Server VPS Online: 43.173.35.200'),
+                          content: Text('Tersambung ke Domain Resmi: https://hackathon.mataceria.my.id'),
                           backgroundColor: Color(0xFF059669),
                           duration: Duration(seconds: 2),
                         ),
@@ -116,7 +118,32 @@ class _BrandHeaderState extends State<BrandHeader> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Option 2: Laptop Local Wi-Fi
+                  // Option 2: VPS Direct IP
+                  _buildServerOption(
+                    title: 'IP VPS Direct HTTP',
+                    subtitle: 'http://43.173.35.200 (IP Langsung)',
+                    isSelected: isVpsIp,
+                    isHealthy: true,
+                    icon: Icons.public,
+                    activeColor: AppColors.figmaBlue,
+                    onTap: () {
+                      setState(() {
+                        ApiConstants.useVpsIp();
+                      });
+                      setModalState(() {});
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tersambung ke IP VPS: http://43.173.35.200'),
+                          backgroundColor: AppColors.figmaBlue,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Option 3: Laptop Local Wi-Fi
                   _buildServerOption(
                     title: 'Server Laptop via Wi-Fi (Offline Lokal)',
                     subtitle: 'http://192.168.1.13:3000 (Test HP & Laptop Satu Wi-Fi)',
@@ -243,7 +270,9 @@ class _BrandHeaderState extends State<BrandHeader> {
 
   @override
   Widget build(BuildContext context) {
-    final isOnline = ApiConstants.currentEnvironment == BackendEnvironment.onlineVps;
+    final isDomain = ApiConstants.currentEnvironment == BackendEnvironment.onlineDomain;
+    final isVpsIp = ApiConstants.currentEnvironment == BackendEnvironment.onlineVpsIp;
+    final isOnline = isDomain || isVpsIp;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -265,30 +294,37 @@ class _BrandHeaderState extends State<BrandHeader> {
         child: Row(
           children: [
             if (widget.showBack)
-              IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: AppColors.textPrimary),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
+              Container(
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 16, color: AppColors.textPrimary),
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                  onPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
+                ),
               ),
-            if (widget.showBack) const SizedBox(width: 12),
 
-            // Logo with Clinical Accent Container
+            // Logo with Medica Style Gradient Container
             Container(
-              width: 38,
-              height: 38,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [AppColors.figmaBlue, Color(0xFF002171)],
+                  colors: [AppColors.primary, AppColors.primaryLight],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: const [
                   BoxShadow(
-                    color: Color(0x260D47A1),
-                    offset: Offset(0, 2),
-                    blurRadius: 6,
+                    color: Color(0x33246BFD),
+                    offset: Offset(0, 4),
+                    blurRadius: 10,
                   ),
                 ],
               ),
@@ -395,7 +431,9 @@ class _BrandHeaderState extends State<BrandHeader> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        isOnline ? 'VPS Online' : 'Offline',
+                        isDomain
+                            ? 'mataceria.my.id'
+                            : (isVpsIp ? 'VPS Online' : 'Offline'),
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 11,

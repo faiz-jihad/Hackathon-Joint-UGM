@@ -881,17 +881,30 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
           top: BorderSide(color: Color(0xFFF1F5F9), width: 1),
         ),
       ),
-      child: SizedBox(
+      child: Container(
         width: double.infinity,
-        height: 48,
+        height: 54,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: isEnabled
+              ? const [
+                  BoxShadow(
+                    color: Color(0x40246BFD),
+                    blurRadius: 18,
+                    offset: Offset(0, 8),
+                  ),
+                ]
+              : null,
+        ),
         child: ElevatedButton(
           onPressed: isEnabled ? _proceedToQualityScanning : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: isEnabled ? AppColors.figmaBlue : const Color(0xFF94A3B8),
+            backgroundColor: isEnabled ? AppColors.primary : const Color(0xFFE2E8F0),
             foregroundColor: Colors.white,
-            elevation: isEnabled ? 2 : 0,
+            elevation: 0,
+            shadowColor: Colors.transparent,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(28),
             ),
           ),
           child: Row(
@@ -899,8 +912,8 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
             children: [
               Icon(
                 Icons.check_circle_outline,
-                size: 18,
-                color: isEnabled ? Colors.white : const Color(0xFF475569),
+                size: 20,
+                color: isEnabled ? Colors.white : const Color(0xFF94A3B8),
               ),
               const SizedBox(width: 8),
               Text(
@@ -908,9 +921,9 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: isEnabled ? Colors.white : const Color(0xFF475569),
-                  letterSpacing: 0.15,
+                  fontWeight: FontWeight.w700,
+                  color: isEnabled ? Colors.white : const Color(0xFF94A3B8),
+                  letterSpacing: 0.2,
                 ),
               ),
             ],

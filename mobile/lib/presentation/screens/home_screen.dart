@@ -149,10 +149,141 @@ class _HomeScreenState extends State<HomeScreen> {
                       // 7. Edukasi & Standar Klinis Kemenkes / PERDAMI
                       _buildSectionStandarKlinis(),
 
-                      const SizedBox(height: 20),
-                    ],
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
                 ),
+              ),
+            ],
+          ),
+        ),
+        bottomNavigationBar: _buildMedicaBottomNav(),
+      );
+    }
+
+  Widget _buildMedicaBottomNav() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        border: Border(
+          top: BorderSide(color: Color(0xFFF1F5F9), width: 1.2),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 16,
+            offset: Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(
+                icon: Icons.home_rounded,
+                label: 'Beranda',
+                isActive: true,
+                onTap: () {},
+              ),
+              _buildNavItem(
+                icon: Icons.camera_alt_rounded,
+                label: 'Skrining AI',
+                isActive: false,
+                isSpecial: true,
+                onTap: _navigateToUpload,
+              ),
+              _buildNavItem(
+                icon: Icons.psychology_rounded,
+                label: 'Care AI',
+                isActive: false,
+                onTap: _navigateToCareCompanion,
+              ),
+              _buildNavItem(
+                icon: Icons.badge_outlined,
+                label: 'Pasien RM',
+                isActive: false,
+                onTap: _navigateToHistory,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+    bool isSpecial = false,
+  }) {
+    if (isSpecial) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.primary, AppColors.primaryLight],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x33246BFD),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? AppColors.primary : const Color(0xFF94A3B8),
+              size: 22,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? AppColors.primary : const Color(0xFF94A3B8),
               ),
             ),
           ],
@@ -163,22 +294,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Banner Konteks Faskes Puskesmas
   Widget _buildFaskesDutyBanner() {
-    final isOnline = ApiConstants.currentEnvironment == BackendEnvironment.onlineVps;
+    final isOnline = ApiConstants.isOnline;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x060F172A),
-            blurRadius: 10,
-            offset: Offset(0, 3),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
+        boxShadow: AppColors.softCardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,14 +311,14 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE0F2FE),
-                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.primarySurface,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.local_hospital_rounded, color: AppColors.figmaBlue, size: 20),
+                child: const Icon(Icons.local_hospital_rounded, color: AppColors.primary, size: 22),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,6 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: AppColors.figmaTextHeading,
                       ),
                     ),
+                    SizedBox(height: 2),
                     Text(
                       'Poli Pengendalian DM & Skrining Komplikasi Mata',
                       style: TextStyle(
@@ -219,15 +345,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(6),
+                  color: AppColors.primarySurface,
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.shield_outlined, size: 12, color: AppColors.figmaBlue),
+                    Icon(Icons.shield_outlined, size: 13, color: AppColors.primary),
                     SizedBox(width: 4),
                     Text(
                       'SATUSEHAT',
@@ -235,7 +361,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontFamily: 'Inter',
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.figmaBlue,
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
@@ -333,22 +459,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Primary Action Scanner CTA (Tampilan Non-Generik untuk Nakes)
+  /// Primary Action Scanner CTA (Medica Style Hero Banner)
   Widget _buildHeroScannerCta() {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0D47A1), Color(0xFF002171)],
+          colors: [Color(0xFF246BFD), Color(0xFF5089FD)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x330D47A1),
-            blurRadius: 16,
-            offset: Offset(0, 8),
+            color: Color(0x3D246BFD),
+            blurRadius: 22,
+            offset: Offset(0, 10),
           ),
         ],
       ),
@@ -356,36 +482,36 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: _navigateToUpload,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(24),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Row(
               children: [
                 Container(
-                  width: 52,
-                  height: 52,
+                  width: 54,
+                  height: 54,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                    color: Colors.white.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withOpacity(0.35), width: 1.5),
                   ),
                   child: const Center(
                     child: Icon(Icons.document_scanner_rounded, color: Colors.white, size: 28),
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
                           Text(
                             'Mulai Skrining Fundus',
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               color: Colors.white,
                               letterSpacing: -0.2,
                             ),
@@ -394,14 +520,45 @@ class _HomeScreenState extends State<HomeScreen> {
                           Icon(Icons.bolt, color: Color(0xFFFDE047), size: 16),
                         ],
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Upload foto mata OD/OS • Quality Gate AI • Diagnosis ICDR instan',
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Upload foto OD/OS • Quality Gate AI • Diagnosis ICDR',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 11,
-                          color: Color(0xFFE2E8F0),
+                          color: Color(0xFFF0F5FF),
                           height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x1F000000),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Ambil Foto Sekarang',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            SizedBox(width: 4),
+                            Icon(Icons.arrow_forward_rounded, size: 12, color: AppColors.primary),
+                          ],
                         ),
                       ),
                     ],
@@ -416,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Hub Menu Cepat Khusus Alur Faskes (3 Kartu Aksi Tambahan)
+  /// Hub Menu Cepat Khusus Alur Faskes (Medica Category Grid)
   Widget _buildQuickActionHub() {
     return Row(
       children: [
@@ -426,7 +583,7 @@ class _HomeScreenState extends State<HomeScreen> {
             title: 'Rekam Medis',
             subtitle: 'Antrean NIK',
             icon: Icons.badge_outlined,
-            iconColor: const Color(0xFF0369A1),
+            iconColor: const Color(0xFF0284C7),
             bgColor: const Color(0xFFF0F9FF),
             borderColor: const Color(0xFFBAE6FD),
             onTap: _navigateToHistory,
@@ -440,9 +597,9 @@ class _HomeScreenState extends State<HomeScreen> {
             title: 'Care Companion',
             subtitle: 'Gizi & Edukasi',
             icon: Icons.psychology_outlined,
-            iconColor: const Color(0xFF4F46E5),
-            bgColor: const Color(0xFFEEF2FF),
-            borderColor: const Color(0xFFC7D2FE),
+            iconColor: const Color(0xFF8B5CF6),
+            bgColor: const Color(0xFFF5F3FF),
+            borderColor: const Color(0xFFDDD6FE),
             onTap: _navigateToCareCompanion,
           ),
         ),
@@ -453,10 +610,10 @@ class _HomeScreenState extends State<HomeScreen> {
           child: _buildActionTile(
             title: 'Rujukan Sp.M',
             subtitle: 'Format BPJS',
-            icon: Icons.note_alt_outlined,
-            iconColor: const Color(0xFFC2410C),
-            bgColor: const Color(0xFFFFF7ED),
-            borderColor: const Color(0xFFFED7AA),
+            icon: Icons.local_hospital_outlined,
+            iconColor: const Color(0xFFFF7A00),
+            bgColor: const Color(0xFFFFF4EC),
+            borderColor: const Color(0xFFFFD8BF),
             onTap: _navigateToReferral,
           ),
         ),
@@ -476,28 +633,42 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor, width: 1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor.withOpacity(0.7), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: iconColor.withOpacity(0.12),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Icon(icon, color: iconColor, size: 18),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Text(
                   title,
                   style: const TextStyle(
@@ -758,35 +929,29 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         else
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x060F172A),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
+              boxShadow: AppColors.softCardShadow,
             ),
             child: Column(
               children: [
                 Row(
                   children: [
                     Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0F2FE),
-                        borderRadius: BorderRadius.circular(10),
+                      width: 48,
+                      height: 48,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primarySurface,
+                        shape: BoxShape.circle,
                       ),
                       child: const Center(
-                        child: Icon(Icons.person_rounded, color: AppColors.figmaBlue, size: 24),
+                        child: Icon(Icons.person_rounded, color: AppColors.primary, size: 26),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -800,7 +965,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: AppColors.figmaTextHeading,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 3),
                           Text(
                             'NIK: ${latestPatient.nik} • ${latestPatient.age} Thn (${latestPatient.gender == "MALE" ? "L" : "P"})',
                             style: const TextStyle(
@@ -813,11 +978,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFA7F3D0)),
+                        color: AppColors.statusGreenSurface,
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         latestPatient.diabetesProfile?.diabetesType ?? 'T2DM',
@@ -825,7 +989,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontFamily: 'Inter',
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF065F46),
+                          color: AppColors.statusGreenDark,
                         ),
                       ),
                     ),

@@ -51,7 +51,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
                         fontFamily: 'Inter',
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF0D47A1),
+                        color: Color(0xFF246BFD),
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -126,7 +126,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 size: 15,
-                color: Color(0xFF0D47A1),
+                color: Color(0xFF246BFD),
               ),
             ),
           ),
@@ -137,7 +137,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
               fontFamily: 'Inter',
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0D47A1),
+              color: Color(0xFF246BFD),
             ),
           ),
         ],
@@ -157,7 +157,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
                 width: 24,
                 height: 24,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF0D47A1),
+                  color: Color(0xFF246BFD),
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
@@ -206,7 +206,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
       width: isCurrent ? 24 : 8,
       height: 6,
       decoration: BoxDecoration(
-        color: isCurrent ? const Color(0xFF0D47A1) : const Color(0xFFD8E3FB),
+        color: isCurrent ? const Color(0xFF246BFD) : const Color(0xFFD8E3FB),
         borderRadius: BorderRadius.circular(9999),
       ),
     );
@@ -424,7 +424,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
                   fontFamily: 'Inter',
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF0D47A1),
+                  color: Color(0xFF246BFD),
                 ),
               ),
             ],
@@ -773,26 +773,39 @@ class HumanReviewPendingScreen extends StatelessWidget {
           top: BorderSide(color: Color(0xFFF1F5F9), width: 1),
         ),
       ),
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF0D47A1),
-          foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 1,
+      child: Container(
+        height: 54,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x40246BFD),
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+          ],
         ),
-        child: const Text(
-          'Selesai & Kembali ke Beranda',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.15,
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF246BFD),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+          ),
+          child: const Text(
+            'Selesai & Kembali ke Beranda',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
           ),
         ),
       ),

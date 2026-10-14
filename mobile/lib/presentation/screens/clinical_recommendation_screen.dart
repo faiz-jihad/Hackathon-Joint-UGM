@@ -152,7 +152,7 @@ class _ClinicalRecommendationScreenState
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 size: 15,
-                color: Color(0xFF0D47A1),
+                color: Color(0xFF246BFD),
               ),
             ),
           ),
@@ -163,7 +163,7 @@ class _ClinicalRecommendationScreenState
               fontFamily: 'Inter',
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0D47A1),
+              color: Color(0xFF246BFD),
             ),
           ),
         ],
@@ -339,7 +339,7 @@ class _ClinicalRecommendationScreenState
                               value: widget.result.aiResult.confidence,
                               minHeight: 6,
                               backgroundColor: const Color(0xFFDFF1FB),
-                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0D47A1)),
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF246BFD)),
                             ),
                           ),
                         ),
@@ -350,7 +350,7 @@ class _ClinicalRecommendationScreenState
                             fontFamily: 'Inter',
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF0D47A1),
+                            color: Color(0xFF246BFD),
                           ),
                         ),
                       ],
@@ -415,7 +415,7 @@ class _ClinicalRecommendationScreenState
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D47A1),
+                  color: const Color(0xFF246BFD),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -978,52 +978,65 @@ class _ClinicalRecommendationScreenState
               child: const Icon(
                 Icons.description_outlined,
                 size: 20,
-                color: Color(0xFF0D47A1),
+                color: Color(0xFF246BFD),
               ),
             ),
           ),
 
           const SizedBox(width: 10),
 
-          // Primary Care Companion Action Button
+          // Primary Care Companion Action Button (Medica Capsule Style)
           Expanded(
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CareCompanionHubScreen(
-                      patient: widget.patient,
-                      screeningResult: widget.result,
-                      initialStep: 1,
-                    ),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0D47A1),
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 2,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.health_and_safety_outlined, size: 18),
-                  SizedBox(width: 6),
-                  Text(
-                    'Buka AI Care Companion',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.15,
-                    ),
+            child: Container(
+              height: 54,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x40246BFD),
+                    blurRadius: 18,
+                    offset: Offset(0, 8),
                   ),
                 ],
+              ),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CareCompanionHubScreen(
+                        patient: widget.patient,
+                        screeningResult: widget.result,
+                        initialStep: 1,
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF246BFD),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.health_and_safety_outlined, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'AI Care Companion',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1035,7 +1048,7 @@ class _ClinicalRecommendationScreenState
             onPressed: () {
               Navigator.of(context).popUntil((route) => route.isFirst);
             },
-            icon: const Icon(Icons.home_outlined, color: Color(0xFF0D47A1)),
+            icon: const Icon(Icons.home_outlined, color: Color(0xFF246BFD)),
             tooltip: 'Kembali ke Beranda',
           ),
         ],
