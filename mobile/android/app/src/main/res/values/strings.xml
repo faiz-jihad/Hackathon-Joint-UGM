@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RETIVA Mobile</string>
+    <string name="widget_compact_title">Retiva Daily Care (Ringkas)</string>
+    <string name="widget_large_title">Retiva Daily Care (Lengkap)</string>
+</resources>

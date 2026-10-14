@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/constants/app_colors.dart';
 import 'presentation/screens/home_screen.dart';
+import 'presentation/screens/daily_care_agenda_screen.dart';
+import 'presentation/screens/daily_health_checkin_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,12 +21,58 @@ void main() {
   runApp(const RetivaMobileApp());
 }
 
-class RetivaMobileApp extends StatelessWidget {
+class RetivaMobileApp extends StatefulWidget {
   const RetivaMobileApp({super.key});
+
+  @override
+  State<RetivaMobileApp> createState() => _RetivaMobileAppState();
+}
+
+class _RetivaMobileAppState extends State<RetivaMobileApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  static const MethodChannel _channel = MethodChannel('com.example.retiva/widget');
+
+  @override
+  void initState() {
+    super.initState();
+    _initWidgetNavigation();
+  }
+
+  void _initWidgetNavigation() {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onNavigateRoute') {
+        final route = call.arguments?.toString();
+        _navigateToWidgetRoute(route);
+      }
+    });
+
+    // Check for initial launch from widget
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final initialRoute = await _channel.invokeMethod<String>('getInitialRoute');
+        if (initialRoute != null) {
+          _navigateToWidgetRoute(initialRoute);
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _navigateToWidgetRoute(String? route) {
+    if (route == 'daily_care_agenda') {
+      _navigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => const DailyCareAgendaScreen()),
+      );
+    } else if (route == 'daily_health_checkin') {
+      _navigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => const DailyHealthCheckinScreen()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'RETIVA — Skrining Retinopati Diabetik',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

@@ -8,6 +8,9 @@ import 'upload_fundus_screen.dart';
 import 'patient_history_screen.dart';
 import 'care_companion_hub_screen.dart';
 import 'referral_letter_screen.dart';
+import 'daily_care_agenda_screen.dart';
+import 'daily_health_checkin_screen.dart';
+import '../../core/services/widget_service.dart';
 
 /// Screen 01: Homepage Faskes Retinopati Diabetik
 /// Desain Bersih, Modern, dan Disesuaikan untuk Fasilitas Kesehatan (Puskesmas / FKTP).
@@ -27,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetService.initializeDefaultWidgetData();
     _loadLiveDashboardData();
   }
 
@@ -83,6 +87,28 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(
         builder: (_) => ReferralLetterScreen(
           patient: patient,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToDailyCare() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DailyCareAgendaScreen(
+          patient: _patients.isNotEmpty ? _patients.first : null,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToDailyCheckIn() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DailyHealthCheckinScreen(
+          patient: _patients.isNotEmpty ? _patients.first : null,
         ),
       ),
     );
@@ -574,6 +600,51 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Color(0xFF64748B),
                     fontStyle: FontStyle.italic,
                   ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: _navigateToDailyCare,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.calendar_month_rounded, color: Colors.white, size: 12),
+                            SizedBox(width: 4),
+                            Text('Agenda Sehat', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: _navigateToDailyCheckIn,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.timer_outlined, color: AppColors.primary, size: 12),
+                            SizedBox(width: 4),
+                            Text('Check-in 30s', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

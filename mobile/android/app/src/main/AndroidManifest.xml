@@ -30,6 +30,34 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Android Home Screen Widget (Compact 2x2) -->
+        <receiver
+            android:name=".RetivaCompactWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_compact_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.retiva.ACTION_UPDATE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_retiva_compact_info" />
+        </receiver>
+
+        <!-- Android Home Screen Widget (Large 4x3) -->
+        <receiver
+            android:name=".RetivaLargeWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_large_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.retiva.ACTION_UPDATE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_retiva_large_info" />
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

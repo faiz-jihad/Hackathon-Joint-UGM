@@ -127,6 +127,21 @@ class ApiConstants {
   static String get careProgress => '$baseUrl/api/v1/care-companion/progress';
   static String get orchestrator =>
       '$baseUrl/api/v1/care-companion/orchestrator';
+  static String dailyAgenda(String patientId, {String? date}) =>
+      '$baseUrl/api/v1/care-companion/agenda?patientId=$patientId${date != null ? '&date=$date' : ''}';
+  static String get toggleAgenda =>
+      '$baseUrl/api/v1/care-companion/agenda/toggle';
+  static String get dailyCheckIn =>
+      '$baseUrl/api/v1/care-companion/check-in';
+  static String smartMeal(String patientId, {String? category}) =>
+      '$baseUrl/api/v1/care-companion/smart-meal?patientId=$patientId${category != null ? '&category=$category' : ''}';
+  static String get smartMealPersonalize =>
+      '$baseUrl/api/v1/care-companion/smart-meal';
+  static String get smartMealEaten =>
+      '$baseUrl/api/v1/care-companion/smart-meal/eaten';
+  static String get smartMealSwap =>
+      '$baseUrl/api/v1/care-companion/smart-meal/swap';
+
 
   // Master Data Endpoints
   static String get masterMeals => '$baseUrl/api/v1/master/meals';
