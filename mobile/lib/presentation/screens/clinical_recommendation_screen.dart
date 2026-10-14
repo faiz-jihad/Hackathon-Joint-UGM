@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
 import '../../core/utils/clinical_helpers.dart';
 import '../../data/models/screening_result_model.dart';
 import '../../data/models/patient_model.dart';
 import 'referral_letter_screen.dart';
+import 'care_companion_hub_screen.dart';
 
 class ClinicalRecommendationScreen extends StatefulWidget {
   final CompleteScreeningResult result;
@@ -26,8 +26,7 @@ class ClinicalRecommendationScreen extends StatefulWidget {
 class _ClinicalRecommendationScreenState
     extends State<ClinicalRecommendationScreen> {
   List<Map<String, dynamic>> _facilities = [];
-  bool _isLoadingFacilities = true;
-  String _selectedFacilityId = 'fac-001';
+  String _selectedFacilityId = '';
 
   @override
   void initState() {
@@ -40,9 +39,8 @@ class _ClinicalRecommendationScreenState
     if (mounted) {
       setState(() {
         _facilities = list;
-        _isLoadingFacilities = false;
         if (list.isNotEmpty) {
-          _selectedFacilityId = list.first['id'] ?? 'fac-001';
+          _selectedFacilityId = list.first['id']?.toString() ?? '';
         }
       });
     }
@@ -794,8 +792,8 @@ class _ClinicalRecommendationScreenState
 
   Widget _buildDoctorReferralCard() {
     final facility = _selectedFacility;
-    final doctorName = facility?['doctor_name'] ?? 'dr. Arga Pratama, Sp.M';
-    final facilityName = facility?['name'] ?? 'RS Mata & Pusat Retina Sejahtera';
+    final doctorName = facility?['doctor_name'] ?? (facility != null ? 'Dokter Penanggung Jawab Faskes' : 'Belum Memilih Faskes Rujukan');
+    final facilityName = facility?['name'] ?? 'Fasilitas Rujukan RME Terdaftar';
 
     return Container(
       width: double.infinity,
@@ -927,13 +925,15 @@ class _ClinicalRecommendationScreenState
 
   Widget _buildBottomActionBar() {
     final facility = _selectedFacility ??
-        {
-          'id': 'fac-001',
-          'name': 'RS Mata & Pusat Retina Sejahtera',
-          'doctor_name': 'dr. Arga Pratama, Sp.M',
-          'specialty': 'Vitreoretina',
-          'city': 'Yogyakarta',
-        };
+        (_facilities.isNotEmpty
+            ? _facilities.first
+            : {
+                'id': '',
+                'name': 'Fasilitas Rujukan RME',
+                'doctor_name': 'Dokter Spesialis Mata',
+                'specialty': 'Vitreoretina',
+                'city': '-',
+              });
 
     return Container(
       width: double.infinity,
@@ -985,11 +985,20 @@ class _ClinicalRecommendationScreenState
 
           const SizedBox(width: 10),
 
-          // Right primary button: Selesai & Kembali ke Beranda
+          // Primary Care Companion Action Button
           Expanded(
             child: ElevatedButton(
               onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CareCompanionHubScreen(
+                      patient: widget.patient,
+                      screeningResult: widget.result,
+                      initialStep: 1,
+                    ),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0D47A1),
@@ -998,18 +1007,36 @@ class _ClinicalRecommendationScreenState
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                elevation: 1,
+                elevation: 2,
               ),
-              child: const Text(
-                'Selesai & Kembali ke Beranda',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.15,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.health_and_safety_outlined, size: 18),
+                  SizedBox(width: 6),
+                  Text(
+                    'Buka AI Care Companion',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.15,
+                    ),
+                  ),
+                ],
               ),
             ),
+          ),
+
+          const SizedBox(width: 6),
+
+          // Right button: Kembali ke Beranda
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            icon: const Icon(Icons.home_outlined, color: Color(0xFF0D47A1)),
+            tooltip: 'Kembali ke Beranda',
           ),
         ],
       ),

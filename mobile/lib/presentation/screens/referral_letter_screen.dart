@@ -3,7 +3,6 @@ import '../../core/constants/app_colors.dart';
 import '../../core/utils/clinical_helpers.dart';
 import '../../data/models/screening_result_model.dart';
 import '../../data/models/patient_model.dart';
-import '../widgets/brand_header.dart';
 import '../widgets/custom_button.dart';
 
 class ReferralLetterScreen extends StatelessWidget {
@@ -20,11 +19,11 @@ class ReferralLetterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final facilityName = facility?['name'] ?? 'RS Mata Dr. Yap Yogyakarta';
-    final facilityAddress = facility?['address'] ?? 'Jl. Cik Di Tiro No.5, Terban, Kota Yogyakarta';
-    final distance = facility?['distanceKm']?.toString() ?? '3.8';
-    final hba1c = patient?.diabetesProfile?.lastHbA1c?.toString() ?? '8.4';
-    final bp = patient?.diabetesProfile?.bloodPressure ?? '138/86 mmHg';
+    final facilityName = facility?['name'] ?? 'Fasilitas Rujukan RME Terdaftar';
+    final facilityAddress = facility?['address'] ?? '-';
+    final distance = facility?['distanceKm']?.toString() ?? '-';
+    final hba1c = patient?.diabetesProfile?.lastHbA1c != null ? '${patient!.diabetesProfile!.lastHbA1c}' : '-';
+    final bp = patient?.diabetesProfile?.bloodPressure ?? '-';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -211,10 +210,10 @@ class ReferralLetterScreen extends StatelessWidget {
                             'Nama Pasien:',
                             patient != null
                                 ? '${patient!.fullName} (${patient!.age} th) • ${patient!.gender == 'MALE' ? 'Laki-laki' : 'Perempuan'}'
-                                : 'Bapak Sutrisno (56 th) • Laki-laki',
+                                : 'Data Pasien Terdaftar',
                           ),
                           const SizedBox(height: 8),
-                          _buildSpkField('Nomor Induk Kependudukan (NIK):', patient?.nik ?? '3404015508750001'),
+                          _buildSpkField('Nomor Induk Kependudukan (NIK):', patient?.nik ?? '-'),
                           const SizedBox(height: 8),
 
                           // Vital Signs Clinical Summary Table
@@ -237,9 +236,9 @@ class ReferralLetterScreen extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     _buildVitalItem('Tekanan Darah', bp),
-                                    _buildVitalItem('Kadar HbA1c', '$hba1c%'),
-                                    _buildVitalItem('Gula Darah Sewaktu', '186 mg/dL'),
-                                    _buildVitalItem('Visus OD/OS', '6/12 • 6/9'),
+                                    _buildVitalItem('Kadar HbA1c', hba1c != '-' ? '$hba1c%' : '-'),
+                                    _buildVitalItem('Gula Darah Sewaktu', '-'),
+                                    _buildVitalItem('Visus OD/OS', '-'),
                                   ],
                                 ),
                               ],
@@ -260,16 +259,16 @@ class ReferralLetterScreen extends StatelessWidget {
                             'Derajat Keparahan ICDR:',
                             result != null
                                 ? ClinicalHelpers.getSeverityTitle(result!.aiResult.predictedClass)
-                                : 'Moderate NPDR (Retinopati Diabetik Non-Proliferatif Sedang)',
+                                : '-',
                           ),
                           const SizedBox(height: 8),
-                          _buildSpkField('Fasilitas Rujukan Dituju (FKRTL):', '$facilityName ($distance km)'),
+                          _buildSpkField('Fasilitas Rujukan Dituju (FKRTL):', distance != '-' ? '$facilityName ($distance km)' : facilityName),
                           const SizedBox(height: 8),
                           _buildSpkField('Alamat RS Tujuan:', facilityAddress),
                           const SizedBox(height: 8),
                           _buildSpkField('Poli Spesialis Tujuan:', 'Poliklinik Mata (Subspesialis Vitreoretina)'),
                           const SizedBox(height: 8),
-                          _buildSpkField('Jaminan Kesehatan:', 'BPJS Kesehatan / JKN (Status Aktif • No: 0001892837192)'),
+                          _buildSpkField('Jaminan Kesehatan:', 'BPJS Kesehatan / JKN (Status Aktif)'),
 
                           const Divider(height: 24),
 
@@ -281,12 +280,12 @@ class ReferralLetterScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text('Nakes Pemeriksa (FKTP):', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
-                                    Text('Siti Nurhaliza, S.Tr.Kes', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                                    Text('NIP: 199204122018022001', style: TextStyle(fontSize: 9, color: AppColors.textMuted)),
+                                    Text('Tenaga Kesehatan Terverifikasi', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                                    Text('Sistem RME Terdaftar Kemenkes RI', style: TextStyle(fontSize: 9, color: AppColors.textMuted)),
                                     SizedBox(height: 4),
                                     Text('Dokter Penanggung Jawab:', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
-                                    Text('dr. Arif Wicaksono', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                                    Text('SIP: 503/3312/SIP-D/2021', style: TextStyle(fontSize: 9, color: AppColors.textMuted)),
+                                    Text('Dokter Pemeriksa Faskes', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                                    Text('SIP Terverifikasi Kemenkes RI', style: TextStyle(fontSize: 9, color: AppColors.textMuted)),
                                   ],
                                 ),
                               ),

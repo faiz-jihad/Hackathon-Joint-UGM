@@ -4,6 +4,7 @@ import {
   LayoutDashboardIcon,
   UsersIcon,
   ShieldCheckIcon,
+  HeartHandshakeIcon,
 } from './Icons';
 
 interface AdminSidebarProps {
@@ -148,6 +149,18 @@ export function AdminSidebar({
                   <ShieldCheckIcon size={18} />
                 </span>
                 <span>Role &amp; Hak Akses</span>
+              </div>
+            </button>
+            <button
+              type="button"
+              className={`admin-nav-btn ${activeTab === 'care-companion-master' ? 'active' : ''}`}
+              onClick={() => onTabChange('care-companion-master')}
+            >
+              <div className="admin-nav-item-left">
+                <span className="admin-nav-icon">
+                  <HeartHandshakeIcon size={18} />
+                </span>
+                <span>Pendamping Perawatan</span>
               </div>
             </button>
           </div>

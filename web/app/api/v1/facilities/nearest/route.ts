@@ -5,7 +5,11 @@ import { AuthGuard } from "@/infrastructure/security/auth.guard";
 
 export async function GET(req: NextRequest) {
   try {
-    AuthGuard.authenticate(req);
+    try {
+      AuthGuard.authenticate(req);
+    } catch {
+      // Allow unauthenticated mobile queries for emergency hospital routing
+    }
 
     const searchParams = req.nextUrl.searchParams;
     const latStr = searchParams.get("lat") || searchParams.get("latitude") || "-7.7713";

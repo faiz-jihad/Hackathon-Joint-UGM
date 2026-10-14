@@ -5,6 +5,7 @@ import '../../data/models/patient_model.dart';
 import '../widgets/brand_header.dart';
 import 'upload_fundus_screen.dart';
 import 'patient_history_screen.dart';
+import 'care_companion_hub_screen.dart';
 
 /// Screen 01: 01. Homepage (Figma Frame 25:3)
 /// Authoritative 1:1 Implementation matching Figma source of truth.
@@ -19,7 +20,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<PatientModel> _patients = [];
-  List<Map<String, dynamic>> _facilities = [];
   bool _isLoading = true;
 
   @override
@@ -31,11 +31,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadLiveDashboardData() async {
     try {
       final patients = await ApiClient().getPatients();
-      final facilities = await ApiClient().getNearestFacilities();
       if (mounted) {
         setState(() {
           _patients = patients;
-          _facilities = facilities;
           _isLoading = false;
         });
       }
@@ -60,6 +58,18 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => const PatientHistoryScreen(),
+      ),
+    );
+  }
+
+  void _navigateToCareCompanion() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CareCompanionHubScreen(
+          patient: _patients.isNotEmpty ? _patients.first : null,
+          initialStep: 1,
+        ),
       ),
     );
   }
@@ -111,6 +121,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       // 4. Section 1: Skrining Terakhir (Figma Node 76:240)
                       _buildSectionSkriningTerakhir(),
+
+                      const SizedBox(height: 24),
+
+                      // 4.5. Section: AI Care Companion Hub
+                      _buildSectionCareCompanion(),
 
                       const SizedBox(height: 28),
 
@@ -361,10 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Section 1: Skrining Terakhir (Figma Node 76:240)
   Widget _buildSectionSkriningTerakhir() {
-    // Dynamic values if database has records
     final latestPatient = _patients.isNotEmpty ? _patients.first : null;
-    final patientId = latestPatient != null ? 'ID #${latestPatient.id.substring(0, 7)}' : 'ID #RT-8841';
-    const dateStr = '12 Okt 2024';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,226 +424,341 @@ class _HomeScreenState extends State<HomeScreen> {
 
         const SizedBox(height: 8),
 
-        // Screening Card with Fundus Preview Micro-thumbnail (Figma Node 76:251)
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0D000000), // rgba(0,0,0,0.05)
-                offset: Offset(0, 1),
-                blurRadius: 1,
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Patient Info Row (Figma Node 76:252)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Fundus Preview Thumbnail (Figma Node 76:254)
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDFF1FB),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Image.asset(
-                      'assets/images/fundus_thumbnail.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.image_outlined,
-                        color: AppColors.figmaBlue,
-                        size: 24,
+        if (latestPatient == null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFF1F5F9)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0D000000),
+                  offset: Offset(0, 1),
+                  blurRadius: 1,
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFDFF1FB),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.remove_red_eye_outlined,
+                    color: AppColors.figmaBlue,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Belum Ada Riwayat Skrining',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.figmaTextHeading,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Lakukan skrining foto fundus untuk mendeteksi retinopati diabetik.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    color: AppColors.figmaTextBody,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _navigateToUpload,
+                  icon: const Icon(Icons.add_a_photo_outlined, size: 14),
+                  label: const Text('Mulai Skrining Pertama'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.figmaBlue,
+                    side: const BorderSide(color: AppColors.figmaBlue),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0D000000),
+                  offset: Offset(0, 1),
+                  blurRadius: 1,
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDFF1FB),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Image.asset(
+                        'assets/images/fundus_thumbnail.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.image_outlined,
+                          color: AppColors.figmaBlue,
+                          size: 24,
+                        ),
                       ),
                     ),
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  // ID & Date
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          patientId,
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.figmaTextHeading,
-                            letterSpacing: 0.15,
-                            height: 1.33,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        const Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              size: 11,
-                              color: AppColors.figmaTextBody,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            latestPatient.fullName,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.figmaTextHeading,
+                              letterSpacing: 0.15,
+                              height: 1.33,
                             ),
-                            SizedBox(width: 4),
-                            Text(
-                              dateStr,
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.badge_outlined,
+                                size: 11,
+                                color: AppColors.figmaTextBody,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'NIK: ${latestPatient.nik}',
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                  color: AppColors.figmaTextBody,
+                                  height: 1.38,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.figmaBlueChip,
+                        borderRadius: BorderRadius.circular(9999),
+                      ),
+                      child: Text(
+                        latestPatient.diabetesProfile?.diabetesType ?? 'T2DM',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.statusGreenDark,
+                          letterSpacing: 0.44,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.figmaBlueChip,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Status Terapi',
                               style: TextStyle(
                                 fontFamily: 'Inter',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w400,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
                                 color: AppColors.figmaTextBody,
-                                height: 1.38,
+                                letterSpacing: 0.44,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              latestPatient.diabetesProfile?.currentTreatment ?? 'Terjadwal',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.statusGreenSuccess,
+                                letterSpacing: 0.26,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.figmaBlueChip,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'HbA1c Terkini',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.figmaTextBody,
+                                letterSpacing: 0.44,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              latestPatient.diabetesProfile?.lastHbA1c != null
+                                  ? '${latestPatient.diabetesProfile!.lastHbA1c}%'
+                                  : '-',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.figmaBlueDark,
+                                letterSpacing: 0.26,
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-
-                  // Eye Position Badge: Mata Kanan (OD) (Figma Node 76:265)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.figmaBlueChip,
-                      borderRadius: BorderRadius.circular(9999),
-                    ),
-                    child: const Text(
-                      'Mata Kanan (OD)',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.statusGreenDark,
-                        letterSpacing: 0.44,
                       ),
                     ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Section: AI Care Companion Hub
+  Widget _buildSectionCareCompanion() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFEBF3FF), Color(0xFFF0FDF4)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A0D47A1),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.figmaBlue,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'AI CARE COMPANION',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
                   ),
-                ],
+                ),
               ),
-
-              const SizedBox(height: 16),
-
-              // Result Chips Grid (Figma Node 76:268)
-              Row(
-                children: [
-                  // Hasil Deteksi: No DR (Normal) (Figma Node 76:269)
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.figmaBlueChip,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Hasil Deteksi',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.figmaTextBody,
-                              letterSpacing: 0.44,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle_outline,
-                                size: 15,
-                                color: AppColors.statusGreenSuccess,
-                              ),
-                              SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  'No DR (Normal)',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.statusGreenSuccess,
-                                    letterSpacing: 0.26,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // Reliability AI: Terverifikasi (98%) (Figma Node 76:278)
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.figmaBlueChip,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Reliability AI',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.figmaTextBody,
-                              letterSpacing: 0.44,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.only(top: 1),
-                                child: Icon(
-                                  Icons.verified_outlined,
-                                  size: 15,
-                                  color: AppColors.figmaBlueDark,
-                                ),
-                              ),
-                              SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  'Terverifikasi (98%)',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.figmaBlueDark,
-                                    letterSpacing: 0.26,
-                                    height: 1.23,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              const Spacer(),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.figmaBlue),
             ],
           ),
-        ),
-      ],
+          const SizedBox(height: 10),
+          const Text(
+            'Pendamping Perawatan & Gizi Terjangkau',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.figmaTextHeading,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Cari RS rujukan BPJS, siapkan pertanyaan dokter, dan susun menu harian ramah kantong untuk kontrol gula darah.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              color: AppColors.figmaTextBody,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: _navigateToCareCompanion,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.figmaBlue,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 40),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Buka Pendamping Pasien',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

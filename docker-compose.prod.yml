@@ -1,0 +1,191 @@
+services:
+  # ============================================================================
+  # 1. POSTGRESQL RELATIONAL DATABASE (Permenkes 24/2022 RME & Audit Trails)
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: retiva-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-retiva}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-retivasecurepassword2024}
+      POSTGRES_DB: ${POSTGRES_DB:-retiva_db}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-retiva} -d ${POSTGRES_DB:-retiva_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - retiva-network
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+
+  # ============================================================================
+  # 2. MINIO S3-COMPATIBLE STORAGE (Zero-BLOB Architecture for Fundus Images)
+  # ============================================================================
+  minio:
+    image: cgr.dev/chainguard/minio:latest-dev
+    container_name: retiva-minio-prod
+    restart: always
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-retivaminioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-retivaminioSecurePassword2024}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_prod_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9000/minio/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - retiva-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ============================================================================
+  # 2b. MINIO BUCKET INITIALIZER (Auto-provision 'retiva-fundus-images' bucket)
+  # ============================================================================
+  minio-create-buckets:
+    image: cgr.dev/chainguard/minio-client:latest-dev
+    container_name: retiva-minio-setup-prod
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER:-retivaminioadmin} ${MINIO_ROOT_PASSWORD:-retivaminioSecurePassword2024};
+      /usr/bin/mc mb --ignore-existing myminio/retiva-fundus-images;
+      /usr/bin/mc anonymous set download myminio/retiva-fundus-images;
+      echo '✅ Production MinIO bucket [retiva-fundus-images] initialized successfully!';
+      exit 0;
+      "
+    networks:
+      - retiva-network
+
+  # ============================================================================
+  # 3. FASTAPI AI SERVICE (Quality Gate, EfficientNet-B3, Grad-CAM Heatmap)
+  # ============================================================================
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: retiva-ai-service-prod
+    restart: always
+    environment:
+      - PORT=8003
+      - HOST=0.0.0.0
+      - MODEL_VERSION=efficientnet-b3-v1.0.0
+      - QUALITY_THRESHOLD=0.80
+      - RELIABILITY_THRESHOLD=0.85
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-retiva-internal-secret-token}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - retiva-network
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+
+  # ============================================================================
+  # 4. NEXT.JS 14 CORE WEB API & CLINICAL PORTAL (Production Build)
+  # ============================================================================
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.prod
+    container_name: retiva-web-api-prod
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-retiva}:${POSTGRES_PASSWORD:-retivasecurepassword2024}@postgres:5432/${POSTGRES_DB:-retiva_db}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-retiva-healthcare-jwt-secret-replace-in-production-min-32-chars}
+      - JWT_EXPIRES_IN=7d
+      - STORAGE_PROVIDER=s3-compatible
+      - STORAGE_ENDPOINT=http://minio:9000
+      - STORAGE_BUCKET=retiva-fundus-images
+      - STORAGE_ACCESS_KEY=${MINIO_ROOT_USER:-retivaminioadmin}
+      - STORAGE_SECRET_KEY=${MINIO_ROOT_PASSWORD:-retivaminioSecurePassword2024}
+      - STORAGE_USE_SSL=false
+      - AI_SERVICE_URL=http://ai-service:8003
+      - AI_INTERNAL_SECRET=${INTERNAL_API_SECRET:-retiva-internal-secret-token}
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-retiva-internal-secret-token}
+      - AI_SERVICE_SECRET=${INTERNAL_API_SECRET:-retiva-internal-secret-token}
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXTAUTH_SECRET=${JWT_SECRET:-retiva-healthcare-jwt-secret-replace-in-production-min-32-chars}
+      - NEXTAUTH_URL=${APP_URL:-http://localhost}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-create-buckets:
+        condition: service_completed_successfully
+      ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - retiva-network
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+
+  # ============================================================================
+  # 5. NGINX REVERSE PROXY (Gateway & Edge Ingress)
+  # ============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: retiva-nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot_etc:/etc/letsencrypt
+      - certbot_var:/var/www/certbot
+    depends_on:
+      - web
+      - minio
+    networks:
+      - retiva-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+# ==============================================================================
+# PERSISTENT STORAGE VOLUMES & ISOLATED NETWORK
+# ==============================================================================
+volumes:
+  postgres_prod_data:
+    driver: local
+  minio_prod_data:
+    driver: local
+  certbot_etc:
+    driver: local
+  certbot_var:
+    driver: local
+
+networks:
+  retiva-network:
+    driver: bridge

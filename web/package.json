@@ -17,6 +17,7 @@
     "test:phase3": "tsx scripts/test-phase3.ts",
     "test:phase4": "tsx scripts/test-phase4.ts",
     "test:phase5": "tsx scripts/test-phase5.ts",
+    "test:care-companion": "tsx scripts/test-care-companion.ts",
     "test:master": "tsx scripts/test-master.ts"
   },
   "dependencies": {

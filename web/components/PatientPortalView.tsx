@@ -13,6 +13,7 @@ import {
   ArrowRightIcon,
 } from './Icons';
 
+import { CareCompanionView } from './CareCompanionView';
 import { clinicalStore, PatientData, ScreeningData } from '../lib/clinical-store';
 
 interface PatientPortalViewProps {
@@ -34,7 +35,7 @@ export function PatientPortalView({
   onOpenAdminView,
   currentUser,
 }: PatientPortalViewProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'screening' | 'referral' | 'education'>('screening');
+  const [activeSubTab, setActiveSubTab] = useState<'screening' | 'care-companion' | 'referral' | 'education'>('care-companion');
   const [showFullDisclaimer, setShowFullDisclaimer] = useState<boolean>(false);
 
   // Dynamic Patient and Screening data sourced from DB via ClinicalStore
@@ -328,6 +329,31 @@ export function PatientPortalView({
           >
             <EyeIcon size={16} />
             <span>Hasil Pemeriksaan Retina Terkini</span>
+          </button>
+
+          <button
+            type="button"
+            style={{
+              padding: '0.65rem 1.25rem',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              border: 'none',
+              borderBottom: activeSubTab === 'care-companion' ? '3px solid #0D47A1' : '3px solid transparent',
+              backgroundColor: activeSubTab === 'care-companion' ? '#eff6ff' : 'transparent',
+              color: activeSubTab === 'care-companion' ? '#0D47A1' : 'var(--slate-600)',
+              borderRadius: '8px 8px 0 0',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+            onClick={() => setActiveSubTab('care-companion')}
+          >
+            <ShieldCheckIcon size={16} />
+            <span>Pendamping Perawatan (AI Care Companion)</span>
+            <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', backgroundColor: '#dbeafe', color: '#1e40af', borderRadius: '4px', fontWeight: 800 }}>
+              AI AKTIF
+            </span>
           </button>
 
           <button
@@ -686,6 +712,18 @@ export function PatientPortalView({
               </div>
             </div>
           </div>
+        )}
+
+        {/* Tab: AI Care Companion */}
+        {activeSubTab === 'care-companion' && (
+          <CareCompanionView
+            patientId={patientData?.id || ''}
+            patientName={patient.name}
+            onNavigateTab={(tab) => {
+              if (tab === 'screening') setActiveSubTab('screening');
+              if (tab === 'referral') setActiveSubTab('referral');
+            }}
+          />
         )}
       </main>
 

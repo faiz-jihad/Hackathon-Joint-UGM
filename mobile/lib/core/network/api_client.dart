@@ -41,6 +41,7 @@ class ApiClient {
     final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'x-retiva-clinical': 'true',
     };
     final activeToken = token ?? _authToken;
     if (activeToken != null && activeToken.isNotEmpty) {
@@ -99,60 +100,7 @@ class ApiClient {
       }
     } catch (_) {}
 
-    // Mock patient list for Puskesmas demonstration
-    return [
-      PatientModel(
-        id: 'pat-001',
-        nik: '3404015508750001',
-        fullName: 'Bapak Sutrisno',
-        birthDate: '1970-08-15',
-        gender: 'MALE',
-        age: 56,
-        phone: '081234567890',
-        address: 'Kec. Mlati, Kabupaten Sleman, D.I. Yogyakarta',
-        diabetesProfile: DiabetesProfileModel(
-          diabetesType: 'TYPE_2',
-          yearOfDiagnosis: 2018,
-          currentTreatment: 'ORAL_MEDICATION',
-          lastHbA1c: 8.4,
-          glycaemicControlStatus: 'SUBOPTIMAL',
-        ),
-      ),
-      PatientModel(
-        id: 'pat-002',
-        nik: '3404026203800002',
-        fullName: 'Ibu Ratna Dewi',
-        birthDate: '1980-03-22',
-        gender: 'FEMALE',
-        age: 46,
-        phone: '081987654321',
-        address: 'Kec. Depok, Sleman, D.I. Yogyakarta',
-        diabetesProfile: DiabetesProfileModel(
-          diabetesType: 'TYPE_2',
-          yearOfDiagnosis: 2021,
-          currentTreatment: 'ORAL_MEDICATION',
-          lastHbA1c: 6.8,
-          glycaemicControlStatus: 'OPTIMAL',
-        ),
-      ),
-      PatientModel(
-        id: 'pat-003',
-        nik: '3404031111650003',
-        fullName: 'Bapak Wahyu Hidayat',
-        birthDate: '1965-11-11',
-        gender: 'MALE',
-        age: 60,
-        phone: '081345678912',
-        address: 'Godean, Sleman, D.I. Yogyakarta',
-        diabetesProfile: DiabetesProfileModel(
-          diabetesType: 'TYPE_1',
-          yearOfDiagnosis: 2012,
-          currentTreatment: 'INSULIN',
-          lastHbA1c: 9.6,
-          glycaemicControlStatus: 'POOR',
-        ),
-      ),
-    ];
+    return [];
   }
 
   Future<PatientModel?> createPatient({
@@ -200,28 +148,7 @@ class ApiClient {
       }
     } catch (_) {}
 
-    // Fallback: create client model
-    final birthYear = DateTime.tryParse(birthDate)?.year ?? 1974;
-    final calculatedAge = DateTime.now().year - birthYear;
-
-    return PatientModel(
-      id: 'pat-${DateTime.now().millisecondsSinceEpoch}',
-      nik: nik,
-      fullName: fullName,
-      birthDate: birthDate,
-      gender: gender,
-      age: calculatedAge > 0 ? calculatedAge : 52,
-      phone: phone,
-      address: address,
-      diabetesProfile: DiabetesProfileModel(
-        diabetesType: diabetesType,
-        yearOfDiagnosis: yearOfDiagnosis,
-        currentTreatment: currentTreatment,
-        lastHbA1c: lastHbA1c,
-        systolicBp: systolicBp,
-        diastolicBp: diastolicBp,
-      ),
-    );
+    return null;
   }
 
   // ===========================================================================
@@ -603,66 +530,213 @@ class ApiClient {
       }
     } catch (_) {}
 
-    return [
-      {
-        'id': 'fac-001',
-        'name': 'RS Mata Dr. Yap Yogyakarta',
-        'type': 'Rumah Sakit Khusus Mata (FKRTL Tipe B)',
-        'doctor_name': 'dr. Arga Pratama, Sp.M (K)',
-        'specialty': 'Subspesialis Vitreoretina & Makula',
-        'address': 'Jl. Cik Di Tiro No.5, Terban, Gondokusuman, Kota Yogyakarta',
-        'distanceKm': 3.8,
-        'bpjsStatus': 'ACCEPTED',
-        'isVerified': true,
-        'phone': '(0274) 562054',
-        'services': [
-          'Pemeriksaan Retina & Makula Komprehensif',
-          'Laser Panretinal Fotokoagulasi (PRP)',
-          'Injeksi Anti-VEGF Intravitreal',
-          'Optical Coherence Tomography (OCT)',
-        ],
-        'latitude': -7.7797,
-        'longitude': 110.3758,
-      },
-      {
-        'id': 'fac-002',
-        'name': 'RSUP Dr. Sardjito (Pusat Subspesialis Retina)',
-        'type': 'Rumah Sakit Rujukan Nasional (Tipe A)',
-        'doctor_name': 'dr. Supanji, Sp.M(K), Ph.D',
-        'specialty': 'Pusat Vitreoretina Tersier & Bedah Retina',
-        'address': 'Jl. Kesehatan No.1, Sekip, Sinduadi, Mlati, Kabupaten Sleman',
-        'distanceKm': 2.4,
-        'bpjsStatus': 'ACCEPTED',
-        'isVerified': true,
-        'phone': '(0274) 631190',
-        'services': [
-          'Pusat Rujukan Vitreoretina Kompleks',
-          'Bedah Vitrektomi Pars Plana',
-          'Fluorescein Angiography (FFA)',
-          'Injeksi Implan Steroid Intravitreal',
-        ],
-        'latitude': -7.7686,
-        'longitude': 110.3737,
-      },
-      {
-        'id': 'fac-003',
-        'name': 'RS Akademik UGM (RSA UGM)',
-        'type': 'Rumah Sakit Pendidikan / FKRTL Tipe B',
-        'doctor_name': 'dr. Firman Setya, Sp.M',
-        'specialty': 'Spesialis Mata Konsultan Retina',
-        'address': 'Jl. Kabupaten, Kronggahan, Trihanggo, Gamping, Sleman',
-        'distanceKm': 4.6,
-        'bpjsStatus': 'ACCEPTED',
-        'isVerified': true,
-        'phone': '(0274) 4530404',
-        'services': [
-          'Poli Retina & Skrining Diabetes Melitus Terpadu',
-          'Laser Fotokoagulasi Retinopati',
-          'Evaluasi Funduskopi Berkala',
-        ],
-        'latitude': -7.7431,
-        'longitude': 110.3503,
-      },
-    ];
+    return [];
+  }
+
+  // ===========================================================================
+  // 6. AGENTIC CARE COMPANION (PRE & POST CONSULTATION)
+  // ===========================================================================
+
+  Future<Map<String, dynamic>?> getCareCompanionState(String patientId) async {
+    try {
+      final res = await http.get(
+        Uri.parse(ApiConstants.careCompanionState(patientId)),
+        headers: _buildHeaders(),
+      ).timeout(const Duration(seconds: 6));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        return body['data'];
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<Map<String, dynamic>> checkUrgentSymptoms(
+      String patientId, String text) async {
+    try {
+      final res = await http.post(
+        Uri.parse(ApiConstants.urgentCheck),
+        headers: _buildHeaders(),
+        body: jsonEncode({
+          'patientId': patientId,
+          'symptomsText': text,
+        }),
+      ).timeout(const Duration(seconds: 5));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        return body['data'] ?? {};
+      }
+    } catch (_) {}
+
+    // Resilient clinical rule fallback
+    final isCritical = text.toLowerCase().contains('kilat') ||
+        text.toLowerCase().contains('tirai') ||
+        text.toLowerCase().contains('buram mendadak') ||
+        text.toLowerCase().contains('bintik banyak');
+
+    return {
+      'isEmergency': isCritical,
+      'warningTitle': isCritical
+          ? 'PERINGATAN MEDIS: SEGERA PERIKSA KE SPESIALIS MATA'
+          : 'Gejala Aman dari Kegawatdaruratan Akut',
+      'warningMessage': isCritical
+          ? 'Gejala yang Anda laporkan mengindikasikan potensi risiko robekan retina atau perdarahan vitreus. Segera datangi IGD RS Mata.'
+          : 'Tidak ada tanda kegawatdaruratan mata darurat.',
+    };
+  }
+
+  Future<Map<String, dynamic>?> saveConsultationSummary(
+      Map<String, dynamic> summary) async {
+    try {
+      final res = await http.post(
+        Uri.parse(ApiConstants.consultationSummary),
+        headers: _buildHeaders(),
+        body: jsonEncode(summary),
+      ).timeout(const Duration(seconds: 6));
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final body = jsonDecode(res.body);
+        return body['data'];
+      }
+    } catch (_) {}
+    return summary;
+  }
+
+  Future<bool> confirmConsultationSummary(String summaryId) async {
+    try {
+      final res = await http.post(
+        Uri.parse(ApiConstants.confirmConsultation(summaryId)),
+        headers: _buildHeaders(),
+      ).timeout(const Duration(seconds: 6));
+
+      return res.statusCode == 200;
+    } catch (_) {}
+    return true;
+  }
+
+  Future<Map<String, dynamic>?> generateMealPlan(
+      double budget, String city) async {
+    try {
+      final res = await http.post(
+        Uri.parse(ApiConstants.generateMealPlan),
+        headers: _buildHeaders(),
+        body: jsonEncode({
+          'dailyBudgetIdr': budget,
+          'cityRegion': city,
+          'isGeneralEducation': false,
+        }),
+      ).timeout(const Duration(seconds: 6));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        return body['data'];
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> replaceMeal(
+      Map<String, dynamic> currentPlan, String category) async {
+    try {
+      final res = await http.post(
+        Uri.parse(ApiConstants.replaceMeal),
+        headers: _buildHeaders(),
+        body: jsonEncode({
+          'currentPlan': currentPlan,
+          'category': category,
+        }),
+      ).timeout(const Duration(seconds: 6));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        return body['data'];
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<bool> toggleReminder(String reminderId, bool isCompleted) async {
+    try {
+      final res = await http.patch(
+        Uri.parse(ApiConstants.reminderDetail(reminderId)),
+        headers: _buildHeaders(),
+        body: jsonEncode({'isCompleted': isCompleted}),
+      ).timeout(const Duration(seconds: 5));
+
+      return res.statusCode == 200;
+    } catch (_) {}
+    return true;
+  }
+
+  Future<List<Map<String, dynamic>>> getMasterDoctorQuestions() async {
+    try {
+      final res = await http.get(
+        Uri.parse(ApiConstants.masterQuestions),
+        headers: _buildHeaders(),
+      ).timeout(const Duration(seconds: 6));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        final list = body['data'];
+        if (list is List) {
+          return list.map((e) => Map<String, dynamic>.from(e)).toList();
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> getMasterMeals({String? category}) async {
+    try {
+      final uri = category != null
+          ? Uri.parse('${ApiConstants.masterMeals}?category=$category')
+          : Uri.parse(ApiConstants.masterMeals);
+
+      final res = await http.get(uri, headers: _buildHeaders()).timeout(const Duration(seconds: 6));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        final list = body['data'];
+        if (list is List) {
+          return list.map((e) => Map<String, dynamic>.from(e)).toList();
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> getCareReminders(String patientId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('${ApiConstants.careReminders}?patientId=$patientId'),
+        headers: _buildHeaders(),
+      ).timeout(const Duration(seconds: 6));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        final list = body['data'];
+        if (list is List) {
+          return list.map((e) => Map<String, dynamic>.from(e)).toList();
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<Map<String, dynamic>?> createCareReminder(Map<String, dynamic> data) async {
+    try {
+      final res = await http.post(
+        Uri.parse(ApiConstants.careReminders),
+        headers: _buildHeaders(),
+        body: jsonEncode(data),
+      ).timeout(const Duration(seconds: 6));
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final body = jsonDecode(res.body);
+        return body['data'];
+      }
+    } catch (_) {}
+    return null;
   }
 }

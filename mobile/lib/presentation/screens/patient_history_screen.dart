@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
 import '../../data/models/patient_model.dart';
-import '../widgets/brand_header.dart';
 import '../widgets/patient_intake_modal.dart';
 import 'upload_fundus_screen.dart';
 
@@ -250,8 +249,9 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Longitudinal Spotlight Feature Card (Bapak Sutrisno)
-                    _buildLongitudinalTimelineCard(),
+                    // Longitudinal Spotlight Feature Card
+                    if (_patients.isNotEmpty)
+                      _buildLongitudinalTimelineCard(_patients.first),
 
                     const SizedBox(height: 24),
 
@@ -345,7 +345,16 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
     );
   }
 
-  Widget _buildLongitudinalTimelineCard() {
+  Widget _buildLongitudinalTimelineCard([PatientModel? patient]) {
+    final patientName = patient != null
+        ? '${patient.fullName} • NIK: ${patient.nik}'
+        : 'Pasien Terdaftar Rekam Medis';
+
+    final diagnosisYear = patient?.diabetesProfile?.yearOfDiagnosis;
+    final lastHbA1c = patient?.diabetesProfile?.lastHbA1c;
+    final treatment = patient?.diabetesProfile?.currentTreatment ?? 'Terapi Terjadwal';
+    final bp = patient?.diabetesProfile?.bloodPressure ?? '-';
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -374,17 +383,17 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
                 child: const Icon(Icons.timeline, color: AppColors.primaryDark, size: 20),
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Timeline Progresivitas Retina Pasien',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                     ),
                     Text(
-                      'Bapak Sutrisno • NIK: 3404015508750001',
-                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                      patientName,
+                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                     ),
                   ],
                 ),
@@ -394,22 +403,18 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
           const Divider(height: 24),
 
           _buildTimelineNode(
-            year: 'Tahun 2024 (Skrining Awal)',
-            grade: 'Derajat 0: No DR (Normal)',
+            year: diagnosisYear != null ? 'Tahun Terdiagnosis: $diagnosisYear' : 'Pemeriksaan Awal Faskes',
+            grade: 'Tipe: ${patient?.diabetesProfile?.diabetesType ?? "DM"}',
             color: AppColors.statusGreen,
-            details: 'Fundus tenang, tidak ada mikroaneurisma. HbA1c 6.9%. Rekomendasi: Kontrol 1 tahun.',
+            details: 'Regimen: $treatment. Kontrol berkala faskes pertama.',
           ),
           _buildTimelineNode(
-            year: 'Tahun 2025 (Kontrol Tahunan)',
-            grade: 'Derajat 1: Mild NPDR (Ringan)',
-            color: AppColors.statusYellow,
-            details: 'Mikroaneurisma fokal terisolasi di kuadran inferior. HbA1c 7.6%. Terapi diet diperketat.',
-          ),
-          _buildTimelineNode(
-            year: 'Tahun 2026 (Skrining Terkini)',
-            grade: 'Derajat 2: Moderate NPDR (Sedang)',
-            color: AppColors.statusOrange,
-            details: 'Perdarahan dot-blot & eksudat keras bertambah. HbA1c 8.4%. Rujukan Sp.M diterbitkan.',
+            year: 'Evaluasi Terkini',
+            grade: 'Tekanan Darah: $bp',
+            color: (lastHbA1c != null && lastHbA1c >= 8.0) ? AppColors.statusOrange : AppColors.statusYellow,
+            details: lastHbA1c != null
+                ? 'Kadar HbA1c: $lastHbA1c%. Status: ${patient?.diabetesProfile?.glycaemicControlStatus ?? "Optimal"}.'
+                : 'Data skrining retina tersimpan di basis data rekam medis.',
             isLast: true,
           ),
         ],

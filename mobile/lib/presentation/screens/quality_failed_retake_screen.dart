@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/screening_result_model.dart';
-import '../widgets/brand_header.dart';
 import '../widgets/custom_button.dart';
 
 class QualityFailedRetakeScreen extends StatelessWidget {

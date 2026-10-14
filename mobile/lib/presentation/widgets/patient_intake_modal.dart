@@ -26,16 +26,16 @@ class _PatientIntakeModalState extends State<PatientIntakeModal> {
 
   final _nikController = TextEditingController();
   final _nameController = TextEditingController();
-  final _phoneController = TextEditingController(text: '0812');
-  final _addressController = TextEditingController(text: 'Kabupaten Sleman, D.I. Yogyakarta');
-  final _hba1cController = TextEditingController(text: '8.2');
-  final _systolicController = TextEditingController(text: '130');
-  final _diastolicController = TextEditingController(text: '85');
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _hba1cController = TextEditingController();
+  final _systolicController = TextEditingController();
+  final _diastolicController = TextEditingController();
 
-  DateTime _birthDate = DateTime(1972, 5, 20);
+  DateTime _birthDate = DateTime(1980, 1, 1);
   String _gender = 'MALE';
   String _diabetesType = 'TYPE_2';
-  final int _yearOfDiagnosis = 2019;
+  final int _yearOfDiagnosis = DateTime.now().year - 3;
   String _currentTreatment = 'ORAL_MEDICATION';
   bool _isSubmitting = false;
 

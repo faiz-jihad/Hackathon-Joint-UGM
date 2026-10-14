@@ -54,4 +54,27 @@ class ApiConstants {
   // Longitudinal History
   static String patientHistory(String patientId) =>
       '$baseUrl/api/v1/history/patient/$patientId';
+
+  // AI Care Companion
+  static String careCompanionState(String patientId) =>
+      '$baseUrl/api/v1/care-companion/state?patientId=$patientId';
+  static String get urgentCheck => '$baseUrl/api/v1/care-companion/urgent-check';
+  static String get consultationSummary =>
+      '$baseUrl/api/v1/care-companion/consultation-summary';
+  static String confirmConsultation(String id) =>
+      '$baseUrl/api/v1/care-companion/consultation-summary/$id/confirm';
+  static String get generateMealPlan =>
+      '$baseUrl/api/v1/care-companion/meal-plan/generate';
+  static String get replaceMeal =>
+      '$baseUrl/api/v1/care-companion/meal-plan/replace-meal';
+  static String get careReminders => '$baseUrl/api/v1/care-companion/reminders';
+  static String reminderDetail(String id) =>
+      '$baseUrl/api/v1/care-companion/reminders/$id';
+  static String get careProgress => '$baseUrl/api/v1/care-companion/progress';
+  static String get orchestrator =>
+      '$baseUrl/api/v1/care-companion/orchestrator';
+
+  // Master Data Endpoints
+  static String get masterMeals => '$baseUrl/api/v1/master/meals';
+  static String get masterQuestions => '$baseUrl/api/v1/master/questions';
 }

@@ -17,6 +17,8 @@ import { AuditRegistryView } from './AuditRegistryView';
 import { UsersMasterView } from './UsersMasterView';
 import { clinicalStore } from '../lib/clinical-store';
 
+import { CareCompanionAdminView } from './CareCompanionAdminView';
+
 const DoctorVerificationView = dynamic(
   () => import('./DoctorVerificationView').then((mod) => mod.DoctorVerificationView),
   { ssr: false }
@@ -232,6 +234,8 @@ export function ClinicalDashboardShell({
           {activeTab === 'users' && <UsersMasterView initialTab="users" />}
 
           {activeTab === 'roles' && <UsersMasterView initialTab="roles" />}
+
+          {activeTab === 'care-companion-master' && <CareCompanionAdminView />}
 
           {activeTab === 'doctor-verification' && <DoctorVerificationView />}
 

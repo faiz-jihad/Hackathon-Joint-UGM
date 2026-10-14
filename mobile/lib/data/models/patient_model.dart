@@ -30,7 +30,7 @@ class PatientModel {
       gender: json['gender'] ?? 'MALE',
       age: json['age'] is int
           ? json['age']
-          : int.tryParse('${json['age']}') ?? 52,
+          : int.tryParse('${json['age']}') ?? 0,
       phone: json['phone'],
       address: json['address'],
       diabetesProfile: json['diabetesProfile'] != null
@@ -71,11 +71,11 @@ class DiabetesProfileModel {
     this.diastolicBp,
   });
 
-  int get diagnosisYear => yearOfDiagnosis ?? 2020;
+  int get diagnosisYear => yearOfDiagnosis ?? DateTime.now().year;
 
   String get bloodPressure => (systolicBp != null && diastolicBp != null)
       ? '$systolicBp/$diastolicBp mmHg'
-      : '130/85 mmHg';
+      : '-';
 
   bool get hasInsulinTherapy =>
       currentTreatment == 'INSULIN' || currentTreatment == 'COMBINATION';

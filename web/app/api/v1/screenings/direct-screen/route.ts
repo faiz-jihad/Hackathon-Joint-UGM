@@ -174,6 +174,13 @@ export async function POST(req: NextRequest) {
     // Persist to PostgreSQL Database via Prisma (Authoritative Coordinator)
     let persistedScreeningId = screeningIdHeader || aiData.screening_id || crypto.randomUUID();
 
+    // Baseline Clinical Recommendation (PERDAMI & ADA 2024 Rules Engine)
+    let recResult = RecommendationRulesEngine.evaluate({
+      screeningId: persistedScreeningId,
+      confirmedClass: predictedClass,
+      diabetesProfile: null,
+    });
+
     try {
       // 1. Resolve Patient
       let patient = requestedPatientId
@@ -285,7 +292,7 @@ export async function POST(req: NextRequest) {
           })
         : null;
 
-      const recResult = RecommendationRulesEngine.evaluate({
+      recResult = RecommendationRulesEngine.evaluate({
         screeningId: createdScreening.id,
         confirmedClass: predictedClass,
         diabetesProfile: domainProfile,

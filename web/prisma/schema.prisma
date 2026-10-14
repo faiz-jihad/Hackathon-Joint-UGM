@@ -113,11 +113,15 @@ model Patient {
   updatedAt        DateTime         @updatedAt @map("updated_at")
 
   // Relations
-  user             User?            @relation(fields: [userId], references: [id])
-  diabetesProfile  DiabetesProfile?
-  screenings       Screening[]
-  referrals        Referral[]
-  followUps        FollowUp[]
+  user                  User?                 @relation(fields: [userId], references: [id])
+  diabetesProfile       DiabetesProfile?
+  screenings            Screening[]
+  referrals             Referral[]
+  followUps             FollowUp[]
+  consultationSummaries ConsultationSummary[]
+  carePlans             CarePlan[]
+  careReminders         CareReminder[]
+  careProgressLogs      CareProgressLog[]
 
   @@index([nik])
   @@index([fullName])
@@ -194,13 +198,15 @@ model Screening {
   conductedBy    User            @relation("ConductedScreenings", fields: [conductedById], references: [id])
   facility       Facility?       @relation(fields: [facilityId], references: [id])
   
-  images         RetinalImage[]
-  aiResults      AIResult[]
-  reliability    ReliabilityAssessment?
-  humanReview    HumanReview?
-  recommendation Recommendation?
-  referrals      Referral[]
-  followUps      FollowUp[]
+  images                RetinalImage[]
+  aiResults             AIResult[]
+  reliability           ReliabilityAssessment?
+  humanReview           HumanReview?
+  recommendation        Recommendation?
+  referrals             Referral[]
+  followUps             FollowUp[]
+  consultationSummaries ConsultationSummary[]
+  carePlans             CarePlan[]
 
   @@index([patientId])
   @@index([status])
@@ -562,4 +568,243 @@ model Notification {
 
   @@index([userId])
   @@map("notifications")
+}
+
+// ==========================================
+// 10. AGENTIC CARE COMPANION (PRE & POST CONSULTATION)
+// ==========================================
+
+enum CareState {
+  SCREENING_COMPLETED
+  AWAITING_CONSULTATION
+  CONSULTATION_RECORDED
+  CARE_PLAN_READY
+  CARE_PLAN_ACTIVE
+  FOLLOW_UP_DUE
+  CARE_PLAN_UPDATED
+}
+
+enum ConsultationSummarySource {
+  PATIENT_REPORTED
+  CLINICIAN_DOCUMENT
+  TELECONSULTATION_RECORD
+}
+
+enum ConsultationVerificationStatus {
+  UNVERIFIED_PATIENT_ENTRY
+  VERIFIED_WITH_DOCUMENT
+  REJECTED_MISMATCH
+}
+
+enum CareReminderType {
+  CONSULTATION_APPOINTMENT
+  MEDICATION
+  FOLLOW_UP_VISIT
+  LIFESTYLE_CHECK
+}
+
+enum CareReminderFrequency {
+  ONCE
+  DAILY
+  WEEKLY
+}
+
+model ConsultationSummary {
+  id                           String                         @id @default(uuid())
+  patientId                    String                         @map("patient_id")
+  screeningId                  String?                        @map("screening_id")
+  consultationDate             DateTime                       @map("consultation_date")
+  hospitalClinicName           String                         @map("hospital_clinic_name")
+  doctorName                   String?                        @map("doctor_name")
+  doctorFindingsDiagnosis      String                         @map("doctor_findings_diagnosis")
+  recommendedTreatment         String?                        @map("recommended_treatment")
+  prescribedMedications        Json?                          @map("prescribed_medications")
+  followUpDate                 DateTime?                      @map("follow_up_date")
+  dietaryLifestyleInstructions String?                        @map("dietary_lifestyle_instructions")
+  additionalRestrictions       String?                        @map("additional_restrictions")
+  source                       ConsultationSummarySource      @default(PATIENT_REPORTED)
+  verificationStatus           ConsultationVerificationStatus @default(UNVERIFIED_PATIENT_ENTRY) @map("verification_status")
+  isPatientConfirmed           Boolean                        @default(false) @map("is_patient_confirmed")
+  confirmedAt                  DateTime?                      @map("confirmed_at")
+  notes                        String?
+  createdAt                    DateTime                       @default(now()) @map("created_at")
+  updatedAt                    DateTime                       @updatedAt @map("updated_at")
+
+  // Relations
+  patient   Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  screening Screening? @relation(fields: [screeningId], references: [id], onDelete: SetNull)
+  carePlans CarePlan[]
+
+  @@index([patientId])
+  @@index([screeningId])
+  @@map("consultation_summaries")
+}
+
+model CarePlan {
+  id                     String    @id @default(uuid())
+  patientId              String    @map("patient_id")
+  consultationSummaryId  String?   @map("consultation_summary_id")
+  screeningId            String?   @map("screening_id")
+  state                  CareState @default(SCREENING_COMPLETED)
+  title                  String
+  summary                String
+  clinicianInstructions  String?   @map("clinician_instructions")
+  aiGeneratedSuggestions String?   @map("ai_generated_suggestions")
+  isActive               Boolean   @default(true) @map("is_active")
+  activatedAt            DateTime? @map("activated_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  patient             Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  consultationSummary ConsultationSummary? @relation(fields: [consultationSummaryId], references: [id], onDelete: SetNull)
+  screening           Screening?           @relation(fields: [screeningId], references: [id], onDelete: SetNull)
+  mealPlans           MealPlan[]
+  reminders           CareReminder[]
+  progressLogs        CareProgressLog[]
+  actionAudits        CareActionAudit[]
+
+  @@index([patientId])
+  @@index([state])
+  @@map("care_plans")
+}
+
+model MealPlan {
+  id                 String   @id @default(uuid())
+  carePlanId         String?  @map("care_plan_id")
+  patientId          String   @map("patient_id")
+  dailyBudget        Float    @map("daily_budget")
+  currency           String   @default("IDR")
+  cityRegion         String   @default("Yogyakarta") @map("city_region")
+  targetDate         DateTime @default(now()) @map("target_date")
+  estimatedTotalCost Float    @map("estimated_total_cost")
+  remainingBudget    Float    @map("remaining_budget")
+  meals              Json
+  shoppingList       Json
+  isGeneralEducation Boolean  @default(true) @map("is_general_education")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  carePlan CarePlan? @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+
+  @@index([carePlanId])
+  @@index([patientId])
+  @@map("meal_plans")
+}
+
+model CareReminder {
+  id            String                @id @default(uuid())
+  carePlanId    String?               @map("care_plan_id")
+  patientId     String                @map("patient_id")
+  reminderType  CareReminderType      @map("reminder_type")
+  title         String
+  description   String?
+  scheduledTime DateTime              @map("scheduled_time")
+  frequency     CareReminderFrequency @default(ONCE)
+  isCompleted   Boolean               @default(false) @map("is_completed")
+  completedAt   DateTime?             @map("completed_at")
+  isActive      Boolean               @default(true) @map("is_active")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  // Relations
+  patient  Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  carePlan CarePlan? @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([scheduledTime])
+  @@map("care_reminders")
+}
+
+model CareProgressLog {
+  id                String   @id @default(uuid())
+  carePlanId        String?  @map("care_plan_id")
+  patientId         String   @map("patient_id")
+  logDate           DateTime @default(now()) @map("log_date")
+  mealsCompleted    Json?    @map("meals_completed")
+  medicationsTaken  Json?    @map("medications_taken")
+  symptomsReported  String?  @map("symptoms_reported")
+  hasUrgentSymptoms Boolean  @default(false) @map("has_urgent_symptoms")
+  patientNotes      String?  @map("patient_notes")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  // Relations
+  patient  Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  carePlan CarePlan? @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([logDate])
+  @@map("care_progress_logs")
+}
+
+model CareActionAudit {
+  id               String   @id @default(uuid())
+  patientId        String   @map("patient_id")
+  carePlanId       String?  @map("care_plan_id")
+  actionName       String   @map("action_name")
+  inputParameters  Json     @map("input_parameters")
+  executionResult  Json     @map("execution_result")
+  patientConfirmed Boolean  @default(false) @map("patient_confirmed")
+  executedAt       DateTime @default(now()) @map("executed_at")
+  ipAddress        String?  @map("ip_address")
+
+  // Relations
+  carePlan CarePlan? @relation(fields: [carePlanId], references: [id], onDelete: SetNull)
+
+  @@index([patientId])
+  @@index([actionName])
+  @@index([executedAt])
+  @@map("care_action_audits")
+}
+
+// ==========================================
+// 12. CARE COMPANION MASTER DATA (CRUD ADMIN)
+// ==========================================
+
+enum MealCategory {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum GlycemicIndexLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model MasterMealItem {
+  id               String             @id @default(uuid())
+  name             String
+  category         MealCategory
+  portion          String             @default("1 porsi")
+  estimatedCostIdr Float              @map("estimated_cost_idr")
+  glycemicIndex    GlycemicIndexLevel @default(LOW) @map("glycemic_index")
+  carbsGrams       Float              @default(20) @map("carbs_grams")
+  proteinGrams     Float              @default(15) @map("protein_grams")
+  ingredients      String[]           @default([])
+  preparationNotes String?            @map("preparation_notes")
+  isActive         Boolean            @default(true) @map("is_active")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([isActive])
+  @@map("master_meal_items")
+}
+
+model MasterDoctorQuestion {
+  id           String   @id @default(uuid())
+  questionText String   @map("question_text")
+  category     String   @default("Umum")
+  orderIndex   Int      @default(0) @map("order_index")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([isActive])
+  @@map("master_doctor_questions")
 }
