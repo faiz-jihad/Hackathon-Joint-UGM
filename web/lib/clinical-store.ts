@@ -711,7 +711,7 @@ class ClinicalStore {
           gender: newPatient.gender === 'P' ? 'FEMALE' : 'MALE',
           phone: newPatient.phone || '081234567890',
         }),
-      }).catch((err) => console.warn('Background DB sync patient creation notice:', err));
+      }).catch((err: any) => console.warn('Background DB sync patient creation notice:', err));
     }
 
     return newPatient;

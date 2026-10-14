@@ -1,17 +1,64 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+/// Mode Environment Backend Retiva
+enum BackendEnvironment {
+  /// Server VPS Online Produksi (Tencent Cloud / Public VPS)
+  onlineVps,
+
+  /// Server Lokal Laptop via Wi-Fi (Sangat cocok untuk pengujian di HP Fisik yang terhubung ke Wi-Fi yang sama)
+  offlineLaptop,
+
+  /// Server Lokal via Android Emulator (10.0.2.2 loopback)
+  offlineEmulator,
+
+  /// Server Lokal Desktop / Web (localhost:3000)
+  offlineLocalhost,
+}
+
 class ApiConstants {
-  // Dynamically resolve emulator vs desktop host
+  // ===========================================================================
+  // ⚙️ PENGATURAN MODE SERVER (Ganti di sini untuk beralih Online / Offline)
+  // ===========================================================================
+
+  /// Ganti pilihan environment aktif:
+  /// - `BackendEnvironment.onlineVps`      -> Menggunakan VPS (43.173.35.200)
+  /// - `BackendEnvironment.offlineLaptop`   -> Menggunakan IP Wi-Fi Laptop (192.168.1.13:3000)
+  /// - `BackendEnvironment.offlineEmulator` -> Menggunakan Emulator Android (10.0.2.2:3000)
+  /// - `BackendEnvironment.offlineLocalhost`-> Menggunakan Localhost (localhost:3000)
+  static BackendEnvironment currentEnvironment = BackendEnvironment.onlineVps;
+
+  // Daftar Endpoint URL
+  static const String vpsUrl = 'http://43.173.35.200';
+  static const String laptopWifiUrl = 'http://192.168.1.13:3000';
+  static const String emulatorUrl = 'http://10.0.2.2:3000';
+  static const String localhostUrl = 'http://localhost:3000';
+
+  /// Toggle cepat menggunakan boolean jika diinginkan:
+  /// ApiConstants.isOnline = true  -> Pindah ke VPS
+  /// ApiConstants.isOnline = false -> Pindah ke Laptop Wi-Fi
+  static bool get isOnline => currentEnvironment == BackendEnvironment.onlineVps;
+  static set isOnline(bool value) {
+    currentEnvironment = value ? BackendEnvironment.onlineVps : BackendEnvironment.offlineLaptop;
+  }
+
+  /// Helper untuk beralih mode secara instan
+  static void useVps() => currentEnvironment = BackendEnvironment.onlineVps;
+  static void useLaptopWifi() => currentEnvironment = BackendEnvironment.offlineLaptop;
+  static void useEmulator() => currentEnvironment = BackendEnvironment.offlineEmulator;
+
+  /// Resolusi Base URL aktif berdasarkan environment terpilih
   static String get defaultBaseUrl {
-    if (kIsWeb) return 'http://localhost:3000';
-    try {
-      if (Platform.isAndroid) {
-        // Android Emulator loopback alias to host machine
-        return 'http://10.0.2.2:3000';
-      }
-    } catch (_) {}
-    return 'http://localhost:3000';
+    switch (currentEnvironment) {
+      case BackendEnvironment.onlineVps:
+        return vpsUrl;
+      case BackendEnvironment.offlineLaptop:
+        return laptopWifiUrl;
+      case BackendEnvironment.offlineEmulator:
+        return emulatorUrl;
+      case BackendEnvironment.offlineLocalhost:
+        return localhostUrl;
+    }
   }
 
   static String customBaseUrl = '';

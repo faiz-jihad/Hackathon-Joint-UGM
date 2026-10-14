@@ -18,7 +18,7 @@ export async function PATCH(
           : {}),
         ...(typeof isActive === "boolean" ? { isActive } : {}),
       },
-    }).catch((dbErr) => {
+    }).catch((dbErr: any) => {
       console.warn("[reminder PATCH]: DB fallback:", dbErr);
       return {
         id: reminderId,

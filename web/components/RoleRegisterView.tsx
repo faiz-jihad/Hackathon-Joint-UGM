@@ -305,7 +305,7 @@ export function RoleRegisterView({ role }: RoleRegisterViewProps) {
             strDataUrl: newDoctorApp.documents.strDataUrl,
             sipDataUrl: newDoctorApp.documents.sipDataUrl,
           }),
-        }).catch((e) => console.error('Error posting doctor verification to API:', e));
+        }).catch((e: any) => console.error('Error posting doctor verification to API:', e));
       } catch (err) {
         console.error('Error saving doctor registration to verification queue:', err);
       }
