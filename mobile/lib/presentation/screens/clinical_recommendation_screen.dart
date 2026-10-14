@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
 import '../../core/utils/clinical_helpers.dart';
 import '../../data/models/screening_result_model.dart';
