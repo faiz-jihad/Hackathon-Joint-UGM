@@ -119,7 +119,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       // 1. Banner Faskes & Nakes Duty Card
                       _buildFaskesDutyBanner(),
 
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 16),
+
+                      // 1b. Maskot Retiva Greeting & Health Reminder
+                      _buildRetivaMascotGreetingCard(),
+
+                      const SizedBox(height: 16),
 
                       // 2. Primary Action Hero (Mulai Skrining Fundus Baru)
                       _buildHeroScannerCta(),
@@ -149,8 +154,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       // 7. Edukasi & Standar Klinis Kemenkes / PERDAMI
                       _buildSectionStandarKlinis(),
 
-                        const SizedBox(height: 20),
-                      ],
+                      const SizedBox(height: 24),
+
+                      // 8. Sahabat Sehat Retiva & Nilai Kepribadian
+                      _buildSectionSahabatRetiva(),
+
+                      const SizedBox(height: 20),
+                    ],
                     ),
                   ),
                 ),
@@ -459,7 +469,116 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Primary Action Scanner CTA (Medica Style Hero Banner)
+  /// 1b. Retiva Companion Mascot Warm Greeting Card
+  Widget _buildRetivaMascotGreetingCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F5FF),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD6E4FF), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A246BFD),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFBBDEFB), width: 1.5),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x142196F3),
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                'assets/images/mascot_laptop.png',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Image.asset('assets/images/pose_menyapa.png', fit: BoxFit.contain),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'TEMAN KESEHATAN',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Retiva Companion',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.figmaBlue,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                const Text(
+                  '“Jangan lupa cek gula darah hari ini, ya! 💙 Kesehatan kamu penting!”',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Bersama Retiva, langkah kecil untuk hidup lebih sehat.',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10.5,
+                    color: Color(0xFF64748B),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Primary Action Scanner CTA (Medica Style Hero Banner with Doctor Mascot)
   Widget _buildHeroScannerCta() {
     return Container(
       width: double.infinity,
@@ -484,22 +603,39 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: _navigateToUpload,
           borderRadius: BorderRadius.circular(24),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
             child: Row(
               children: [
+                // Mascot Doctor Avatar
                 Container(
-                  width: 54,
-                  height: 54,
+                  width: 58,
+                  height: 58,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.35), width: 1.5),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x26000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
                   ),
-                  child: const Center(
-                    child: Icon(Icons.document_scanner_rounded, color: Colors.white, size: 28),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(3.0),
+                      child: Image.asset(
+                        'assets/images/pose_menyapa.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Center(
+                          child: Icon(Icons.document_scanner_rounded, color: AppColors.primary, size: 28),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,7 +709,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Hub Menu Cepat Khusus Alur Faskes (Medica Category Grid)
+  /// Hub Menu Cepat Khusus Alur Faskes dengan Maskot Retiva
   Widget _buildQuickActionHub() {
     return Row(
       children: [
@@ -582,7 +718,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: _buildActionTile(
             title: 'Rekam Medis',
             subtitle: 'Antrean NIK',
-            icon: Icons.badge_outlined,
+            imageAsset: 'assets/images/pose_melangkah.png',
             iconColor: const Color(0xFF0284C7),
             bgColor: const Color(0xFFF0F9FF),
             borderColor: const Color(0xFFBAE6FD),
@@ -596,7 +732,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: _buildActionTile(
             title: 'Care Companion',
             subtitle: 'Gizi & Edukasi',
-            icon: Icons.psychology_outlined,
+            imageAsset: 'assets/images/pose_peduli.png',
             iconColor: const Color(0xFF8B5CF6),
             bgColor: const Color(0xFFF5F3FF),
             borderColor: const Color(0xFFDDD6FE),
@@ -610,7 +746,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: _buildActionTile(
             title: 'Rujukan Sp.M',
             subtitle: 'Format BPJS',
-            icon: Icons.local_hospital_outlined,
+            imageAsset: 'assets/images/pose_menjelaskan.png',
             iconColor: const Color(0xFFFF7A00),
             bgColor: const Color(0xFFFFF4EC),
             borderColor: const Color(0xFFFFD8BF),
@@ -624,7 +760,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildActionTile({
     required String title,
     required String subtitle,
-    required IconData icon,
+    IconData? icon,
+    String? imageAsset,
     required Color iconColor,
     required Color bgColor,
     required Color borderColor,
@@ -649,12 +786,13 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
@@ -666,11 +804,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  child: Icon(icon, color: iconColor, size: 18),
+                  child: ClipOval(
+                    child: imageAsset != null
+                        ? Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: Image.asset(
+                              imageAsset,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Icon(icon ?? Icons.circle, color: iconColor, size: 18),
+                            ),
+                          )
+                        : Icon(icon ?? Icons.circle, color: iconColor, size: 18),
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
@@ -681,6 +832,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 10,
@@ -1235,6 +1388,131 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Sahabat Sehat Retiva & Nilai Kepribadian Brand
+  Widget _buildSectionSahabatRetiva() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x060F172A),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x1F246BFD),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.asset(
+                    'assets/images/retiva_app_badge.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Sahabat Sehat Retiva',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.figmaTextHeading,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      '“Sehat hari ini, jelas esok nanti 💙”',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Retiva hadir sebagai teman perjalanan Anda dalam menjaga kesehatan mata dan mengelola diabetes dengan pendekatan yang ramah, hangat, dan terpercaya sesuai standar PERDAMI.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              color: Color(0xFF475569),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _buildValuePill('💙 Hangat & Peduli', const Color(0xFFEFF6FF), const Color(0xFF2563EB)),
+              const SizedBox(width: 8),
+              _buildValuePill('✨ Ramah & Positif', const Color(0xFFECFDF5), const Color(0xFF059669)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _buildValuePill('🛡️ Terpercaya & Klinis', const Color(0xFFF5F3FF), const Color(0xFF7C3AED)),
+              const SizedBox(width: 8),
+              _buildValuePill('💪 Semangat Sehat', const Color(0xFFFFFBEB), const Color(0xFFD97706)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildValuePill(String text, Color bg, Color textCol) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+            color: textCol,
+          ),
+        ),
       ),
     );
   }

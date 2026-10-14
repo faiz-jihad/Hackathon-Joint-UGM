@@ -708,21 +708,34 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section Header Row (Figma Node 79:544)
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'PANDUAN KUALITAS RETIVA',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF434652),
-                letterSpacing: 0.55,
-              ),
-            ),
             Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Image.asset(
+                    'assets/images/pose_menjelaskan.png',
+                    width: 20,
+                    height: 20,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  'PANDUAN KUALITAS RETIVA',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF434652),
+                    letterSpacing: 0.55,
+                  ),
+                ),
+              ],
+            ),
+            const Row(
               children: [
                 Icon(
                   Icons.verified_user_outlined,

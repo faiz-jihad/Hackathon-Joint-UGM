@@ -309,30 +309,31 @@ class _BrandHeaderState extends State<BrandHeader> {
                 ),
               ),
 
-            // Logo with Medica Style Gradient Container
+            // Official Retiva App Icon Badge
             Container(
-              width: 40,
-              height: 40,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.primaryLight],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: const [
                   BoxShadow(
-                    color: Color(0x33246BFD),
+                    color: Color(0x2E246BFD),
                     offset: Offset(0, 4),
                     blurRadius: 10,
                   ),
                 ],
               ),
-              child: Image.asset(
-                'assets/images/retiva_logo.png',
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Center(
-                  child: Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 22),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  'assets/images/retiva_app_badge.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: AppColors.primary,
+                    child: const Center(
+                      child: Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 22),
+                    ),
+                  ),
                 ),
               ),
             ),

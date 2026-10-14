@@ -131,6 +131,11 @@ class ScreeningResultScreen extends StatelessWidget {
 
                     const SizedBox(height: 12),
 
+                    // Mascot Clinical Feedback Card
+                    _buildMascotClinicalFeedbackCard(severityIndex),
+
+                    const SizedBox(height: 12),
+
                     // Quick Retina Image Thumbnail Strip
                     _buildQuickThumbnailStrip(scanNumber, eyeLabel),
 
@@ -585,6 +590,76 @@ class ScreeningResultScreen extends StatelessWidget {
                     fontWeight: FontWeight.w400,
                     color: Color(0xFF434652),
                     height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMascotClinicalFeedbackCard(int severityIndex) {
+    final isLowRisk = severityIndex <= 1;
+    final poseAsset = isLowRisk ? 'assets/images/pose_mendukung.png' : 'assets/images/pose_peduli.png';
+    final cardBg = isLowRisk ? const Color(0xFFF0FDF4) : const Color(0xFFEFF6FF);
+    final borderCol = isLowRisk ? const Color(0xFFBBF7D0) : const Color(0xFFBFDBFE);
+    final badgeColor = isLowRisk ? const Color(0xFF059669) : const Color(0xFF246BFD);
+    final title = isLowRisk ? 'Kabar Baik dari Sahabat Retiva 💙' : 'Pendampingan dari Sahabat Retiva 💙';
+    final message = isLowRisk
+        ? 'Kondisi retina terpantau stabil dalam batas aman. Tetap terapkan pola hidup sehat dan jadwalkan skrining mata berkala 6-12 bulan ke depan ya!'
+        : 'Retiva siap mendampingi Anda! Temuan skrining ini disarankan untuk dievaluasi oleh dokter spesialis mata rujukan agar penglihatan tetap terlindungi.';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderCol, width: 1.2),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderCol),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                poseAsset,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: badgeColor,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: Color(0xFF334155),
+                    height: 1.35,
                   ),
                 ),
               ],

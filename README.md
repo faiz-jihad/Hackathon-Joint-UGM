@@ -16,21 +16,21 @@
 
 ## 📑 Daftar Isi
 
-1. [Ringkasan Eksekutif & Latar Belakang Klinis](#1-ringkasan-eksekutif--latar-belakang-klinis)
-2. [Prinsip Medis & Batasan Keselamatan Klinis](#2-prinsip-medis--batasan-keselamatan-klinis)
-3. [Alur Klinis & 3 Cabang State Machine](#3-alur-klinis--3-cabang-state-machine)
-4. [Arsitektur Sistem & Komponen Terintegrasi](#4-arsitektur-sistem--komponen-terintegrasi)
-5. [Agentic AI Care Companion (Pra & Pasca-Konsultasi)](#5-agentic-ai-care-companion-pra--pasca-konsultasi)
+1. [Ringkasan Eksekutif &amp; Latar Belakang Klinis](#1-ringkasan-eksekutif--latar-belakang-klinis)
+2. [Prinsip Medis &amp; Batasan Keselamatan Klinis](#2-prinsip-medis--batasan-keselamatan-klinis)
+3. [Alur Klinis &amp; 3 Cabang State Machine](#3-alur-klinis--3-cabang-state-machine)
+4. [Arsitektur Sistem &amp; Komponen Terintegrasi](#4-arsitektur-sistem--komponen-terintegrasi)
+5. [Agentic AI Care Companion (Pra &amp; Pasca-Konsultasi)](#5-agentic-ai-care-companion-pra--pasca-konsultasi)
 6. [Implementasi Klien Mobile Flutter (Figma 1:1 Mapping)](#6-implementasi-klien-mobile-flutter-figma-11-mapping)
-7. [Skala Klasifikasi ICDR & Mesin Aturan Perdami/ADA 2024](#7-skala-klasifikasi-icdr--mesin-aturan-perdamiada-2024)
-8. [Algoritma AI, Kendali Mutu Citra & Interpretabilitas](#8-algoritma-ai-kendali-mutu-citra--interpretabilitas)
+7. [Skala Klasifikasi ICDR &amp; Mesin Aturan Perdami/ADA 2024](#7-skala-klasifikasi-icdr--mesin-aturan-perdamiada-2024)
+8. [Algoritma AI, Kendali Mutu Citra &amp; Interpretabilitas](#8-algoritma-ai-kendali-mutu-citra--interpretabilitas)
 9. [Katalog REST API v1 Terpadu (53 Endpoints)](#9-katalog-rest-api-v1-terpadu-53-endpoints)
 10. [Struktur Direktori Repositori Monorepo](#10-struktur-direktori-repositori-monorepo)
-11. [Panduan Instalasi & Eksekusi Sistem (Quickstart)](#11-panduan-instalasi--eksekusi-sistem-quickstart)
-12. [Panduan Deployment Produksi & Setup SSL Otomatis](#12-panduan-deployment-produksi--setup-ssl-otomatis)
+11. [Panduan Instalasi &amp; Eksekusi Sistem (Quickstart)](#11-panduan-instalasi--eksekusi-sistem-quickstart)
+12. [Panduan Deployment Produksi &amp; Setup SSL Otomatis](#12-panduan-deployment-produksi--setup-ssl-otomatis)
 13. [Verifikasi Otomatis Menyeluruh (Full-Stack 103/103 Passed)](#13-verifikasi-otomatis-menyeluruh-full-stack-103103-passed)
-14. [Kepatuhan Regulasi & Standar Keamanan Medis](#14-kepatuhan-regulasi--standar-keamanan-medis)
-15. [Panduan Demonstrasi & Skenario Uji Klinis](#15-panduan-demonstrasi--skenario-uji-klinis)
+14. [Kepatuhan Regulasi &amp; Standar Keamanan Medis](#14-kepatuhan-regulasi--standar-keamanan-medis)
+15. [Panduan Demonstrasi &amp; Skenario Uji Klinis](#15-panduan-demonstrasi--skenario-uji-klinis)
 16. [Indeks Dokumentasi Lengkap Proyek](#16-indeks-dokumentasi-lengkap-proyek)
 17. [Lisensi dan Hak Cipta](#17-lisensi-dan-hak-cipta)
 
@@ -217,30 +217,30 @@ RETIVA melangkah lebih jauh dari sekadar penapisan citra dengan menghadirkan **A
 
 ## 6. Implementasi Klien Mobile Flutter (Figma 1:1 Mapping)
 
-| Layar / Frame Figma | Deskripsi Fungsional Medis | File Implementasi Flutter |
-| :--- | :--- | :--- |
-| **`01. Homepage`** | Beranda operasional nakes: ringkasan metrik skrining harian, panduan Perdami 2024, tombol skrining bilateral, dan navigasi cepat. | [`home_screen.dart`](mobile/lib/presentation/screens/home_screen.dart) |
-| **`02 & 03. Upload I & II`** | Pemilihan mata bilateral (Mata Kanan `OD` vs Mata Kiri `OS`), retikel optik sudut pandang 45° FOV, dan integrasi kamera/galeri. | [`upload_fundus_screen.dart`](mobile/lib/presentation/screens/upload_fundus_screen.dart) |
-| **`04 & 05. Kualitas Jelas`** | Animasi pemindaian kendali mutu: Ketajaman Laplacian (`>= 0.40`), Pencahayaan Kanal Hijau, dan Cakupan FOV Makula. | [`quality_scanning_screen.dart`](mobile/lib/presentation/screens/quality_scanning_screen.dart) |
-| **`05. Kualitas Buram (Retake)`** | **Branch Retake**: Penolakan citra buram/gelap, metrik kegagalan mutu, panduan koreksi jarak lensa bagi nakes, dan tombol retake. | [`quality_failed_retake_screen.dart`](mobile/lib/presentation/screens/quality_failed_retake_screen.dart) |
-| **`06–09. Analisis AI`** | Tahapan inferensi konvolusi EfficientNet-B3 5-Class ICDR dan evaluasi ambang batas keandalan (*Reliability Gate*). | [`ai_analyzing_screen.dart`](mobile/lib/presentation/screens/ai_analyzing_screen.dart) |
-| **`10 & 11. Human Review`** | **Branch Human Review**: Penanganan kasus reliabilitas *borderline* (< 85%), sistem menahan prediksi dan mengalihkan ke antrean spesialis Sp.M. | [`human_review_pending_screen.dart`](mobile/lib/presentation/screens/human_review_pending_screen.dart) |
-| **`11–13. Hasil & Grad-CAM`** | Kartu derajat ICDR (Derajat 0–4), skor keyakinan, diagram distribusi probabilitas, dan penampil interaktif Heatmap Grad-CAM. | [`screening_result_screen.dart`](mobile/lib/presentation/screens/screening_result_screen.dart) |
-| **`14. Tindakan Lanjutan`** | Rekomendasi interval Perdami/ADA 2024 & pencocokan faskes rujukan sekunder/tersier terdekat (Haversine & BPJS Aktif). | [`clinical_recommendation_screen.dart`](mobile/lib/presentation/screens/clinical_recommendation_screen.dart) |
-| **`15 & 16. Penerbitan SPK`** | Penerbitan Surat Pengantar Rujukan (SPK) elektronik resmi berstandar ICD-10 (`E11.319`) siap cetak/unduh PDF. | [`referral_letter_screen.dart`](mobile/lib/presentation/screens/referral_letter_screen.dart) |
-| **`17. Riwayat Pasien`** | Pencarian NIK 16 digit pasien dan timeline visual longitudinal progresivitas lesi retina tahun ke tahun. | [`patient_history_screen.dart`](mobile/lib/presentation/screens/patient_history_screen.dart) |
+| Layar / Frame Figma                       | Deskripsi Fungsional Medis                                                                                                                              | File Implementasi Flutter                                                                                     |
+| :---------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------ |
+| **`01. Homepage`**                | Beranda operasional nakes: ringkasan metrik skrining harian, panduan Perdami 2024, tombol skrining bilateral, dan navigasi cepat.                       | [`home_screen.dart`](mobile/lib/presentation/screens/home_screen.dart)                                       |
+| **`02 & 03. Upload I & II`**      | Pemilihan mata bilateral (Mata Kanan`OD` vs Mata Kiri `OS`), retikel optik sudut pandang 45° FOV, dan integrasi kamera/galeri.                     | [`upload_fundus_screen.dart`](mobile/lib/presentation/screens/upload_fundus_screen.dart)                     |
+| **`04 & 05. Kualitas Jelas`**     | Animasi pemindaian kendali mutu: Ketajaman Laplacian (`>= 0.40`), Pencahayaan Kanal Hijau, dan Cakupan FOV Makula.                                    | [`quality_scanning_screen.dart`](mobile/lib/presentation/screens/quality_scanning_screen.dart)               |
+| **`05. Kualitas Buram (Retake)`** | **Branch Retake**: Penolakan citra buram/gelap, metrik kegagalan mutu, panduan koreksi jarak lensa bagi nakes, dan tombol retake.                 | [`quality_failed_retake_screen.dart`](mobile/lib/presentation/screens/quality_failed_retake_screen.dart)     |
+| **`06–09. Analisis AI`**         | Tahapan inferensi konvolusi EfficientNet-B3 5-Class ICDR dan evaluasi ambang batas keandalan (*Reliability Gate*).                                    | [`ai_analyzing_screen.dart`](mobile/lib/presentation/screens/ai_analyzing_screen.dart)                       |
+| **`10 & 11. Human Review`**       | **Branch Human Review**: Penanganan kasus reliabilitas *borderline* (< 85%), sistem menahan prediksi dan mengalihkan ke antrean spesialis Sp.M. | [`human_review_pending_screen.dart`](mobile/lib/presentation/screens/human_review_pending_screen.dart)       |
+| **`11–13. Hasil & Grad-CAM`**    | Kartu derajat ICDR (Derajat 0–4), skor keyakinan, diagram distribusi probabilitas, dan penampil interaktif Heatmap Grad-CAM.                           | [`screening_result_screen.dart`](mobile/lib/presentation/screens/screening_result_screen.dart)               |
+| **`14. Tindakan Lanjutan`**       | Rekomendasi interval Perdami/ADA 2024 & pencocokan faskes rujukan sekunder/tersier terdekat (Haversine & BPJS Aktif).                                   | [`clinical_recommendation_screen.dart`](mobile/lib/presentation/screens/clinical_recommendation_screen.dart) |
+| **`15 & 16. Penerbitan SPK`**     | Penerbitan Surat Pengantar Rujukan (SPK) elektronik resmi berstandar ICD-10 (`E11.319`) siap cetak/unduh PDF.                                         | [`referral_letter_screen.dart`](mobile/lib/presentation/screens/referral_letter_screen.dart)                 |
+| **`17. Riwayat Pasien`**          | Pencarian NIK 16 digit pasien dan timeline visual longitudinal progresivitas lesi retina tahun ke tahun.                                                | [`patient_history_screen.dart`](mobile/lib/presentation/screens/patient_history_screen.dart)                 |
 
 ---
 
 ## 7. Skala Klasifikasi ICDR & Mesin Aturan Perdami/ADA 2024
 
-| Derajat ICDR | Istilah Medis | Temuan Patologis Khas Funduskopi | Risiko Progresivitas | Tindakan & Rekomendasi Alur (Perdami & ADA 2024) | Urgensi | Kode ICD-10 |
-| :---: | :--- | :--- | :---: | :--- | :---: | :---: |
-| **0** | **No DR** | Tidak ditemukan lesi mikroretina; makula dan diskus optikus tenang. | < 5% / tahun | Skrining ulang rutin tahunan (12 bulan) di FKTP; kendali glikemik & HbA1c standar. | `LOW` | `E11.9` |
-| **1** | **Mild NPDR** | Mikroaneurisma terisolasi fokal; tanpa eksudat atau perdarahan luas. | 5% – 15% / tahun | Monitoring berkala 6–12 bulan di FKTP; konseling gaya hidup dan optimalisasi terapi DM. | `LOW` | `E11.319` |
-| **2** | **Moderate NPDR** | Mikroaneurisma multipel, perdarahan bercak (*dot-blot*), *cotton-wool spots*, belum memenuhi kriteria 4-2-1. | 15% – 27% / tahun | Rujukan elektif ke Dokter Spesialis Mata (Sp.M) di FKRTL dalam kurun 3–6 bulan; evaluasi funduskopi lanjutan. | `MEDIUM` | `E11.319` |
-| **3** | **Severe NPDR** | Memenuhi kriteria **4-2-1**: (a) Perdarahan berat 4 kuadran; (b) *Venous beading* 2 kuadran; atau (c) IRMA 1 kuadran. | 50% – 75% / tahun | **Rujukan Cepat (2–4 minggu)** ke Spesialis Retina FKRTL; evaluasi fotokoagulasi laser argon panretina (PRP). | `HIGH` | `E11.319` |
-| **4** | **PDR** | Neovaskularisasi retina/diskus (NVD/NVE), perdarahan vitreus pra-retina, atau ablasio retina traksional. | > 75% / tahun | **Rujukan Darurat (< 1–2 minggu)** ke Pusat Rujukan Mata Tersier; intervensi anti-VEGF intravitreal atau vitreoretinal surgery. | `CRITICAL` | `E11.359` |
+| Derajat ICDR | Istilah Medis           | Temuan Patologis Khas Funduskopi                                                                                             | Risiko Progresivitas | Tindakan & Rekomendasi Alur (Perdami & ADA 2024)                                                                                       |   Urgensi   | Kode ICD-10 |
+| :----------: | :---------------------- | :--------------------------------------------------------------------------------------------------------------------------- | :------------------: | :------------------------------------------------------------------------------------------------------------------------------------- | :----------: | :---------: |
+| **0** | **No DR**         | Tidak ditemukan lesi mikroretina; makula dan diskus optikus tenang.                                                          |     < 5% / tahun     | Skrining ulang rutin tahunan (12 bulan) di FKTP; kendali glikemik & HbA1c standar.                                                     |   `LOW`   |  `E11.9`  |
+| **1** | **Mild NPDR**     | Mikroaneurisma terisolasi fokal; tanpa eksudat atau perdarahan luas.                                                         |  5% – 15% / tahun  | Monitoring berkala 6–12 bulan di FKTP; konseling gaya hidup dan optimalisasi terapi DM.                                               |   `LOW`   | `E11.319` |
+| **2** | **Moderate NPDR** | Mikroaneurisma multipel, perdarahan bercak (*dot-blot*), *cotton-wool spots*, belum memenuhi kriteria 4-2-1.             |  15% – 27% / tahun  | Rujukan elektif ke Dokter Spesialis Mata (Sp.M) di FKRTL dalam kurun 3–6 bulan; evaluasi funduskopi lanjutan.                         |  `MEDIUM`  | `E11.319` |
+| **3** | **Severe NPDR**   | Memenuhi kriteria**4-2-1**: (a) Perdarahan berat 4 kuadran; (b) *Venous beading* 2 kuadran; atau (c) IRMA 1 kuadran. |  50% – 75% / tahun  | **Rujukan Cepat (2–4 minggu)** ke Spesialis Retina FKRTL; evaluasi fotokoagulasi laser argon panretina (PRP).                   |   `HIGH`   | `E11.319` |
+| **4** | **PDR**           | Neovaskularisasi retina/diskus (NVD/NVE), perdarahan vitreus pra-retina, atau ablasio retina traksional.                     |    > 75% / tahun    | **Rujukan Darurat (< 1–2 minggu)** ke Pusat Rujukan Mata Tersier; intervensi anti-VEGF intravitreal atau vitreoretinal surgery. | `CRITICAL` | `E11.359` |
 
 ---
 
@@ -326,20 +326,22 @@ retiva-monorepo/
 
 ## 11. Panduan Instalasi & Eksekusi Sistem (Quickstart)
 
-| Parameter | 🐳 Opsi A: Menggunakan Docker | 💻 Opsi B: Tanpa Docker (Native Local) |
-| :--- | :--- | :--- |
-| **Kebutuhan RAM** | ~3.5 GB - 6 GB (Docker Engine + 4 Kontainer) | ~1 GB - 1.5 GB (Sangat Ringan) |
-| **Instalasi Software** | Cukup Docker Desktop | Node.js, Python, & PostgreSQL (Lokal/Cloud) |
-| **Database** | Otomatis terpasang di kontainer PostgreSQL | PostgreSQL lokal atau Cloud (Neon/Supabase) |
-| **Object Storage** | MinIO S3 otomatis dikontainerisasi | Built-in Zero-BLOB Presigned Mock bawaan |
-| **Kelebihan** | 100% identik dengan environment produksi | Cepat, hemat resource, debugging instan |
+| Parameter                    | 🐳 Opsi A: Menggunakan Docker                | 💻 Opsi B: Tanpa Docker (Native Local)      |
+| :--------------------------- | :------------------------------------------- | :------------------------------------------ |
+| **Kebutuhan RAM**      | ~3.5 GB - 6 GB (Docker Engine + 4 Kontainer) | ~1 GB - 1.5 GB (Sangat Ringan)              |
+| **Instalasi Software** | Cukup Docker Desktop                         | Node.js, Python, & PostgreSQL (Lokal/Cloud) |
+| **Database**           | Otomatis terpasang di kontainer PostgreSQL   | PostgreSQL lokal atau Cloud (Neon/Supabase) |
+| **Object Storage**     | MinIO S3 otomatis dikontainerisasi           | Built-in Zero-BLOB Presigned Mock bawaan    |
+| **Kelebihan**          | 100% identik dengan environment produksi     | Cepat, hemat resource, debugging instan     |
 
 ### 11.1 Opsi A: Menjalankan Menggunakan Docker
 
 #### Cara 1: One-Click Runner (Windows)
+
 Cukup klik dua kali file **`start-docker.bat`**.
 
 #### Cara 2: Terminal / CLI
+
 ```bash
 # Salin konfigurasi environment
 cp .env.example web/.env
@@ -350,6 +352,7 @@ docker compose up -d
 # Periksa status
 docker compose ps
 ```
+
 * 🌐 Web Portal & Gateway: `http://localhost:3000`
 * 🤖 AI Service: `http://localhost:8003/docs`
 * 🗄️ MinIO Console: `http://localhost:9001` (`minioadmin` / `minioadminpassword`)
@@ -357,9 +360,11 @@ docker compose ps
 ### 11.2 Opsi B: Menjalankan Tanpa Docker (Native Local Mode)
 
 #### Cara 1: One-Click Runner (Windows)
+
 Cukup klik dua kali file **`start-local.bat`**.
 
 #### Cara 2: Terminal Manual
+
 ```bash
 # Terminal 1: Inisialisasi Database
 cd web
@@ -388,6 +393,7 @@ flutter run -d chrome
 RETIVA siap dideploy ke server VPS (Ubuntu 22.04 / 24.04 LTS) dengan sertifikat SSL resmi Let's Encrypt:
 
 ### 1. Inisialisasi Server & Environment Produksi:
+
 ```bash
 # Salin template environment produksi
 cp .env.production.example .env.production
@@ -395,14 +401,17 @@ nano .env.production  # Sesuaikan kredensial database & kunci rahasia
 ```
 
 ### 2. Jalankan Deployment Mandiri:
+
 ```bash
 bash deploy.sh
 ```
 
 ### 3. Aktifkan Sertifikat SSL HTTPS Let's Encrypt:
+
 ```bash
 sudo bash setup-ssl.sh
 ```
+
 Skrip ini akan otomatis memasang Certbot, menerbitkan sertifikat SSL resmi untuk domain `hackathon.mataceria.my.id`, mengonfigurasi Nginx HTTP/2 reverse proxy, dan mengaktifkan auto-renewal cron job.
 
 ---
@@ -466,14 +475,14 @@ Platform RETIVA dilengkapi cakupan uji otomatis komprehensif pada seluruh subsis
 
 ## 16. Indeks Dokumentasi Lengkap Proyek
 
-* 🌐 **[Dokumentasi Web & Core API Gateway (web/README.md)](web/README.md)**: Arsitektur Next.js 14, 53 REST API endpoints, modul Care Companion, skema Prisma, dan panduan pengujian.
+* 🌐 **[Dokumentasi Web &amp; Core API Gateway (web/README.md)](web/README.md)**: Arsitektur Next.js 14, 53 REST API endpoints, modul Care Companion, skema Prisma, dan panduan pengujian.
 * 📱 **[Dokumentasi Klien Mobile Flutter (mobile/README.md)](mobile/README.md)**: Multi-environment toggle, pemetaan 10 layar Figma, dan workstation klinis nakes.
 * 🧠 **[Dokumentasi AI Microservice (ai-service/README.md)](ai-service/README.md)**: Pipeline OpenCV Quality Gate, inferensi EfficientNet-B3 5-kelas, Reliability Gate, dan Grad-CAM.
-* 🩺 **[Spesifikasi Klinis & CDSS (docs/clinical/CLINICAL_SPECIFICATION.md)](docs/clinical/CLINICAL_SPECIFICATION.md)**: Konsensus Perdami 2024, skala keparahan ICDR, formula kendali mutu, dan aturan CDSS.
+* 🩺 **[Spesifikasi Klinis &amp; CDSS (docs/clinical/CLINICAL_SPECIFICATION.md)](docs/clinical/CLINICAL_SPECIFICATION.md)**: Konsensus Perdami 2024, skala keparahan ICDR, formula kendali mutu, dan aturan CDSS.
 * 🏛️ **[Spesifikasi Arsitektur Sistem (docs/architecture/ARCHITECTURE.md)](docs/architecture/ARCHITECTURE.md)**: Cetak biru Clean Architecture, diagram sekuensial, dan ports & adapters.
 * 📜 **[Kontrak API Kanonikal (docs/api-contracts.md)](docs/api-contracts.md)**: Spesifikasi DTO, envelope response, dan integrasi antar subsistem.
 * 🧪 **[Laporan Pengujian Terpadu (docs/test-report.md)](docs/test-report.md)**: Log eksekusi dan bukti verifikasi 100% lulus di seluruh stack.
-* 🛡️ **[Panduan Keamanan & Regulasi (docs/security/SECURITY_COMPLIANCE.md)](docs/security/SECURITY_COMPLIANCE.md)**: Kepatuhan UU PDP No. 27/2022 & Permenkes No. 24/2022.
+* 🛡️ **[Panduan Keamanan &amp; Regulasi (docs/security/SECURITY_COMPLIANCE.md)](docs/security/SECURITY_COMPLIANCE.md)**: Kepatuhan UU PDP No. 27/2022 & Permenkes No. 24/2022.
 
 ---
 

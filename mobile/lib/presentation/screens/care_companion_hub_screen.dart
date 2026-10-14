@@ -433,11 +433,11 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x1F0D47A1),
-            blurRadius: 16,
+            color: Color(0x240D47A1),
+            blurRadius: 18,
             offset: Offset(0, 6),
           ),
         ],
@@ -495,37 +495,85 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          const Text(
-            'Panduan Pasca-Skrining & Nutrisi Harian',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Teman Perjalanan Sehat Anda',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      '“Bersama Retiva, langkah kecil untuk hidup lebih sehat. Sehat hari ini, jelas esok nanti 💙”',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11.5,
+                        color: Color(0xFFE0F2FE),
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Pasien: ${widget.patient?.fullName ?? "Pasien Terdaftar"} • Rekam Medis Terpadu',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFBAE6FD),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Mascot Doctor Floating Badge
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x26000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'assets/images/pose_menyapa.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.favorite, color: AppColors.primary, size: 28),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Pasien: ${widget.patient?.fullName ?? "Pasien Terdaftar"} • Rekam Medis Terpadu',
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 12,
-              color: AppColors.figmaBlueSurface,
-            ),
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withOpacity(0.18),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Text(
               'Prinsip Medis: AI Retiva mendampingi perjalanan perawatan dan tidak menggantikan keputusan diagnosis atau resep dokter spesialis mata.',
               style: TextStyle(
                 fontFamily: 'Inter',
-                fontSize: 11,
+                fontSize: 10.5,
                 color: Color(0xFFE2E8F0),
                 height: 1.35,
               ),
@@ -735,6 +783,63 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Friendly mascot suggestion card
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF93C5FD)),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          'assets/images/pose_menjelaskan.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Saran Dokter Retiva',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Catat atau salin pertanyaan penting berikut untuk diajukan saat konsultasi di RS Mata rujukan.',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              color: Color(0xFF334155),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               const Text(
                 'Daftar Pertanyaan untuk Dokter Spesialis Mata',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.figmaTextHeading),
@@ -872,19 +977,40 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Icon(Icons.edit_note_rounded, color: AppColors.figmaBlue, size: 22),
-              SizedBox(width: 8),
-              Text(
-                'Catat Hasil Pemeriksaan Dokter',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.figmaTextHeading),
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F5FF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    'assets/images/pose_membantu.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Catat Hasil Pemeriksaan Dokter',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.figmaTextHeading),
+                    ),
+                    Text(
+                      'Label Data: Catatan Pasien Mandiri (Bantuan Pendamping Retiva)',
+                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
               ),
             ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Label Data: Catatan Pasien Mandiri (Belum diverifikasi independen)',
-            style: TextStyle(fontSize: 11, color: AppColors.textMuted),
           ),
           const SizedBox(height: 14),
 
@@ -989,6 +1115,64 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Retiva Companion Nutrition Mascot Banner
+        Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFBBF7D0)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF86EFAC)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/images/pose_peduli.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pola Hidup Sehat Bersama Retiva',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF166534),
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Kontrol nutrisi Low-GI terjangkau dan konsumsi obat tepat waktu menjaga kejernihan penglihatan Anda.',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        color: Color(0xFF14532D),
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
         // Budget Nutrition Card
         Container(
           padding: const EdgeInsets.all(16),
