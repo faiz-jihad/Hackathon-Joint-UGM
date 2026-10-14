@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/api_constants.dart';
 
-class BrandHeader extends StatelessWidget {
+class BrandHeader extends StatefulWidget {
   final VoidCallback? onBack;
   final bool showBack;
   final Widget? trailing;
@@ -14,93 +15,401 @@ class BrandHeader extends StatelessWidget {
   });
 
   @override
+  State<BrandHeader> createState() => _BrandHeaderState();
+}
+
+class _BrandHeaderState extends State<BrandHeader> {
+  void _openServerSwitcher(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            final isOnline = ApiConstants.currentEnvironment == BackendEnvironment.onlineVps;
+            final isLaptop = ApiConstants.currentEnvironment == BackendEnvironment.offlineLaptop;
+            final isEmulator = ApiConstants.currentEnvironment == BackendEnvironment.offlineEmulator;
+
+            return Container(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySurface,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.cloud_sync_rounded, color: AppColors.figmaBlue, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Koneksi Server Faskes',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.figmaTextHeading,
+                              ),
+                            ),
+                            Text(
+                              'Pilih endpoint backend aktif untuk pengujian',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12,
+                                color: AppColors.figmaTextMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Option 1: VPS Production
+                  _buildServerOption(
+                    title: 'Server VPS Cloud (Online)',
+                    subtitle: 'http://43.173.35.200 (Produksi / Multi-Device)',
+                    isSelected: isOnline,
+                    isHealthy: true,
+                    icon: Icons.public,
+                    activeColor: const Color(0xFF059669),
+                    onTap: () {
+                      setState(() {
+                        ApiConstants.useVps();
+                      });
+                      setModalState(() {});
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tersambung ke Server VPS Online: 43.173.35.200'),
+                          backgroundColor: Color(0xFF059669),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Option 2: Laptop Local Wi-Fi
+                  _buildServerOption(
+                    title: 'Server Laptop via Wi-Fi (Offline Lokal)',
+                    subtitle: 'http://192.168.1.13:3000 (Test HP & Laptop Satu Wi-Fi)',
+                    isSelected: isLaptop,
+                    isHealthy: false,
+                    icon: Icons.laptop_chromebook,
+                    activeColor: const Color(0xFFD97706),
+                    onTap: () {
+                      setState(() {
+                        ApiConstants.useLaptopWifi();
+                      });
+                      setModalState(() {});
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Beralih ke Server Laptop: 192.168.1.13:3000'),
+                          backgroundColor: Color(0xFFD97706),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Option 3: Emulator Localhost
+                  _buildServerOption(
+                    title: 'Android Emulator (Loopback)',
+                    subtitle: 'http://10.0.2.2:3000 (Host Virtual Machine)',
+                    isSelected: isEmulator,
+                    isHealthy: false,
+                    icon: Icons.phone_android,
+                    activeColor: AppColors.figmaBlue,
+                    onTap: () {
+                      setState(() {
+                        ApiConstants.useEmulator();
+                      });
+                      setModalState(() {});
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Beralih ke Emulator: 10.0.2.2:3000'),
+                          backgroundColor: AppColors.figmaBlue,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildServerOption({
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required bool isHealthy,
+    required IconData icon,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor.withOpacity(0.06) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? activeColor : const Color(0xFFE2E8F0),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected ? activeColor.withOpacity(0.12) : const Color(0xFFF1F5F9),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 18, color: isSelected ? activeColor : AppColors.figmaTextMuted),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      color: AppColors.figmaTextHeading,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      color: AppColors.figmaTextMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle_rounded, color: activeColor, size: 20)
+            else
+              const Icon(Icons.radio_button_unchecked, color: Color(0xFFCBD5E1), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isOnline = ApiConstants.currentEnvironment == BackendEnvironment.onlineVps;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: const BoxDecoration(
-        color: AppColors.background,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: const Border(
+          bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x050F172A),
+            offset: Offset(0, 2),
+            blurRadius: 8,
+          ),
+        ],
       ),
       child: SafeArea(
         bottom: false,
         child: Row(
           children: [
-            if (showBack)
+            if (widget.showBack)
               IconButton(
                 icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: AppColors.textPrimary),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+                onPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
               ),
-            if (showBack) const SizedBox(width: 12),
+            if (widget.showBack) const SizedBox(width: 12),
 
-            // Retiva Logo Image from Figma (Node 25:95)
-            Image.asset(
-              'assets/images/retiva_logo.png',
-              width: 40,
-              height: 32,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Container(
-                width: 38,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.figmaBlue,
-                  borderRadius: BorderRadius.circular(8),
+            // Logo with Clinical Accent Container
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.figmaBlue, Color(0xFF002171)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                child: const Icon(Icons.visibility, color: Colors.white, size: 20),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x260D47A1),
+                    offset: Offset(0, 2),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/images/retiva_logo.png',
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Center(
+                  child: Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 22),
+                ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
 
-            // App Title & Tagline (Figma Nodes 25:11 & 25:13)
+            // App & Faskes Context Titles
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Retiva',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.figmaBlue,
-                      letterSpacing: -0.4,
-                      height: 1.25,
-                    ),
+                  Row(
+                    children: [
+                      const Text(
+                        'RETIVA',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.figmaBlue,
+                          letterSpacing: -0.3,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0F2FE),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'FKTP / Faskes',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0369A1),
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 2),
                   const Text(
-                    'Ophthalmology AI Screening',
+                    'Poli Diabetes & Mata • Standar ICDR',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
                       color: AppColors.figmaTextMuted,
-                      height: 1.0,
+                      height: 1.1,
                     ),
                   ),
                 ],
               ),
             ),
 
-            if (trailing != null)
-              trailing!
+            if (widget.trailing != null)
+              widget.trailing!
             else
-              // Figma Version Pill (Node 25:14)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.figmaBlueSurface,
-                  border: Border.all(color: const Color(0x332196F3), width: 1),
-                  borderRadius: BorderRadius.circular(9999),
-                ),
-                child: const Text(
-                  'v1.0',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.figmaBlue,
-                    height: 1.2,
+              // Interactive Server Status Pill (Tap to Switch)
+              InkWell(
+                onTap: () => _openServerSwitcher(context),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isOnline ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
+                    border: Border.all(
+                      color: isOnline ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
+                      width: 1,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isOnline
+                                  ? const Color(0xFF10B981).withOpacity(0.5)
+                                  : const Color(0xFFF59E0B).withOpacity(0.5),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isOnline ? 'VPS Online' : 'Offline',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isOnline ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        Icons.arrow_drop_down,
+                        size: 14,
+                        color: isOnline ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                      ),
+                    ],
                   ),
                 ),
               ),

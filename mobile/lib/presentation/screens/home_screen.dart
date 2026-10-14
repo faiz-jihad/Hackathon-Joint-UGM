@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
 import '../../data/models/patient_model.dart';
 import '../widgets/brand_header.dart';
 import 'upload_fundus_screen.dart';
 import 'patient_history_screen.dart';
 import 'care_companion_hub_screen.dart';
+import 'referral_letter_screen.dart';
 
-/// Screen 01: 01. Homepage (Figma Frame 25:3)
-/// Authoritative 1:1 Implementation matching Figma source of truth.
+/// Screen 01: Homepage Faskes Retinopati Diabetik
+/// Desain Bersih, Modern, dan Disesuaikan untuk Fasilitas Kesehatan (Puskesmas / FKTP).
 class HomeScreen extends StatefulWidget {
   final String title;
 
@@ -74,75 +76,80 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _navigateToReferral() {
+    final patient = _patients.isNotEmpty ? _patients.first : null;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReferralLetterScreen(
+          patient: patient,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Brand Header (Figma Node 25:5)
+            // Header Faskes dengan Status Koneksi Interaktif
             const BrandHeader(),
 
             if (_isLoading)
               const LinearProgressIndicator(
-                minHeight: 2,
-                backgroundColor: AppColors.border,
+                minHeight: 2.5,
+                backgroundColor: Color(0xFFE2E8F0),
                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.figmaBlue),
               ),
 
-            // Main Scrollable Inner Page Content (Figma Node 25:4 & 25:16)
+            // Konten Utama
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _loadLiveDashboardData,
                 color: AppColors.figmaBlue,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 8),
+                      // 1. Banner Faskes & Nakes Duty Card
+                      _buildFaskesDutyBanner(),
 
-                      // 1. Circular Retina Clinical Framing (Figma Node 25:39)
-                      _buildCircularRetinaHero(),
+                      const SizedBox(height: 18),
+
+                      // 2. Primary Action Hero (Mulai Skrining Fundus Baru)
+                      _buildHeroScannerCta(),
+
+                      const SizedBox(height: 16),
+
+                      // 3. Quick Action Hub (Antrean, Care Companion, Rujukan)
+                      _buildQuickActionHub(),
 
                       const SizedBox(height: 24),
 
-                      // 2. Headline & Description (Figma Node 25:18)
-                      _buildHeadlineAndDescription(),
+                      // 4. Circular Retina HUD Visual (Non-Generic Clinical Lens)
+                      _buildRetinaHudViewer(),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
-                      // 3. Feature Highlight Pills (Figma Node 25:23)
-                      _buildFeatureHighlightPills(),
-
-                      const SizedBox(height: 28),
-
-                      // 4. Section 1: Skrining Terakhir (Figma Node 76:240)
+                      // 5. Kasus Pasien Terakhir Terskrining
                       _buildSectionSkriningTerakhir(),
 
                       const SizedBox(height: 24),
 
-                      // 4.5. Section: AI Care Companion Hub
-                      _buildSectionCareCompanion(),
-
-                      const SizedBox(height: 28),
-
-                      // 5. Section 2: Status Pemeriksaan & Tiga Jalur Sistem (Figma Node 76:296)
+                      // 6. Tiga Alur Keputusan Klinis (Triase ICDR)
                       _buildSectionTigaJalurSistem(),
-
-                      const SizedBox(height: 28),
-
-                      // 6. Section 3: Informasi Singkat Skrining Retina (Figma Node 76:348)
-                      _buildSectionEdukasiRetina(),
 
                       const SizedBox(height: 24),
 
-                      // 7. Bottom Action CTA Area (Figma Node 25:54)
-                      _buildBottomCtaArea(),
+                      // 7. Edukasi & Standar Klinis Kemenkes / PERDAMI
+                      _buildSectionStandarKlinis(),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -154,219 +161,510 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Circular Retina Clinical Framing (Figma Node 25:39)
-  Widget _buildCircularRetinaHero() {
-    return Center(
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none,
-        children: [
-          // Outer Circular Frame with Gradient and Shadow (Figma Node 25:39 & 25:40)
-          Container(
-            width: 224,
-            height: 224,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFE3F2FD),
-                  Colors.white,
-                ],
-              ),
-              border: Border.all(
-                color: const Color(0x332196F3), // rgba(33,150,243,0.2)
-                width: 1,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x1F0D47A1), // rgba(13,71,161,0.12)
-                  offset: Offset(0, 12),
-                  blurRadius: 32,
-                  spreadRadius: -4,
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(9),
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF0F172A),
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0D000000),
-                    offset: Offset(0, 2),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Image.asset(
-                'assets/images/retina_hero.png',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: const Color(0xFF0F172A),
-                  child: const Center(
-                    child: Icon(Icons.remove_red_eye, color: AppColors.figmaBlueSurface, size: 56),
-                  ),
-                ),
-              ),
-            ),
-          ),
+  /// Banner Konteks Faskes Puskesmas
+  Widget _buildFaskesDutyBanner() {
+    final isOnline = ApiConstants.currentEnvironment == BackendEnvironment.onlineVps;
 
-          // Trust Badge Tag (Figma Node 25:48)
-          Positioned(
-            bottom: -10,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(9999),
-                border: Border.all(color: const Color(0xFFF1F5F9)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x1A000000), // rgba(0,0,0,0.1)
-                    offset: Offset(0, 4),
-                    blurRadius: 6,
-                    spreadRadius: -1,
-                  ),
-                  BoxShadow(
-                    color: Color(0x1A000000),
-                    offset: Offset(0, 2),
-                    blurRadius: 4,
-                    spreadRadius: -2,
-                  ),
-                ],
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.verified_user_outlined,
-                    size: 14,
-                    color: AppColors.figmaBlue,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Standar Klinis Fundus',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.figmaBlue,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Headline & Description (Figma Node 25:18)
-  Widget _buildHeadlineAndDescription() {
-    return Column(
-      children: [
-        const Text(
-          'Skrining Retinopati Diabetik',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            color: AppColors.figmaBlue,
-            letterSpacing: -0.6,
-            height: 1.33,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Deteksi dini tanda-tanda kerusakan pembuluh\ndarah retina akibat diabetes melalui foto fundus\ndigital secara akurat.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF475569),
-            height: 1.625,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Feature highlight pills: Cepat, Akurat, Insight (Figma Node 25:23)
-  Widget _buildFeatureHighlightPills() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildHighlightCard(
-            title: 'Cepat',
-            subtitle: '< 5 Detik',
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildHighlightCard(
-            title: 'Akurat',
-            subtitle: 'Deep Learning',
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildHighlightCard(
-            title: 'Insight',
-            subtitle: 'Peta Visual',
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHighlightCard({required String title, required String subtitle}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0D000000), // rgba(0,0,0,0.05)
-            offset: Offset(0, 1),
-            blurRadius: 1,
+            color: Color(0x060F172A),
+            blurRadius: 10,
+            offset: Offset(0, 3),
           ),
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.figmaBlue,
-              height: 1.5,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0F2FE),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.local_hospital_rounded, color: AppColors.figmaBlue, size: 20),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Puskesmas Digital • FKTP Pratama',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.figmaTextHeading,
+                      ),
+                    ),
+                    Text(
+                      'Poli Pengendalian DM & Skrining Komplikasi Mata',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        color: AppColors.figmaTextMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.shield_outlined, size: 12, color: AppColors.figmaBlue),
+                    SizedBox(width: 4),
+                    Text(
+                      'SATUSEHAT',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.figmaBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 12),
+
+          // 3 Metrik Triase Operasional Hari Ini
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricTile(
+                  label: 'Pasien Terdaftar',
+                  value: '${_patients.length}',
+                  sublabel: 'Database RM',
+                  icon: Icons.people_outline,
+                  color: AppColors.figmaBlue,
+                ),
+              ),
+              Container(width: 1, height: 32, color: const Color(0xFFF1F5F9)),
+              Expanded(
+                child: _buildMetricTile(
+                  label: 'Model Inferensi',
+                  value: '96.4%',
+                  sublabel: 'AUC Efisiensi B3',
+                  icon: Icons.auto_awesome_outlined,
+                  color: const Color(0xFF059669),
+                ),
+              ),
+              Container(width: 1, height: 32, color: const Color(0xFFF1F5F9)),
+              Expanded(
+                child: _buildMetricTile(
+                  label: 'Status Cloud',
+                  value: isOnline ? 'Online' : 'Lokal',
+                  sublabel: isOnline ? 'VPS Aktif' : 'Laptop Wi-Fi',
+                  icon: isOnline ? Icons.cloud_done_outlined : Icons.wifi_off_outlined,
+                  color: isOnline ? const Color(0xFF059669) : const Color(0xFFD97706),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricTile({
+    required String label,
+    required String value,
+    required String sublabel,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: AppColors.figmaTextHeading,
+          ),
+        ),
+        Text(
+          sublabel,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 9,
+            color: AppColors.figmaTextMuted,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Primary Action Scanner CTA (Tampilan Non-Generik untuk Nakes)
+  Widget _buildHeroScannerCta() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0D47A1), Color(0xFF002171)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x330D47A1),
+            blurRadius: 16,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _navigateToUpload,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.document_scanner_rounded, color: Colors.white, size: 28),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Mulai Skrining Fundus',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          SizedBox(width: 6),
+                          Icon(Icons.bolt, color: Color(0xFFFDE047), size: 16),
+                        ],
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Upload foto mata OD/OS • Quality Gate AI • Diagnosis ICDR instan',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          color: Color(0xFFE2E8F0),
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+              ],
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 10,
-              fontWeight: FontWeight.w400,
-              color: AppColors.figmaTextMuted,
-              height: 1.5,
+        ),
+      ),
+    );
+  }
+
+  /// Hub Menu Cepat Khusus Alur Faskes (3 Kartu Aksi Tambahan)
+  Widget _buildQuickActionHub() {
+    return Row(
+      children: [
+        // 1. Data Pasien
+        Expanded(
+          child: _buildActionTile(
+            title: 'Rekam Medis',
+            subtitle: 'Antrean NIK',
+            icon: Icons.badge_outlined,
+            iconColor: const Color(0xFF0369A1),
+            bgColor: const Color(0xFFF0F9FF),
+            borderColor: const Color(0xFFBAE6FD),
+            onTap: _navigateToHistory,
+          ),
+        ),
+        const SizedBox(width: 10),
+
+        // 2. Care Companion
+        Expanded(
+          child: _buildActionTile(
+            title: 'Care Companion',
+            subtitle: 'Gizi & Edukasi',
+            icon: Icons.psychology_outlined,
+            iconColor: const Color(0xFF4F46E5),
+            bgColor: const Color(0xFFEEF2FF),
+            borderColor: const Color(0xFFC7D2FE),
+            onTap: _navigateToCareCompanion,
+          ),
+        ),
+        const SizedBox(width: 10),
+
+        // 3. Rujukan Sp.M
+        Expanded(
+          child: _buildActionTile(
+            title: 'Rujukan Sp.M',
+            subtitle: 'Format BPJS',
+            icon: Icons.note_alt_outlined,
+            iconColor: const Color(0xFFC2410C),
+            bgColor: const Color(0xFFFFF7ED),
+            borderColor: const Color(0xFFFED7AA),
+            onTap: _navigateToReferral,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required Color borderColor,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 18),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.figmaTextHeading,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    color: AppColors.figmaTextMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Circular Retina HUD Visual (Desain Lensa Klinis Modern)
+  Widget _buildRetinaHudViewer() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x060F172A),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Visualisasi Area Fundus',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.figmaTextHeading,
+                    ),
+                  ),
+                  Text(
+                    'Fokus Deteksi: Makula & Diskus Optikus',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      color: AppColors.figmaTextMuted,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF059669)),
+                    SizedBox(width: 4),
+                    Text(
+                      'Quality Gate >80%',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF065F46),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+
+          // Lensa Retina dengan HUD Ring
+          Center(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Outer HUD Ring
+                Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE0F2FE), Color(0xFFF0FDF4)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    border: Border.all(color: const Color(0xFFBAE6FD), width: 1.5),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Target Lines (Optic Disc & Macula Guides)
+                      Container(
+                        width: 176,
+                        height: 176,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          color: const Color(0xFF0A0F1D),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x1F000000),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Image.asset(
+                          'assets/images/retina_hero.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Icon(Icons.remove_red_eye_rounded, color: Color(0xFF38BDF8), size: 54),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Model Benchmark Spec
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _HudDetailItem(label: 'Arsitektur', value: 'EfficientNet-B3'),
+                _HudDetailItem(label: 'Standar Triase', value: 'ICDR 5-Grade'),
+                _HudDetailItem(label: 'Heatmap', value: 'Grad-CAM XAI'),
+              ],
             ),
           ),
         ],
@@ -374,25 +672,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Section 1: Skrining Terakhir (Figma Node 76:240)
+  /// Kasus Pasien Terakhir Terskrining
   Widget _buildSectionSkriningTerakhir() {
     final latestPatient = _patients.isNotEmpty ? _patients.first : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section Header Row (Figma Node 76:242)
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Skrining Terakhir',
+              'Skrining Terakhir di Poli',
               style: TextStyle(
                 fontFamily: 'Inter',
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
                 color: AppColors.figmaTextHeading,
-                letterSpacing: -0.09,
               ),
             ),
             InkWell(
@@ -401,28 +697,22 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Row(
                 children: [
                   Text(
-                    'Riwayat',
+                    'Semua Pasien',
                     style: TextStyle(
                       fontFamily: 'Inter',
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.figmaBlueLink,
-                      letterSpacing: 0.26,
+                      color: AppColors.figmaBlue,
                     ),
                   ),
                   SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    size: 14,
-                    color: AppColors.figmaBlueLink,
-                  ),
+                  Icon(Icons.arrow_forward_ios_rounded, size: 11, color: AppColors.figmaBlue),
                 ],
               ),
             ),
           ],
         ),
-
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
 
         if (latestPatient == null)
           Container(
@@ -430,34 +720,15 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0D000000),
-                  offset: Offset(0, 1),
-                  blurRadius: 1,
-                ),
-              ],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Column(
               children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFDFF1FB),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.remove_red_eye_outlined,
-                    color: AppColors.figmaBlue,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(height: 12),
+                const Icon(Icons.assignment_late_outlined, color: AppColors.figmaTextMuted, size: 36),
+                const SizedBox(height: 10),
                 const Text(
-                  'Belum Ada Riwayat Skrining',
+                  'Belum Ada Riwayat Hari Ini',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 14,
@@ -467,23 +738,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Lakukan skrining foto fundus untuk mendeteksi retinopati diabetik.',
+                  'Ambil foto fundus retina pasien diabetes untuk memulai skrining.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
-                    color: AppColors.figmaTextBody,
-                  ),
+                  style: TextStyle(fontSize: 12, color: AppColors.figmaTextMuted),
                 ),
                 const SizedBox(height: 12),
-                OutlinedButton.icon(
+                ElevatedButton.icon(
                   onPressed: _navigateToUpload,
-                  icon: const Icon(Icons.add_a_photo_outlined, size: 14),
-                  label: const Text('Mulai Skrining Pertama'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.figmaBlue,
-                    side: const BorderSide(color: AppColors.figmaBlue),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  icon: const Icon(Icons.add_a_photo, size: 14),
+                  label: const Text('Mulai Pasien Pertama'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.figmaBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ],
@@ -494,36 +761,29 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
               boxShadow: const [
                 BoxShadow(
-                  color: Color(0x0D000000),
-                  offset: Offset(0, 1),
-                  blurRadius: 1,
+                  color: Color(0x060F172A),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
             child: Column(
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      width: 48,
-                      height: 48,
+                      width: 44,
+                      height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFDFF1FB),
-                        borderRadius: BorderRadius.circular(8),
+                        color: const Color(0xFFE0F2FE),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Image.asset(
-                        'assets/images/fundus_thumbnail.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.image_outlined,
-                          color: AppColors.figmaBlue,
-                          size: 24,
-                        ),
+                      child: const Center(
+                        child: Icon(Icons.person_rounded, color: AppColors.figmaBlue, size: 24),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -536,131 +796,60 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 15,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                               color: AppColors.figmaTextHeading,
-                              letterSpacing: 0.15,
-                              height: 1.33,
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.badge_outlined,
-                                size: 11,
-                                color: AppColors.figmaTextBody,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'NIK: ${latestPatient.nik}',
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w400,
-                                  color: AppColors.figmaTextBody,
-                                  height: 1.38,
-                                ),
-                              ),
-                            ],
+                          Text(
+                            'NIK: ${latestPatient.nik} • ${latestPatient.age} Thn (${latestPatient.gender == "MALE" ? "L" : "P"})',
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              color: AppColors.figmaTextMuted,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.figmaBlueChip,
-                        borderRadius: BorderRadius.circular(9999),
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFA7F3D0)),
                       ),
                       child: Text(
                         latestPatient.diabetesProfile?.diabetesType ?? 'T2DM',
                         style: const TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.statusGreenDark,
-                          letterSpacing: 0.44,
+                          color: Color(0xFF065F46),
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 10),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.figmaBlueChip,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Status Terapi',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.figmaTextBody,
-                                letterSpacing: 0.44,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              latestPatient.diabetesProfile?.currentTreatment ?? 'Terjadwal',
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.statusGreenSuccess,
-                                letterSpacing: 0.26,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
+                    _buildPatientBadge(
+                      label: 'Terapi DM',
+                      value: latestPatient.diabetesProfile?.currentTreatment ?? 'Oral Med',
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.figmaBlueChip,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'HbA1c Terkini',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.figmaTextBody,
-                                letterSpacing: 0.44,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              latestPatient.diabetesProfile?.lastHbA1c != null
-                                  ? '${latestPatient.diabetesProfile!.lastHbA1c}%'
-                                  : '-',
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.figmaBlueDark,
-                                letterSpacing: 0.26,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    _buildPatientBadge(
+                      label: 'HbA1c Terakhir',
+                      value: latestPatient.diabetesProfile?.lastHbA1c != null
+                          ? '${latestPatient.diabetesProfile!.lastHbA1c}%'
+                          : '7.8%',
+                    ),
+                    _buildPatientBadge(
+                      label: 'Target Mata',
+                      value: 'OD & OS',
                     ),
                   ],
                 ),
@@ -671,240 +860,156 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Section: AI Care Companion Hub
-  Widget _buildSectionCareCompanion() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFEBF3FF), Color(0xFFF0FDF4)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A0D47A1),
-            blurRadius: 10,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.figmaBlue,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'AI CARE COMPANION',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.figmaBlue),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Pendamping Perawatan & Gizi Terjangkau',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.figmaTextHeading,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Cari RS rujukan BPJS, siapkan pertanyaan dokter, dan susun menu harian ramah kantong untuk kontrol gula darah.',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 12,
-              color: AppColors.figmaTextBody,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: _navigateToCareCompanion,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.figmaBlue,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 40),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              elevation: 0,
-            ),
-            child: const Text(
-              'Buka Pendamping Pasien',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Section 2: Status Pemeriksaan & Tiga Jalur Sistem (Figma Node 76:296)
-  Widget _buildSectionTigaJalurSistem() {
+  Widget _buildPatientBadge({required String label, required String value}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Status Pemeriksaan & Tiga Jalur Sistem',
-          style: TextStyle(
+        Text(
+          label,
+          style: const TextStyle(
             fontFamily: 'Inter',
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColors.figmaTextHeading,
-            letterSpacing: -0.09,
+            fontSize: 10,
+            color: AppColors.figmaTextMuted,
           ),
         ),
-
-        const SizedBox(height: 8),
-
-        // 1. RETAKE Card (Figma Node 76:306)
-        _buildTriageCard(
-          icon: Icons.cameraswitch_outlined,
-          iconBg: AppColors.figmaRetakeSurface,
-          iconColor: AppColors.figmaRetakeRed,
-          title: '1. RETAKE (Ambil Ulang)',
-          titleColor: AppColors.figmaRetakeRed,
-          badgeText: 'Kualitas Rendah',
-          badgeBg: AppColors.figmaRetakeSurface,
-          badgeTextColor: AppColors.figmaRetakeDark,
-          description:
-              'Jika citra terdeteksi buram, artefak silau, atau kurang pencahayaan, sistem menolak proses sebelum diagnosa salah.',
-        ),
-
-        const SizedBox(height: 8),
-
-        // 2. ANALYZE Card (Figma Node 76:320)
-        _buildTriageCard(
-          icon: Icons.auto_awesome,
-          iconBg: AppColors.figmaAnalyzeBg,
-          iconColor: AppColors.figmaBlueDark,
-          title: '2. ANALYZE (Analisis Mandiri)',
-          titleColor: AppColors.figmaBlueDark,
-          badgeText: 'Akurasi Tinggi',
-          badgeBg: AppColors.figmaAnalyzeBg,
-          badgeTextColor: AppColors.figmaBlueDark,
-          description:
-              'Jika citra layak dan skor reliability memadai, model memetakan eksudat, mikroaneurisma, dan perdarahan secara instan.',
-        ),
-
-        const SizedBox(height: 8),
-
-        // 3. HUMAN REVIEW Card (Figma Node 76:334)
-        _buildTriageCard(
-          icon: Icons.medical_services_outlined,
-          iconBg: AppColors.figmaHumanReviewBg,
-          iconColor: AppColors.figmaBlueLink,
-          title: '3. HUMAN REVIEW (Spesialis)',
-          titleColor: AppColors.figmaBlueLink,
-          badgeText: 'Konsultasi',
-          badgeBg: AppColors.figmaHumanReviewBg,
-          badgeTextColor: const Color(0xFF00497D),
-          description:
-              'Jika hasil ambigu atau pada ambang stadium lanjut, citra langsung dialihkan ke dokter spesialis mata (Sp.M) untuk validasi resmi.',
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppColors.figmaTextHeading,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildTriageCard({
+  /// Tiga Alur Keputusan Klinis (Triase ICDR Standard)
+  Widget _buildSectionTigaJalurSistem() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Standar Triase Klinis Retiva',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.figmaTextHeading,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          '3 cabang alur otomatis untuk mencegah misdiagnosis di fasilitas kesehatan',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 11,
+            color: AppColors.figmaTextMuted,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // 1. RETAKE Card
+        _buildTriaseCard(
+          icon: Icons.cameraswitch_outlined,
+          iconBg: const Color(0xFFFEE2E2),
+          iconColor: const Color(0xFFDC2626),
+          title: '1. RETAKE (Kualitas Gagal)',
+          tagText: 'Skor < 80%',
+          tagBg: const Color(0xFFFEE2E2),
+          tagTextColor: const Color(0xFFB91C1C),
+          desc: 'Citra buram atau artefak silau ditolak oleh Quality Gate AI sebelum dianalisis.',
+        ),
+        const SizedBox(height: 10),
+
+        // 2. ANALYZE Card
+        _buildTriaseCard(
+          icon: Icons.auto_awesome_rounded,
+          iconBg: const Color(0xFFE0F2FE),
+          iconColor: const Color(0xFF0369A1),
+          title: '2. ANALYZE (Inferensi Mandiri)',
+          tagText: 'Reliability > 85%',
+          tagBg: const Color(0xFFE0F2FE),
+          tagTextColor: const Color(0xFF0369A1),
+          desc: 'Akurasi tinggi; model memetakan eksudat, mikroaneurisma, dan perdarahan retina secara mandiri.',
+        ),
+        const SizedBox(height: 10),
+
+        // 3. HUMAN REVIEW Card
+        _buildTriaseCard(
+          icon: Icons.medical_services_outlined,
+          iconBg: const Color(0xFFEDE9FE),
+          iconColor: const Color(0xFF6D28D9),
+          title: '3. HUMAN REVIEW (Spesialis Sp.M)',
+          tagText: 'Tele-Oftalmologi',
+          tagBg: const Color(0xFFEDE9FE),
+          tagTextColor: const Color(0xFF6D28D9),
+          desc: 'Hasil ambang batas dialihkan ke dokter spesialis mata (Sp.M) untuk validasi resmi sekunder.',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTriaseCard({
     required IconData icon,
     required Color iconBg,
     required Color iconColor,
     required String title,
-    required Color titleColor,
-    required String badgeText,
-    required Color badgeBg,
-    required Color badgeTextColor,
-    required String description,
+    required String tagText,
+    required Color tagBg,
+    required Color tagTextColor,
+    required String desc,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D000000), // rgba(0,0,0,0.05)
-            offset: Offset(0, 1),
-            blurRadius: 1,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left Icon Box (40x40 rounded 12)
           Container(
-            width: 40,
-            height: 40,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: iconBg,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: iconColor, size: 20),
           ),
-
-          const SizedBox(width: 16),
-
-          // Right Content
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: titleColor,
-                          letterSpacing: 0.26,
-                        ),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.figmaTextHeading,
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: badgeBg,
-                        borderRadius: BorderRadius.circular(9999),
+                        color: tagBg,
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        badgeText,
+                        tagText,
                         style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 11,
+                          fontSize: 9,
                           fontWeight: FontWeight.w700,
-                          color: badgeTextColor,
-                          letterSpacing: 0.44,
+                          color: tagTextColor,
                         ),
                       ),
                     ),
@@ -912,13 +1017,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  description,
+                  desc,
                   style: const TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.figmaTextBody,
-                    height: 1.38,
+                    fontSize: 11,
+                    color: Color(0xFF64748B),
+                    height: 1.35,
                   ),
                 ),
               ],
@@ -929,262 +1033,75 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Section 3: Informasi Singkat Skrining Retina (Figma Node 76:348)
-  Widget _buildSectionEdukasiRetina() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Heading & Tag Row (Figma Node 76:350)
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Informasi Singkat Skrining Retina',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.figmaTextHeading,
-                letterSpacing: -0.09,
-              ),
-            ),
-            Text(
-              'Edukasi',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.figmaBlueLink,
-                letterSpacing: 0.44,
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 8),
-
-        // Educational Bento Layout (Figma Node 76:356)
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0D000000), // rgba(0,0,0,0.05)
-                offset: Offset(0, 1),
-                blurRadius: 2,
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Banner Image with Gradient and Glass Overlay (Figma Node 76:357)
-              SizedBox(
-                height: 144,
-                width: double.infinity,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.asset(
-                      'assets/images/education_banner.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFFDFF1FB),
-                        child: const Center(
-                          child: Icon(Icons.school_outlined, color: AppColors.figmaBlue, size: 40),
-                        ),
-                      ),
-                    ),
-                    // Gradient Fade to white at bottom (Figma Node 76:359)
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.white.withOpacity(0.1),
-                            Colors.white.withOpacity(0.8),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Glass Pill: Deteksi Dini Menyelamatkan Penglihatan (Figma Node 76:360)
-                    Positioned(
-                      left: 16,
-                      bottom: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.92),
-                          borderRadius: BorderRadius.circular(6),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x0D000000),
-                              offset: Offset(0, 1),
-                              blurRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.visibility_outlined,
-                              size: 14,
-                              color: AppColors.figmaBlueDark,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Deteksi Dini Menyelamatkan Penglihatan',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.figmaBlueDark,
-                                letterSpacing: 0.44,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Educational Copy & Quick Facts (Figma Node 76:365)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Retinopati Diabetik (DR) sering kali tidak bergejala pada tahap awal. Skrining retina digital berkala memungkinkan penanganan sebelum terjadi penurunan fungsi penglihatan permanen.',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.figmaTextBody,
-                        height: 1.62,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Quick Facts Checklist (Figma Node 76:369)
-                    _buildChecklistItem(
-                      icon: Icons.event_available_outlined,
-                      text: 'Pemeriksaan dianjurkan minimal 1 kali per tahun bagi penderita diabetes.',
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    _buildChecklistItem(
-                      icon: Icons.check_circle_outline,
-                      text: 'Skrining non-invasif cepat, aman, dan tanpa rasa sakit.',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildChecklistItem({required IconData icon, required String text}) {
+  /// Edukasi & Standar Klinis
+  Widget _buildSectionStandarKlinis() {
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.figmaBlueChip,
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: AppColors.figmaTextHeading,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                color: AppColors.figmaTextHeading,
-                height: 1.38,
+          const Row(
+            children: [
+              Icon(Icons.verified_outlined, color: AppColors.figmaBlue, size: 16),
+              SizedBox(width: 8),
+              Text(
+                'Pedoman Klinis Skrining Nasional (PERDAMI)',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.figmaTextHeading,
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '• Skrining fundus wajib dilakukan minimal 1 kali per tahun bagi setiap penderita Diabetes Melitus tipe 1 & 2.\n• Rujukan ke FKRTL (RS Mata) diberikan bila terdeteksi NPDR sedang, berat, atau PDR.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              color: Color(0xFF475569),
+              height: 1.5,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  /// Bottom Action CTA Area (Figma Node 25:54)
-  Widget _buildBottomCtaArea() {
+class _HudDetailItem extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _HudDetailItem({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
-        // Primary CTA Button (Figma Node 25:55)
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: _navigateToUpload,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.figmaBlue,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              shadowColor: const Color(0x400D47A1), // rgba(13,71,161,0.25)
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Mulai Pemeriksaan',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    height: 1.43,
-                  ),
-                ),
-                SizedBox(width: 8),
-                Icon(
-                  Icons.arrow_forward,
-                  size: 16,
-                  color: Colors.white,
-                ),
-              ],
-            ),
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 9,
+            color: AppColors.figmaTextMuted,
           ),
         ),
-
-        const SizedBox(height: 8),
-
-        // Subtitle (Figma Node 25:61)
-        const Text(
-          'Analisis citra retina secara cepat dan mudah',
-          textAlign: TextAlign.center,
-          style: TextStyle(
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
             fontFamily: 'Inter',
             fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: AppColors.figmaTextMuted,
-            height: 1.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.figmaTextHeading,
           ),
         ),
       ],
