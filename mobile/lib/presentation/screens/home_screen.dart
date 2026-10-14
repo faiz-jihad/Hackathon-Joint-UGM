@@ -151,6 +151,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       const SizedBox(height: 24),
 
+                      // 6b. Alur Klinis Pasien 4 Tahap (Masalah -> Diagnosis -> Solusi -> Penanganan)
+                      _buildSectionAlurEmpatTahap(),
+
+                      const SizedBox(height: 24),
+
                       // 7. Edukasi & Standar Klinis Kemenkes / PERDAMI
                       _buildSectionStandarKlinis(),
 
@@ -1340,6 +1345,206 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 11,
                     color: Color(0xFF64748B),
                     height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Alur Klinis Pasien 4 Tahap (Masalah -> Diagnosis -> Solusi -> Penanganan Kedepan)
+  Widget _buildSectionAlurEmpatTahap() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF4FF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.alt_route_rounded, color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Alur Klinis Pasien 4 Tahap',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.figmaTextHeading,
+                    ),
+                  ),
+                  Text(
+                    'Alur terstruktur & transparan dari skrining awal hingga monitoring jangka panjang',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      color: AppColors.figmaTextMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        // Tahap 1 Card: MASALAH
+        _buildPathwayStageCard(
+          number: '1',
+          stageName: 'MASALAH',
+          title: 'Anamnesis Pasien & Faktor Risiko',
+          description:
+              'Identifikasi keluhan visual subjektif (pandangan kabur, floaters), durasi diabetes melitus, kadar HbA1c terakhir, profil tekanan darah, dan mata terperiksa (OD/OS).',
+          accentColor: const Color(0xFFF59E0B),
+          icon: Icons.assignment_late_outlined,
+          badgeText: 'Faktor Risiko & Gejala',
+        ),
+        const SizedBox(height: 10),
+
+        // Tahap 2 Card: DIAGNOSIS
+        _buildPathwayStageCard(
+          number: '2',
+          stageName: 'DIAGNOSIS',
+          title: 'Temuan Medis & Verifikasi Dokter Sp.M',
+          description:
+              'Klasifikasi ICDR (No DR s/d PDR), kode ICD-10 resmi (H36.0), peta atensi Grad-CAM, biomarker mikrovaskular (mikroaneurisma, eksudat), dan validasi dokter spesialis mata.',
+          accentColor: const Color(0xFF246BFD),
+          icon: Icons.biotech_outlined,
+          badgeText: 'ICD-10 & Explainable AI',
+        ),
+        const SizedBox(height: 10),
+
+        // Tahap 3 Card: SOLUSI
+        _buildPathwayStageCard(
+          number: '3',
+          stageName: 'SOLUSI',
+          title: 'Tindakan Medis & Rujukan BPJS',
+          description:
+              'Protokol tindakan medis akut (evaluasi OCT makula, laser PRP/anti-VEGF jika terindikasi), penerbitan Surat Pengantar Rujukan (SPK) BPJS SatuSehat, dan pilihan RS Mata rujukan.',
+          accentColor: const Color(0xFF00C566),
+          icon: Icons.medical_services_outlined,
+          badgeText: 'SPK BPJS & Tindakan Cito',
+        ),
+        const SizedBox(height: 10),
+
+        // Tahap 4 Card: PENANGANAN
+        _buildPathwayStageCard(
+          number: '4',
+          stageName: 'PENANGANAN',
+          title: 'Monitoring Berkelanjutan & Target Sehat',
+          description:
+              'Jadwal kontrol berkala PERDAMI, target metabolik (<7% HbA1c, <130/80 mmHg), nutrisi ramah retina (Lutein & Omega-3), tanda bahaya darurat (Red Flags), serta AI Care Companion.',
+          accentColor: const Color(0xFF8B5CF6),
+          icon: Icons.event_repeat_rounded,
+          badgeText: 'Jadwal Kontrol & Edukasi',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPathwayStageCard({
+    required String number,
+    required String stageName,
+    required String title,
+    required String description,
+    required Color accentColor,
+    required IconData icon,
+    required String badgeText,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.12),
+              shape: BoxShape.circle,
+              border: Border.all(color: accentColor.withOpacity(0.3)),
+            ),
+            child: Center(
+              child: Text(
+                number,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: accentColor,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '$stageName: $title',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: accentColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        badgeText,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: accentColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: Color(0xFF64748B),
+                    height: 1.4,
                   ),
                 ),
               ],

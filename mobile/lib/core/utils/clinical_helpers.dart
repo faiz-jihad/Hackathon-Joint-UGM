@@ -115,4 +115,197 @@ class ClinicalHelpers {
         return 'Sesuai arahan klinisi';
     }
   }
+
+  static String getIcd10Code(String? classification) {
+    switch (classification?.toUpperCase()) {
+      case 'NO_DR':
+        return 'ICD-10 H36.00 / Z01.0 (Pemeriksaan Mata Normal Tanpa DR)';
+      case 'MILD_DR':
+      case 'MILD_NPDR':
+        return 'ICD-10 H36.01 (Retinopati Diabetika Non-Proliferatif Ringan)';
+      case 'MODERATE_DR':
+      case 'MODERATE_NPDR':
+        return 'ICD-10 H36.03 (Retinopati Diabetika Non-Proliferatif Sedang)';
+      case 'SEVERE_DR':
+      case 'SEVERE_NPDR':
+        return 'ICD-10 H36.04 (Retinopati Diabetika Non-Proliferatif Berat)';
+      case 'PROLIFERATIVE_DR':
+      case 'PDR':
+        return 'ICD-10 H36.05 (Retinopati Diabetika Proliferatif)';
+      default:
+        return 'ICD-10 H36.0 (Retinopati Diabetika)';
+    }
+  }
+
+  static List<Map<String, dynamic>> getBiomarkers(String? classification) {
+    final c = classification?.toUpperCase() ?? '';
+    final isNo = c == 'NO_DR';
+    final isMild = c == 'MILD_DR' || c == 'MILD_NPDR';
+    final isMod = c == 'MODERATE_DR' || c == 'MODERATE_NPDR';
+    final isSev = c == 'SEVERE_DR' || c == 'SEVERE_NPDR';
+    final isPdr = c == 'PROLIFERATIVE_DR' || c == 'PDR';
+
+    return [
+      {
+        'name': 'Mikroaneurisma (MA)',
+        'detected': !isNo,
+        'level': isNo ? 'Negatif' : (isMild ? 'Minimal (1-3 titik)' : (isMod ? 'Moderat (Multipel)' : 'Difus (>20/kuadran)')),
+        'desc': 'Dilatasi sakular fokal pada dinding kapiler retina akibat hilangnya perisit.',
+        'isCritical': isSev || isPdr,
+      },
+      {
+        'name': 'Perdarahan Intraretina (Dot/Blot)',
+        'detected': isMod || isSev || isPdr,
+        'level': (isMod || isSev || isPdr) ? (isSev || isPdr ? 'Masif (4 Kuadran)' : 'Ada (Kuadran Temporal & Nasal)') : 'Negatif',
+        'desc': 'Kebocoran eritrosit di lapisan pleksiform dalam akibat mikroangiopati kronis.',
+        'isCritical': isSev || isPdr,
+      },
+      {
+        'name': 'Eksudat Keras (Hard Exudates)',
+        'detected': isMod || isSev || isPdr,
+        'level': (isMod || isSev || isPdr) ? 'Ada (Deposit Lipid Dekat Makula)' : 'Negatif',
+        'desc': 'Presipitasi lipoprotein & lipid akibat gangguan sawar darah-retina (blood-retinal barrier).',
+        'isCritical': false,
+      },
+      {
+        'name': 'Bercak Wol Katun (Cotton Wool Spots)',
+        'detected': isSev || isPdr,
+        'level': (isSev || isPdr) ? 'Ada (≥2 Kuadran)' : 'Negatif',
+        'desc': 'Infark mikroaksonal pada lapisan serat saraf retina (RNFL) karena iskemia lokal.',
+        'isCritical': isSev || isPdr,
+      },
+      {
+        'name': 'Neovaskularisasi (NVD/NVE)',
+        'detected': isPdr,
+        'level': isPdr ? 'Positif (Diskus/Retina)' : 'Negatif (Non-Proliferatif)',
+        'desc': 'Pembentukan pembuluh darah baru abnormal yang rapuh dipicu hipersekresi VEGF.',
+        'isCritical': isPdr,
+      },
+      {
+        'name': 'Risiko Edema Makula Diabetik (DME)',
+        'detected': isMod || isSev || isPdr,
+        'level': isNo ? 'Sangat Rendah' : (isMild ? 'Rendah' : (isMod ? 'Sedang (<1 DD dari Fovea)' : 'Tinggi (Ancaman Visus)')),
+        'desc': 'Penebalan makula foveal yang menjadi penyebab nomor satu penurunan tajam penglihatan sentral.',
+        'isCritical': isSev || isPdr,
+      },
+    ];
+  }
+
+  static Map<String, dynamic> getImmediateSolution(String? classification) {
+    switch (classification?.toUpperCase()) {
+      case 'NO_DR':
+        return {
+          'triageLevel': 'OBSERVASI RUTIN FKTP',
+          'urgency': 'Non-Cito',
+          'timeframe': '12 Bulan',
+          'actionTitle': 'Skrining Edukatif & Pemeliharaan Target Metabolik',
+          'actionSteps': [
+            'Pertahankan HbA1c < 7.0% melalui kontrol rutin di FKTP / Puskesmas.',
+            'Lakukan pemeriksaan funduskopi digital tahunan untuk memantau integritas vaskular retina.',
+            'Edukasi pasien mengenali gejala awal penurunan penglihatan diabetik.',
+          ],
+          'needReferral': false,
+        };
+      case 'MILD_DR':
+      case 'MILD_NPDR':
+        return {
+          'triageLevel': 'PEMANTAUAN KETAT FKTP / RUJUKAN SELEKTIF',
+          'urgency': 'Elektif',
+          'timeframe': '6 Bulan',
+          'actionTitle': 'Optimasi Terapi Medikamentosa & Evaluasi Ulang 6 Bulan',
+          'actionSteps': [
+            'Evaluasi kepatuhan terapi obat antidiabetes oral (OHO) dan kontrol glikemik ketat.',
+            'Pengendalian tekanan darah agresif target < 130/80 mmHg untuk mencegah progresivitas mikroaneurisma.',
+            'Jadwalkan foto fundus berkala ulang dalam 6 bulan untuk deteksi dini eksudat baru.',
+          ],
+          'needReferral': false,
+        };
+      case 'MODERATE_DR':
+      case 'MODERATE_NPDR':
+        return {
+          'triageLevel': 'RUJUKAN TERENCANA FKRTL (RS TIPE C/B)',
+          'urgency': 'Rujukan Terjadwal (3–4 Minggu)',
+          'timeframe': 'Maksimal 30 Hari',
+          'actionTitle': 'Rujukan Spesialis Mata (Sp.M) untuk Pemeriksaan OCT Makula',
+          'actionSteps': [
+            'Penerbitan Surat Pengantar Rujukan (SPK) BPJS ke Poli Spesialis Mata Rumah Sakit Rujukan.',
+            'Pemeriksaan Optical Coherence Tomography (OCT) Makula guna menyingkirkan Edema Makula Subklinis.',
+            'Evaluasi fundus stereoskopik dengan biomikroskopi slit-lamp dan lensa 90D/78D.',
+            'Jika edema makula foveal terkonfirmasi, persiapkan injeksi anti-VEGF intraokular lini pertama.',
+          ],
+          'needReferral': true,
+        };
+      case 'SEVERE_DR':
+      case 'SEVERE_NPDR':
+        return {
+          'triageLevel': 'RUJUKAN PRIORITAS TINGGI (RS TIPE B/A)',
+          'urgency': 'Cepat (1–2 Minggu)',
+          'timeframe': '14 Hari',
+          'actionTitle': 'Rujukan Segera Spesialis Mata untuk Evaluasi Laser Panretinal (PRP)',
+          'actionSteps': [
+            'Rujuk cepat ke Rumah Sakit Rujukan Tersier dengan fasilitas Vitreoretina.',
+            'Persiapan Panretinal Photocoagulation (PRP) profilaksis guna mencegah konversi ke PDR aktif.',
+            'Pemeriksaan Angiografi Fluoresens Fundus (FFA) jika diperlukan untuk petakan zona iskemia kapiler.',
+            'Instruksikan pasien hindari aktivitas mengejan berlebih atau olahraga beban berat.',
+          ],
+          'needReferral': true,
+        };
+      case 'PROLIFERATIVE_DR':
+      case 'PDR':
+        return {
+          'triageLevel': 'RUJUKAN CITO / DARURAT RETINA',
+          'urgency': 'Cito (< 7 Hari)',
+          'timeframe': 'Segera',
+          'actionTitle': 'Intervensi Segera Spesialis Vitreoretina: Laser PRP & Anti-VEGF',
+          'actionSteps': [
+            'Rujukan CITO ke Konsultan Vitreoretina Rumah Sakit Rujukan Mata Tersier.',
+            'Tindakan Laser Panretinal Photocoagulation (PRP) segera untuk regresi neovaskularisasi retina rapuh.',
+            'Pemberian Injeksi Anti-VEGF (Aflibercept/Ranibizumab) intraokular untuk menekan pendarahan aktif.',
+            'Evaluasi risiko perdarahan vitreus masif atau ablasio retina traksional yang memerlukan vitrektomi.',
+          ],
+          'needReferral': true,
+        };
+      default:
+        return {
+          'triageLevel': 'EVALUASI KLINIS',
+          'urgency': 'Sesuai Arahan Dokter',
+          'timeframe': '-',
+          'actionTitle': 'Konsultasikan Hasil ke Dokter Penanggung Jawab',
+          'actionSteps': ['Lakukan verifikasi klinis dengan dokter fasilitas kesehatan terdekat.'],
+          'needReferral': false,
+        };
+    }
+  }
+
+  static Map<String, dynamic> getLongTermPlan(String? classification) {
+    return {
+      'metabolicTargets': [
+        {'label': 'Target HbA1c', 'target': '< 7.0%', 'desc': 'Menurunkan risiko komplikasi mikrovaskular mata hingga 76% (UKPDS)'},
+        {'label': 'Gula Darah Puasa (GDP)', 'target': '80 - 130 mg/dL', 'desc': 'Menjaga stabilitas perfusi endotel kapiler retina'},
+        {'label': 'Gula Darah 2 Jam PP', 'target': '< 180 mg/dL', 'desc': 'Mencegah lonjakan stres oksidatif postprandial'},
+        {'label': 'Tekanan Darah', 'target': '< 130/80 mmHg', 'desc': 'Mencegah peningkatan tekanan kapiler & ruptur mikroaneurisma'},
+        {'label': 'Kolesterol LDL', 'target': '< 100 mg/dL', 'desc': 'Menekan akumulasi endapan eksudat lipid keras di makula'},
+      ],
+      'lifestyleGuidelines': [
+        {
+          'title': 'Aktivitas Fisik Aman Retina',
+          'desc': 'Lakukan jalan kaki santai atau senam diabetes 30 menit/hari. Hindari olahraga angkat beban berat atau mengejan (manuver Valsalva) yang menaikkan tekanan bola mata.',
+        },
+        {
+          'title': 'Nutrisi Pelindung Retina',
+          'desc': 'Konsumsi sayuran berdaun hijau gelap kaya Lutein & Zeaxanthin (bayam, daun katuk, brokoli) serta asam lemak Omega-3 untuk melindungi sel fotoreseptor retina.',
+        },
+        {
+          'title': 'Kepatuhan Obat Teratur',
+          'desc': 'Minum obat antidiabetes oral atau suntik insulin tepat waktu tanpa menghentikan dosis mandiri.',
+        },
+      ],
+      'redFlagAlerts': [
+        'Pandangan tiba-tiba gelap tertutup bayangan hitam seperti tirai menutup.',
+        'Mendadak melihat hujan bintik hitam kemerahan melayang dalam jumlah banyak.',
+        'Kilatan cahaya terang mendadak seperti petir (fotopsia) berulang kali di sudut mata.',
+        'Nyeri mendadak pada bola mata disertai mata merah, mual, dan muntah.',
+      ],
+    };
+  }
 }

@@ -83,6 +83,11 @@ class _ClinicalRecommendationScreenState
                     // Top Hero Section / Intro
                     _buildIntroSection(),
 
+                    const SizedBox(height: 14),
+
+                    // 4-Pillar Clinical Flow Roadmap Banner
+                    _buildFourPillarRoadmapStrip(),
+
                     const SizedBox(height: 16),
 
                     // Fundus AI Diagnostic Card
@@ -197,6 +202,87 @@ class _ClinicalRecommendationScreenState
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFourPillarRoadmapStrip() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.alt_route_rounded, color: AppColors.primary, size: 16),
+              SizedBox(width: 6),
+              Text(
+                'Alur Terpadu 4 Tahap Klinis',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _buildRoadmapPill('1. Masalah', 'Anamnesis', const Color(0xFFF59E0B)),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Color(0xFFCBD5E1)),
+              _buildRoadmapPill('2. Diagnosis', 'ICDR & Sp.M', const Color(0xFF246BFD)),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Color(0xFFCBD5E1)),
+              _buildRoadmapPill('3. Solusi', 'Tindakan/SPK', const Color(0xFF00C566)),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Color(0xFFCBD5E1)),
+              _buildRoadmapPill('4. Rawat', 'Monitoring', const Color(0xFF8B5CF6)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoadmapPill(String step, String label, Color color) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.25)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              step,
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 8.5,
+                color: Color(0xFF64748B),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
