@@ -24,6 +24,7 @@ class MainActivity : FlutterActivity() {
         handleWidgetIntent(intent)
         pendingRoute?.let { route ->
             methodChannel?.invokeMethod("onNavigateRoute", route)
+            pendingRoute = null
         }
     }
 
@@ -61,6 +62,45 @@ class MainActivity : FlutterActivity() {
                         val route = pendingRoute
                         pendingRoute = null
                         result.success(route)
+                    }
+                    "pinWidget" -> {
+                        try {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                val appWidgetManager = AppWidgetManager.getInstance(this@MainActivity)
+                                val widgetType = call.argument<String>("type") ?: "compact"
+                                val provider = if (widgetType == "large") {
+                                    ComponentName(this@MainActivity, RetivaLargeWidgetProvider::class.java)
+                                } else {
+                                    ComponentName(this@MainActivity, RetivaCompactWidgetProvider::class.java)
+                                }
+                                if (appWidgetManager.isRequestPinAppWidgetSupported) {
+                                    var success = false
+                                    try {
+                                        val previewLayout = if (widgetType == "large") {
+                                            R.layout.widget_retiva_large
+                                        } else {
+                                            R.layout.widget_retiva_compact
+                                        }
+                                        val remoteViews = android.widget.RemoteViews(packageName, previewLayout)
+                                        val bundle = Bundle().apply {
+                                            putParcelable(AppWidgetManager.EXTRA_APPWIDGET_PREVIEW, remoteViews)
+                                        }
+                                        success = appWidgetManager.requestPinAppWidget(provider, bundle, null)
+                                    } catch (e: Exception) {
+                                        android.util.Log.w("MainActivity", "Failed with preview bundle, retrying without bundle", e)
+                                        success = appWidgetManager.requestPinAppWidget(provider, null, null)
+                                    }
+                                    result.success(success)
+                                } else {
+                                    result.success(false)
+                                }
+                            } else {
+                                result.success(false)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("MainActivity", "Error in pinWidget", e)
+                            result.success(false)
+                        }
                     }
                     else -> result.notImplemented()
                 }
@@ -119,20 +159,10 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun updateAllWidgets() {
-        val appWidgetManager = AppWidgetManager.getInstance(this)
-
-        // Update Compact Widget
-        val compactComponent = ComponentName(this, RetivaCompactWidgetProvider::class.java)
-        val compactIds = appWidgetManager.getAppWidgetIds(compactComponent)
-        for (id in compactIds) {
-            RetivaCompactWidgetProvider.updateAppWidget(this, appWidgetManager, id)
-        }
-
-        // Update Large Widget
-        val largeComponent = ComponentName(this, RetivaLargeWidgetProvider::class.java)
-        val largeIds = appWidgetManager.getAppWidgetIds(largeComponent)
-        for (id in largeIds) {
-            RetivaLargeWidgetProvider.updateAppWidget(this, appWidgetManager, id)
+        try {
+            RetivaLargeWidgetProvider.refreshAllWidgets(this)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error updating all widgets", e)
         }
     }
 }

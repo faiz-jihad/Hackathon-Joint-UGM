@@ -17,20 +17,19 @@
         <ImageView
             android:layout_width="22dp"
             android:layout_height="22dp"
-            android:src="@drawable/ic_mascot_companion"
-            android:contentDescription="Mascot Retiva" />
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="Retiva" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="RETIVA DAILY CARE"
+            android:text="CareSync · RETIVA CARE"
             android:textColor="#246BFD"
             android:textSize="11sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.05" />
+            android:textStyle="bold" />
 
-        <View
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="1dp"
             android:layout_weight="1" />
@@ -50,7 +49,7 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <View
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="8dp"
@@ -97,7 +96,7 @@
             android:id="@+id/widget_large_item1_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="✓"
+            android:text=""
             android:textColor="#00C566"
             android:textSize="11sp"
             android:textStyle="bold" />
@@ -143,7 +142,7 @@
             android:id="@+id/widget_large_item2_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="✓"
+            android:text=""
             android:textColor="#00C566"
             android:textSize="11sp"
             android:textStyle="bold" />
@@ -188,7 +187,7 @@
             android:id="@+id/widget_large_item3_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="○"
+            android:text=""
             android:textColor="#94A3B8"
             android:textSize="11sp" />
     </LinearLayout>
@@ -236,7 +235,7 @@
                 android:textSize="10sp"
                 android:textStyle="bold" />
 
-            <View
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="1dp"
                 android:layout_weight="1" />
@@ -275,13 +274,13 @@
             android:layout_marginTop="1dp"
             android:text="385 kkal · Rendah IG · Est. Rp 13.500"
             android:textColor="#475569"
-            android:textSize="9.5sp"
+            android:textSize="10sp"
             android:maxLines="1"
             android:ellipsize="end" />
     </LinearLayout>
 
-    <View
-        android:layout_width="0dp"
+    <FrameLayout
+        android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
 

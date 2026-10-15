@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       requestedPatientId = body.patient_id || body.patientId;
       screeningIdHeader = body.screening_id || body.screeningId;
       if (body.image_base64) {
-        const cleanB64 = body.image_base64.contains(",")
+        const cleanB64 = body.image_base64.includes(",")
           ? body.image_base64.split(",").pop()!
           : body.image_base64;
         imageBuffer = Buffer.from(cleanB64, "base64");
@@ -105,55 +105,26 @@ export async function POST(req: NextRequest) {
       body: outboundFormData,
     }).catch(() => null);
 
-    let aiData: any = null;
-    if (aiRes && aiRes.ok) {
-      aiData = await aiRes.json();
-    } else {
-      // High-reliability simulated fallback adhering to Section 7 & 19
-      aiData = {
-        screening_id: screeningIdHeader || `scr_${crypto.randomUUID().substring(0, 8)}`,
-        status: "ANALYZE",
-        quality: {
-          passed: true,
-          overall_score: 0.92,
-          blur_score: 0.90,
-          illumination_score: 0.93,
-          fov_score: 0.95,
-        },
-        prediction: {
-          class: "Moderate",
-          predicted_class: "MODERATE_DR",
-          class_index: 2,
-          confidence: 0.884,
-          probabilities: {
-            NO_DR: 0.03,
-            MILD_DR: 0.05,
-            MODERATE_DR: 0.884,
-            SEVERE_DR: 0.03,
-            PROLIFERATIVE_DR: 0.006,
+    if (!aiRes || !aiRes.ok) {
+      const errDetails = aiRes
+        ? await aiRes.text().catch(() => `HTTP ${aiRes.status}`)
+        : `Connection to AI service failed at ${aiServiceUrl}`;
+      return NextResponse.json(
+        {
+          error: {
+            code: "AI_SERVICE_UNAVAILABLE",
+            message: `AI Screening Service (EfficientNet-B3) is unavailable or returned an error: ${errDetails}. In accordance with medical safety standards, fabricated predictions are strictly prohibited. Please ensure the AI microservice is active.`,
           },
         },
-        reliability: {
-          status: "ANALYZE",
-          score: 0.92,
-          requires_human_review: false,
-          reason: "Kualitas citra prima dan tingkat keyakinan inferensi tinggi.",
-        },
-        explainability: {
-          available: true,
-          heatmap_url: null,
-          overlay_url: null,
-        },
-        model: {
-          name: "EfficientNet-B3",
-          version: "efficientnet-b3-v1.0.0",
-        },
-      };
+        { status: 503 }
+      );
     }
 
+    const aiData: any = await aiRes.json();
+
     // Determine Normalized State Machine Status
-    const qualityPassed = aiData.quality?.passed ?? true;
-    const reliabilityStatus = (aiData.reliability?.status || "ANALYZE").toUpperCase();
+    const qualityPassed = aiData.quality?.passed ?? false;
+    const reliabilityStatus = (aiData.reliability?.status || (qualityPassed ? "ANALYZE" : "RETAKE")).toUpperCase();
     let finalScreeningStatus: "RETAKE_REQUIRED" | "HUMAN_REVIEW" | "AI_ANALYZED" = "AI_ANALYZED";
 
     if (!qualityPassed) {
@@ -162,13 +133,15 @@ export async function POST(req: NextRequest) {
       finalScreeningStatus = "HUMAN_REVIEW";
     }
 
-    const predictedClass: DRClassification = normalizeDRClass(
-      aiData.prediction?.predicted_class || aiData.prediction?.class
-    );
-    const confidence = Number(aiData.prediction?.confidence ?? 0.884);
-    const rawProbabilities = normalizeProbabilities(
-      aiData.prediction?.raw_probabilities || aiData.prediction?.probabilities
-    );
+    const predictedClass: DRClassification = qualityPassed && aiData.prediction
+      ? normalizeDRClass(aiData.prediction?.predicted_class || aiData.prediction?.class)
+      : "NO_DR";
+    const confidence = qualityPassed && aiData.prediction
+      ? Number(aiData.prediction?.confidence ?? 0.0)
+      : 0.0;
+    const rawProbabilities = qualityPassed && aiData.prediction
+      ? normalizeProbabilities(aiData.prediction?.raw_probabilities || aiData.prediction?.probabilities)
+      : {};
     const imageChecksum = crypto.createHash("sha256").update(imageBuffer).digest("hex");
 
     // Persist to PostgreSQL Database via Prisma (Authoritative Coordinator)

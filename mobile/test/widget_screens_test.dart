@@ -57,12 +57,14 @@ void main() {
     await tester.pumpWidget(createTestWidget(const HomeScreen(title: 'RETIVA Mobile')));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('Retiva'), findsOneWidget);
-    expect(find.text('v1.0'), findsOneWidget);
-    expect(find.text('Skrining Dini Komplikasi Retina Diabetes'), findsOneWidget);
-    expect(find.text('Skrining Retina Bilateral (OD/OS)'), findsOneWidget);
-    expect(find.textContaining('Direktori & Riwayat Pasien'), findsOneWidget);
-    expect(find.textContaining('Faskes Rujukan & BPJS'), findsOneWidget);
+    expect(find.text('CareSync'), findsOneWidget);
+    expect(find.text('What do you need?'), findsOneWidget);
+    expect(find.text('My doctor'), findsOneWidget);
+    expect(find.text('Medical Reports'), findsOneWidget);
+    expect(find.text('Find Clinic'), findsOneWidget);
+    expect(find.text('My Appointment'), findsOneWidget);
+    expect(find.text('Widget Layar Utama HP'), findsOneWidget);
+    expect(find.text('Skrining Mata Mandiri'), findsOneWidget);
   });
 
   testWidgets('2. UploadFundusScreen renders bilateral eye tabs and protocol notice', (tester) async {

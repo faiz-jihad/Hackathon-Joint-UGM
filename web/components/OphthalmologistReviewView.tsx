@@ -80,6 +80,24 @@ export function OphthalmologistReviewView({ screeningId = 'SCR-2026-0891', onAdj
       adjudicationAction === 'OVERRIDE' ? overrideGrade : undefined
     );
 
+    const reviewStatus = adjudicationAction === 'OVERRIDE' ? 'OVERRIDDEN' : 'CONFIRMED_AI';
+    const baseClass = adjudicationAction === 'OVERRIDE' && overrideGrade ? overrideGrade : (screening.aiResult?.drGrade || 'MODERATE_DR');
+    let normalizedClass = baseClass.replace('_NPDR', '_DR');
+    if (normalizedClass === 'PDR') normalizedClass = 'PROLIFERATIVE_DR';
+
+    fetch(`/api/v1/reviews/${screening.id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-retiva-clinical': 'true',
+      },
+      body: JSON.stringify({
+        reviewStatus,
+        confirmedClass: normalizedClass,
+        clinicalNotes: clinicalNotes || 'Telaah klinis dokter spesialis mata terverifikasi.',
+      }),
+    }).catch((err) => console.warn('Backend review sync notice:', err));
+
     setSavedSuccess(true);
     setTimeout(() => {
       onAdjudicationSaved();

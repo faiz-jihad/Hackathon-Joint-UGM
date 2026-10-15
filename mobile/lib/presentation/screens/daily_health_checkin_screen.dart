@@ -3,6 +3,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
 import '../../data/models/daily_check_in_model.dart';
 import '../../data/models/patient_model.dart';
+import '../../core/services/widget_service.dart';
 
 class DailyHealthCheckinScreen extends StatefulWidget {
   final PatientModel? patient;
@@ -67,6 +68,12 @@ class _DailyHealthCheckinScreenState extends State<DailyHealthCheckinScreen> {
     );
 
     final result = await ApiClient().submitDailyCheckIn(submission);
+
+    // Synchronize latest agenda with Android Home Widget
+    try {
+      final freshAgenda = await ApiClient().getDailyAgenda(submission.patientId);
+      await WidgetService.updateWidgetData(freshAgenda);
+    } catch (_) {}
 
     if (mounted) {
       setState(() => _isSubmitting = false);

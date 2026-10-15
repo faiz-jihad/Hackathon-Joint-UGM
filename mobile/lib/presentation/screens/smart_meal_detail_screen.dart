@@ -148,6 +148,10 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
             : null;
       });
 
+      if (_currentMeal != null) {
+        await WidgetService.updateNextMealData(_currentMeal!);
+      }
+
       _glucoseController.clear();
       if (mounted) Navigator.pop(context); // close sheet
 

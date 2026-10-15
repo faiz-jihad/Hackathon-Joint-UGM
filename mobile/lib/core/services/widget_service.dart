@@ -124,7 +124,33 @@ class WidgetService {
       await prefs.setInt('widget_next_meal_calories', 385);
       await prefs.setInt('widget_next_meal_cost', 13500);
       await prefs.setString('widget_next_meal_gi', 'RENDAH');
-      await prefs.setBool('widget_next_meal_is_eaten', false);
+    }
+  }
+
+  
+
+  /// Read current widget state from preferences (reflects in-place home screen widget clicks)
+  static Future<Map<String, dynamic>> getWidgetState() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      'completedCount': prefs.getInt('widget_completed_count') ?? 2,
+      'totalCount': prefs.getInt('widget_total_count') ?? 5,
+      'progressText': prefs.getString('widget_progress_text') ?? '2/5',
+      'item0Done': prefs.getBool('widget_item_0_done') ?? true,
+      'item1Done': prefs.getBool('widget_item_1_done') ?? true,
+      'item2Done': prefs.getBool('widget_item_2_done') ?? false,
+      'nextMealIsEaten': prefs.getBool('widget_next_meal_is_eaten') ?? false,
+      'checkinDone': prefs.getBool('widget_checkin_done_today') ?? false,
+    };
+  }
+
+  /// Request Android OS to pin the widget to the home screen (Android 8.0+)
+  static Future<bool> pinWidgetToHomeScreen({String type = 'compact'}) async {
+    try {
+      final success = await _channel.invokeMethod<bool>('pinWidget', {'type': type});
+      return success ?? false;
+    } catch (_) {
+      return false;
     }
   }
 }

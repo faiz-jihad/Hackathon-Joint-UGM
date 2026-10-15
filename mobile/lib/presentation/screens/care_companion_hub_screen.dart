@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
+import '../../core/services/widget_service.dart';
+import '../../data/models/daily_agenda_model.dart';
 import '../../data/models/patient_model.dart';
 import '../../data/models/screening_result_model.dart';
 
@@ -116,7 +118,25 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
         _isLoading = false;
       });
       _generateMealPlan();
+      _syncToLauncherWidget();
     }
+  }
+
+  Future<void> _syncToLauncherWidget({bool showSnack = false}) async {
+    try {
+      final patientId = widget.patient?.id ?? 'P-001';
+      final agenda = await ApiClient().getDailyAgenda(patientId);
+      await WidgetService.updateWidgetData(agenda);
+      if (showSnack && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚡ Widget Layar Utama HP berhasil disinkronkan dengan agenda Retiva!'),
+            backgroundColor: AppColors.primary,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {}
   }
 
   Future<void> _generateMealPlan() async {
@@ -127,6 +147,7 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
         _mealPlan = plan;
         _isLoadingMeal = false;
       });
+      _syncToLauncherWidget();
     }
   }
 
@@ -1058,12 +1079,15 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
                           'dietaryLifestyleInstructions': _dietaryCtrl.text,
                           'isPatientConfirmed': true,
                         });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Catatan dokter terkonfirmasi! Rencana perawatan aktif.'),
-                            backgroundColor: AppColors.figmaBlue,
-                          ),
-                        );
+                        await _syncToLauncherWidget();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Catatan dokter terkonfirmasi! Agenda & widget HP disinkronkan.'),
+                              backgroundColor: AppColors.figmaBlue,
+                            ),
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(backgroundColor: AppColors.figmaBlue, foregroundColor: Colors.white),
                       child: const Text('Ya, Konfirmasi'),
@@ -1167,6 +1191,70 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Widget Synchronization Status Card
+        Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: const Icon(Icons.widgets_rounded, color: AppColors.figmaBlue, size: 20),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Widget Layar Depan HP',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.figmaTextHeading,
+                      ),
+                    ),
+                    Text(
+                      'Sinkron aktif: Menu nutrisi & pengingat langsung muncul di home screen.',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 10,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: () => _syncToLauncherWidget(showSnack: true),
+                icon: const Icon(Icons.sync_rounded, size: 13),
+                label: const Text('Sinkron', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.figmaBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  minimumSize: const Size(0, 32),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
                 ),
               ),
             ],
@@ -1353,7 +1441,10 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
               InkWell(
                 onTap: () async {
                   final updated = await ApiClient().replaceMeal(_mealPlan ?? {}, cat);
-                  if (updated != null) setState(() => _mealPlan = updated);
+                  if (updated != null) {
+                    setState(() => _mealPlan = updated);
+                    _syncToLauncherWidget();
+                  }
                 },
                 child: const Text('🔄 Ganti Menu', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.figmaBlue)),
               ),
@@ -1362,7 +1453,10 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
                   Checkbox(
                     value: isDone,
                     activeColor: AppColors.statusGreen,
-                    onChanged: (v) => setState(() => _completedMeals[mealName] = v ?? false),
+                    onChanged: (v) {
+                      setState(() => _completedMeals[mealName] = v ?? false);
+                      _syncToLauncherWidget();
+                    },
                   ),
                   const Text('Selesai', style: TextStyle(fontSize: 11)),
                 ],
@@ -1392,6 +1486,7 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
             onChanged: (v) {
               setState(() => r['isCompleted'] = v ?? false);
               ApiClient().toggleReminder(r['id'], v ?? false);
+              _syncToLauncherWidget();
             },
           ),
           Expanded(

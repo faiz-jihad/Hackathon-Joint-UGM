@@ -7,6 +7,10 @@ import 'presentation/screens/daily_health_checkin_screen.dart';
 import 'presentation/screens/smart_meal_detail_screen.dart';
 import 'presentation/screens/sos_activation_screen.dart';
 
+import 'presentation/screens/profile_screen.dart';
+import 'presentation/screens/top_doctors_screen.dart';
+import 'presentation/screens/care_companion_hub_screen.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -50,32 +54,54 @@ class _RetivaMobileAppState extends State<RetivaMobileApp> {
 
     // Check for initial launch from widget
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Small pause to allow root navigator to mount on cold start
+      await Future.delayed(const Duration(milliseconds: 250));
       try {
         final initialRoute = await _channel.invokeMethod<String>('getInitialRoute');
-        if (initialRoute != null) {
+        if (initialRoute != null && initialRoute.isNotEmpty) {
           _navigateToWidgetRoute(initialRoute);
         }
       } catch (_) {}
     });
   }
 
-  void _navigateToWidgetRoute(String? route) {
-    if (route == 'daily_care_agenda') {
-      _navigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => const DailyCareAgendaScreen()),
-      );
-    } else if (route == 'daily_health_checkin') {
-      _navigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => const DailyHealthCheckinScreen()),
-      );
-    } else if (route == 'smart_meal_detail') {
-      _navigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => const SmartMealDetailScreen()),
-      );
-    } else if (route == 'sos_activation') {
-      _navigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => const SosActivationScreen()),
-      );
+  Future<void> _navigateToWidgetRoute(String? route) async {
+    if (route == null || route.isEmpty) return;
+
+    // Retry loop to ensure _navigatorKey.currentState is mounted
+    for (int attempt = 0; attempt < 20; attempt++) {
+      final navState = _navigatorKey.currentState;
+      if (navState != null) {
+        Widget destination;
+        switch (route) {
+          case 'daily_care_agenda':
+            destination = const DailyCareAgendaScreen();
+            break;
+          case 'daily_health_checkin':
+            destination = const DailyHealthCheckinScreen();
+            break;
+          case 'smart_meal_detail':
+            destination = const SmartMealDetailScreen();
+            break;
+          case 'sos_activation':
+            destination = const SosActivationScreen();
+            break;
+          case 'profile':
+            destination = const ProfileScreen();
+            break;
+          case 'top_doctors':
+            destination = const TopDoctorsScreen();
+            break;
+          case 'care_companion':
+            destination = const CareCompanionHubScreen();
+            break;
+          default:
+            return;
+        }
+        navState.push(MaterialPageRoute(builder: (_) => destination));
+        return;
+      }
+      await Future.delayed(const Duration(milliseconds: 100));
     }
   }
 

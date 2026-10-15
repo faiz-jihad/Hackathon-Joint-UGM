@@ -622,6 +622,72 @@ class ClinicalStore {
           this.notify();
         }
       }
+
+      // 3. Fetch live screenings from DB via API Gateway
+      const resScreenings = await fetch('/api/v1/screenings?limit=50', {
+        headers: { 'x-retiva-clinical': 'true' },
+      });
+      if (resScreenings.ok) {
+        const json = await resScreenings.json();
+        const list = json.data?.screenings || json.data;
+        if (Array.isArray(list) && list.length > 0) {
+          const mappedScreenings: ScreeningData[] = list.map((s: any) => {
+            const primaryImage = s.images?.[0];
+            const eye = (primaryImage?.eye || 'OD') as 'OD' | 'OS';
+            const qc = s.qualityChecks?.[0] || { passed: true, overallScore: 0.9, blurScore: 0.9, illuminationScore: 0.9, fovScore: 0.9 };
+            const pat = this.getPatientById(s.patientId);
+
+            return {
+              id: s.id,
+              patientId: s.patientId,
+              patientName: pat?.name || 'Pasien Terdaftar',
+              patientNik: pat?.nik || s.patientId,
+              eye,
+              capturedAt: s.createdAt || new Date().toISOString(),
+              qualityCheck: {
+                passed: qc.passed ?? true,
+                sharpness: qc.blurScore ?? 0.9,
+                illumination: qc.illuminationScore ?? 0.9,
+                coverage: qc.fovScore ?? 0.9,
+                reason: qc.retakeReason,
+              },
+              aiResult: s.aiResult ? {
+                drGrade: s.aiResult.predictedClass,
+                drLabel: s.aiResult.predictedClass,
+                confidence: s.aiResult.confidence,
+                reliability: s.reliabilityAssessment?.status === 'ANALYZE' ? 'HIGH' : 'LOW',
+                probabilities: Object.entries(s.aiResult.rawProbabilities || {}).map(([grade, prob]) => ({
+                  grade,
+                  label: grade,
+                  prob: Number(prob),
+                })),
+                gradCamFocus: 'Makula & Vaskulatur Retina',
+              } : undefined,
+              reliability: s.status === 'RETAKE_REQUIRED'
+                ? 'RETAKE_REQUIRED'
+                : s.status === 'HUMAN_REVIEW'
+                ? 'NEEDS_REVIEW'
+                : 'HIGH',
+              reliabilityLabel: s.status === 'RETAKE_REQUIRED'
+                ? 'Perlu Pengambilan Ulang'
+                : s.status === 'HUMAN_REVIEW'
+                ? 'Perlu Review Spesialis'
+                : 'Keandalan Tinggi',
+              humanReview: s.status === 'HUMAN_REVIEW' ? { status: 'PENDING' } : undefined,
+              imageHash: primaryImage?.checksum || this.generateHash(`${s.id}`),
+            };
+          });
+
+          const existingIds = new Set(this.screenings.map(sc => sc.id));
+          for (const ms of mappedScreenings) {
+            if (!existingIds.has(ms.id)) {
+              this.screenings.push(ms);
+            }
+          }
+          this.persist();
+          this.notify();
+        }
+      }
     } catch (e) {
       console.warn('API sync silently continued with active local store:', e);
     }

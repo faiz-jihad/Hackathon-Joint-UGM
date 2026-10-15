@@ -11,7 +11,6 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
@@ -47,6 +46,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.example.retiva.ACTION_UPDATE_WIDGET" />
+                <action android:name="com.example.retiva.ACTION_TOGGLE_TASK" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -61,6 +61,9 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.example.retiva.ACTION_UPDATE_WIDGET" />
+                <action android:name="com.example.retiva.ACTION_TOGGLE_TASK" />
+                <action android:name="com.example.retiva.ACTION_TOGGLE_MEAL" />
+                <action android:name="com.example.retiva.ACTION_QUICK_CHECKIN" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
