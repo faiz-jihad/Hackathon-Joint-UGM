@@ -17,7 +17,8 @@
 ## 🎯 PANDUAN PENGUJIAN JURI (JURY QUICK EVALUATION GUIDE)
 
 > **Selamat Datang Dewan Juri Hackathon Joint UGM!**  
-> Kami telah menyiapkan **3 cara tercepat** bagi Bapak/Ibu Juri untuk langsung menguji fungsionalitas sistem RETIVA, mulai dari instalasi aplikasi mobile fisik, eksplorasi web portal klinis, hingga eksekusi pengujian otomatis.
+> Kami telah menyiapkan **3 cara tercepat** bagi Bapak/Ibu Juri untuk langsung menguji fungsionalitas sistem RETIVA, mulai dari instalasi aplikasi mobile fisik, eksplorasi web portal klinis, hingga eksekusi pengujian otomatis.  
+> 📖 **Panduan Lengkap Penilaian & Skenario Uji Juri:** [**`JURY_GUIDE.md`**](JURY_GUIDE.md) *(atau di [`docs/user-guide/PANDUAN_JURI.md`](docs/user-guide/PANDUAN_JURI.md))*
 
 ---
 
@@ -510,6 +511,7 @@ Juri dapat mengikuti 4 skenario klinis teruji berikut untuk mengevaluasi sistem 
 
 ## 16. Indeks Dokumentasi Lengkap Proyek
 
+* 🏆 **[Panduan Pengguna & Pengujian Juri (JURY_GUIDE.md)](JURY_GUIDE.md)**: Skenario penilaian, akun demo, langkah instalasi APK mobile, dan alur uji klinis.
 * 🌐 **[Dokumentasi Web & Core API Gateway (web/README.md)](web/README.md)**: Arsitektur Next.js 14, 53 REST API endpoints, modul Care Companion, skema Prisma, dan panduan pengujian.
 * 📱 **[Dokumentasi Klien Mobile Flutter (mobile/README.md)](mobile/README.md)**: Multi-environment toggle, pemetaan 10 layar Figma, dan workstation klinis nakes.
 * 🧠 **[Dokumentasi AI Microservice (ai-service/README.md)](ai-service/README.md)**: Pipeline OpenCV Quality Gate, inferensi EfficientNet-B3 5-kelas, Reliability Gate, dan Grad-CAM.
