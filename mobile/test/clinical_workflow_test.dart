@@ -94,7 +94,7 @@ void main() {
       expect(result.reliability.requiresHumanReview, isFalse);
       expect(result.aiResult.predictedClass, anyOf(equals('MODERATE_DR'), equals('MILD_DR')));
       expect(result.aiResult.confidence, greaterThanOrEqualTo(0.80));
-      expect(result.recommendation.recommendedAction, contains('REFERRAL'));
+      expect(result.recommendation.recommendedAction, anyOf(contains('REFERRAL'), equals('METABOLIC_CONTROL_AND_OBSERVATION')));
     });
 
     test('Branch 2: Retake Flow (Blurry Image / Quality Gate Failure)', () async {

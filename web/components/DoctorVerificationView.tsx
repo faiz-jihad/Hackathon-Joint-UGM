@@ -1341,7 +1341,7 @@ export function DoctorVerificationView() {
             {/* Modal Body */}
             <div style={{ padding: '1.5rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowX: 'hidden' }}>
               {/* Doctor Details Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
+              <div className="doctor-details-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
                 <div style={{ padding: '0.75rem', backgroundColor: 'var(--slate-50)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', minWidth: 0 }}>
                   <div style={{ fontSize: '0.7rem', color: 'var(--slate-500)', fontWeight: 600 }}>EMAIL PENDAFTAR</div>
                   <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--slate-900)', marginTop: '0.15rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1637,7 +1637,7 @@ export function DoctorVerificationView() {
                 <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--slate-800)', marginBottom: '0.5rem' }}>
                   Dokumen Kredensial Medis yang Diunggah
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.75rem' }}>
+                <div className="doctor-docs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.75rem' }}>
                   <div
                     style={{
                       display: 'flex',
@@ -1766,6 +1766,7 @@ export function DoctorVerificationView() {
 
             {/* Modal Footer Actions */}
             <div
+              className="doctor-modal-footer"
               style={{
                 padding: '1rem 1.75rem',
                 borderTop: '1px solid var(--border-subtle)',

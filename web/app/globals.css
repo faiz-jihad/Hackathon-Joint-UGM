@@ -2777,9 +2777,153 @@ body {
 }
 
 /* ==========================================================================
+   Mobile Responsive Breakpoint (max-width: 880px)
+   ========================================================================== */
+@media (max-width: 880px) {
+  /* Landing Page / Character Selection */
+  .modern-cards-row {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 1.25rem !important;
+    width: 100% !important;
+    max-width: 460px !important;
+    margin: 1rem auto 1.75rem !important;
+  }
+
+  .modern-character-card {
+    flex: none !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 480px !important;
+  }
+
+  /* Login & Register Modals Collapse to Clean Single Column */
+  .modern-login-modal,
+  .modern-register-modal {
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 500px !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0.5rem auto !important;
+    border-radius: 20px !important;
+  }
+
+  .login-visual-card {
+    width: calc(100% - 1.5rem) !important;
+    min-width: 0 !important;
+    height: 160px !important;
+    min-height: 160px !important;
+    margin: 0.75rem 0.75rem 0 !important;
+    clip-path: none !important;
+    border-radius: 14px !important;
+    padding: 1rem !important;
+  }
+
+  .login-visual-bottom {
+    margin-top: auto !important;
+  }
+
+  .login-avatar-pill {
+    max-width: 100% !important;
+    padding: 0.35rem 0.65rem !important;
+  }
+
+  .login-form-pane,
+  .register-form-pane {
+    padding: 1.25rem 1.25rem 1.75rem !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+
+  .login-quick-roles {
+    flex-wrap: wrap !important;
+    gap: 0.4rem !important;
+  }
+}
+
+/* ==========================================================================
    Mobile Responsive Breakpoint (max-width: 768px)
    ========================================================================== */
 @media (max-width: 768px) {
+  /* Landing page header */
+  .modern-character-stage {
+    overflow-x: hidden !important;
+    width: 100% !important;
+  }
+
+  .modern-character-topbar {
+    padding: 0.75rem 1rem !important;
+  }
+
+  .modern-brand-divider,
+  .modern-brand-subtitle {
+    display: none !important;
+  }
+
+  .modern-brand-title {
+    font-size: 1.1rem !important;
+  }
+
+  .modern-audio-toggle-btn {
+    padding: 0.35rem 0.65rem !important;
+    font-size: 0.725rem !important;
+  }
+
+  .modern-character-main {
+    padding: 1rem 0.75rem 2rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .modern-title-section {
+    margin-bottom: 0.85rem !important;
+  }
+
+  .modern-main-heading {
+    font-size: clamp(1.4rem, 6vw, 2.1rem) !important;
+    letter-spacing: -0.01em !important;
+  }
+
+  .modern-main-subheading {
+    font-size: 0.8rem !important;
+    padding: 0 0.5rem !important;
+    margin: 0 auto !important;
+  }
+
+  .modern-cards-row {
+    max-width: 420px !important;
+    padding: 0 !important;
+  }
+
+  .modern-character-card {
+    height: 450px !important;
+  }
+
+  .modern-card-bottom-content {
+    padding: 1.25rem 1rem 1rem !important;
+  }
+
+  .modern-card-role-title {
+    font-size: 1.35rem !important;
+  }
+
+  .modern-card-role-tagline {
+    font-size: 0.825rem !important;
+    margin-bottom: 0.85rem !important;
+  }
+
+  .modern-card-action-btn {
+    height: 44px !important;
+    font-size: 0.85rem !important;
+    padding: 0.65rem 1rem !important;
+  }
+
+  /* Admin Header & Navigation */
   .admin-topbar {
     height: 56px !important;
     padding: 0 0.75rem !important;
@@ -2859,12 +3003,45 @@ body {
     align-items: flex-start !important;
     gap: 0.75rem !important;
   }
+
+  .register-two-col,
+  .role-doc-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.5rem !important;
+  }
 }
 
 /* ==========================================================================
    Small Mobile Phone Breakpoint (max-width: 480px)
    ========================================================================== */
 @media (max-width: 480px) {
+  .modern-character-card {
+    height: 410px !important;
+  }
+
+  .modern-main-heading {
+    font-size: 1.45rem !important;
+  }
+
+  .modern-card-bottom-content {
+    padding: 1rem 0.85rem 0.85rem !important;
+  }
+
+  .login-visual-card {
+    height: 120px !important;
+    min-height: 120px !important;
+    padding: 0.75rem !important;
+  }
+
+  .login-form-pane,
+  .register-form-pane {
+    padding: 1rem 0.85rem 1.25rem !important;
+  }
+
+  .login-pane-title {
+    font-size: 1.25rem !important;
+  }
+
   .metrics-grid {
     grid-template-columns: 1fr !important;
   }
@@ -2879,9 +3056,8 @@ body {
 }
 
 
-
 /* ==========================================================================
-   DOWNLOAD APP BANNER — Landing Page
+   DOWNLOAD APP BANNER ï¿½ Landing Page
    ========================================================================== */
 
 .modern-download-banner {
@@ -3014,5 +3190,39 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Universal Responsive Table & Modal Helpers
+   ========================================================================== */
+.table-responsive {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .doctor-details-grid,
+  .doctor-docs-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .doctor-modal-footer {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    align-items: stretch !important;
+  }
+
+  .doctor-modal-footer > div {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .doctor-modal-footer button {
+    width: 100% !important;
+    justify-content: center !important;
   }
 }
