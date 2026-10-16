@@ -12,6 +12,7 @@
     "prisma:push": "npm --prefix web run prisma:push",
     "test": "npm --prefix web run test",
     "test:master": "npm --prefix web run test:master",
+    "test:care-companion": "npm --prefix web run test:care-companion",
     "test:phase1": "npm --prefix web run test:phase1",
     "test:phase2": "npm --prefix web run test:phase2",
     "test:phase3": "npm --prefix web run test:phase3",

@@ -22,6 +22,12 @@ Direktori `web/` merupakan inti (*core gateway & application portal*) dari ekosi
    - Portal administrasi direktori fasilitas kesehatan sekunder/tersier (RSUD, RS Mata, status BPJS Kesehatan) dan audit log kepatuhan hukum medis non-repudiation.
 3. **Agentic AI Care Companion**:
    - Asisten pra & pasca-konsultasi untuk edukasi nutrisi rendah indeks glikemik (GI) ramah kantong Indonesia, deteksi tanda bahaya retina darurat (red flags), konfirmasi resume dokter, dan pengingat kontrol berkala.
+4. **Distribusi Android APK & Demo Accounts**:
+   - Beranda (`/`) menyediakan tautan langsung unduh APK Android mobile client: [`public/retiva-app.apk`](public/retiva-app.apk).
+   - Akun demo bawaan siap pakai:
+     - **Admin**: `admin@gmail.com` / `password`
+     - **Dokter Sp.M**: `dr.harianto@retiva.id` / `password`
+     - **Nakes**: `nakes.siti@puskesmas.go.id` / `password`
 
 ---
 

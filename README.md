@@ -6,7 +6,7 @@
 [![Web & Gateway](https://img.shields.io/badge/Web_Core-Next.js_14_App_Router-000000?style=for-the-badge&logo=next.js)](web)
 [![Mobile Client](https://img.shields.io/badge/Mobile_Client-Flutter_3.x_%7C_Dart_3.x-02569B?style=for-the-badge&logo=flutter)](mobile)
 [![AI Microservice](https://img.shields.io/badge/AI_Service-FastAPI_%2F_EfficientNet--B3-009688?style=for-the-badge&logo=fastapi)](ai-service)
-[![Production HTTPS](https://img.shields.io/badge/Live_Domain-hackathon.mataceria.my.id-4F46E5?style=for-the-badge&logo=letsencrypt)](https://hackathon.mataceria.my.id)
+[![Android APK](https://img.shields.io/badge/Download_APK-v1.0.0_(22.8_MB)-3DDC84?style=for-the-badge&logo=android)](web/public/retiva-app.apk)
 [![Database](https://img.shields.io/badge/Database-PostgreSQL_16_%2B_Prisma_ORM-336791?style=for-the-badge&logo=postgresql)](web/prisma/schema.prisma)
 [![Storage](https://img.shields.io/badge/Storage-Zero--BLOB_S3--Compatible-EA580C?style=for-the-badge&logo=amazons3)](infrastructure/storage)
 [![Full-Stack Tests](https://img.shields.io/badge/Verification-103%2F103_Tests_Passed_(100%25)-10B981?style=for-the-badge)](docs/test-report.md)
@@ -14,23 +14,114 @@
 
 ---
 
+## 🎯 PANDUAN PENGUJIAN JURI (JURY QUICK EVALUATION GUIDE)
+
+> **Selamat Datang Dewan Juri Hackathon Joint UGM!**  
+> Kami telah menyiapkan **3 cara tercepat** bagi Bapak/Ibu Juri untuk langsung menguji fungsionalitas sistem RETIVA, mulai dari instalasi aplikasi mobile fisik, eksplorasi web portal klinis, hingga eksekusi pengujian otomatis.
+
+---
+
+### 📱 OPSI 1: Uji Aplikasi Mobile via Android APK (Paling Cepat & Nyata)
+
+File instalasi APK Flutter telah dibuild dalam mode **Release (ARM64)** dan siap diinstall di smartphone Android:
+
+* **File APK di Repository:** [`web/public/retiva-app.apk`](web/public/retiva-app.apk) (Ukuran: **22.8 MB**)
+* **Unduh via Web Portal:** Buka [`http://localhost:3000`](http://localhost:3000) lalu klik tombol **"Download APK"** pada banner beranda.
+* **Instalasi ke Smartphone (via ADB):**
+  ```bash
+  adb install web/public/retiva-app.apk
+  ```
+  *(Atau cukup kirim/copy file `retiva-app.apk` ke HP Android Anda dan tap untuk menginstall).*
+
+> 💡 **Smart Offline Demo Fallback:**  
+> Aplikasi mobile RETIVA dilengkapi fitur **Smart Offline Fallback**. Juri dapat langsung menguji alur lengkap skrining, Quality Gate penolakan foto buram, visualisasi heatmap Grad-CAM, hingga penerbitan SPK rujukan **bahkan tanpa perlu menyalakan backend**! Aplikasi otomatis beralih ke simulasi respon medis berstandar Perdami 2024 jika server backend tidak terdeteksi.
+
+---
+
+### 💻 OPSI 2: Akses Web Portal & Akun Demo Siap Pakai
+
+Buka browser ke alamat: **`http://localhost:3000`**
+
+Halaman awal mengusung antarmuka **Character Select Screen** modern retro-klinis. Juri dapat langsung memilih peran atau login menggunakan akun demo bawaan berikut:
+
+| Peran (Role) | Email Login | Kata Sandi | Deskripsi Fitur yang Dapat Diuji |
+| :--- | :--- | :---: | :--- |
+| **Administrator** | `admin@gmail.com` | `password` | Manajemen faskes rujukan, tata kelola model AI, registrasi pengguna, dan jejak audit non-repudiation. |
+| **Dokter Spesialis Mata (Sp.M)** | `dr.harianto@retiva.id` | `password` | **Antrean Human Review (`/reviews/pending`)**, telaah kasus *borderline*, overlay Grad-CAM, dan persetujuan resume medis digital. |
+| **Dokter Spesialis Mata (Sp.M 2)**| `dr.anindita@retiva.id` | `password` | Ajudikasi medis sekunder dan peninjauan resume rujukan FKRTL. |
+| **Nakes Puskesmas** | `nakes.siti@puskesmas.go.id` | `password` | Intake pasien dengan NIK 16 digit, skrining bilateral, dan penerbitan SPK rujukan ICD-10 (`E11.319`). |
+| **Pasien Demo** | NIK: `3404015508750001` | - | Data rekam medis longitudinal Bapak Sutrisno (riwayat skrining tahunan). |
+
+---
+
+### ⚡ OPSI 3: Menjalankan Sistem Lokal (1-Click / Terminal)
+
+#### Cara A: One-Click Windows Runner (Paling Praktis)
+1. Cukup klik ganda file **`start-local.bat`** di direktori utama repository.
+2. Skrip otomatis menyalin `.env`, menyalakan FastAPI AI Service (port 8003), dan Next.js Web Gateway (port 3000).
+
+#### Cara B: Docker Compose
+```bash
+cp .env.example web/.env
+docker compose up -d
+```
+
+#### Cara C: Eksekusi Manual via Terminal
+```bash
+# Terminal 1: Web & Gateway
+cd web
+npm install
+npx prisma generate
+npx prisma db push
+npm run dev
+
+# Terminal 2: AI Microservice
+cd ai-service
+python -m venv .venv
+.venv\Scripts\activate          # Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8003 --reload
+```
+
+---
+
+### 🧪 OPSI 4: Verifikasi Uji Otomatis (103/103 Tests Passed - 100%)
+
+Juri dapat memvalidasi seluruh invarian logika medis, keamanan rekam medis, dan kepatuhan regulasi secara instan:
+
+```bash
+# 1. Uji Master Core API (38 Invarian Medis, Zero-BLOB, dan Audit Trail)
+npm run test:master
+
+# 2. Uji Agentic AI Care Companion (25 Invarian Red-Flags, Glikemik Rendah, dan State Machine)
+npm run test:care-companion
+
+# 3. Uji Klien Mobile Flutter (20 Unit & Widget Tests)
+cd mobile && flutter test
+
+# 4. Uji FastAPI AI Service (20 Pytest: OpenCV Quality Gate & EfficientNet-B3)
+cd ai-service && pytest
+```
+
+---
+
 ## 📑 Daftar Isi
 
-1. [Ringkasan Eksekutif &amp; Latar Belakang Klinis](#1-ringkasan-eksekutif--latar-belakang-klinis)
-2. [Prinsip Medis &amp; Batasan Keselamatan Klinis](#2-prinsip-medis--batasan-keselamatan-klinis)
-3. [Alur Klinis &amp; 3 Cabang State Machine](#3-alur-klinis--3-cabang-state-machine)
-4. [Arsitektur Sistem &amp; Komponen Terintegrasi](#4-arsitektur-sistem--komponen-terintegrasi)
-5. [Agentic AI Care Companion (Pra &amp; Pasca-Konsultasi)](#5-agentic-ai-care-companion-pra--pasca-konsultasi)
+1. [Ringkasan Eksekutif & Latar Belakang Klinis](#1-ringkasan-eksekutif--latar-belakang-klinis)
+2. [Prinsip Medis & Batasan Keselamatan Klinis](#2-prinsip-medis--batasan-keselamatan-klinis)
+3. [Alur Klinis & 3 Cabang State Machine](#3-alur-klinis--3-cabang-state-machine)
+4. [Arsitektur Sistem & Komponen Terintegrasi](#4-arsitektur-sistem--komponen-terintegrasi)
+5. [Agentic AI Care Companion (Pra & Pasca-Konsultasi)](#5-agentic-ai-care-companion-pra--pasca-konsultasi)
 6. [Implementasi Klien Mobile Flutter (Figma 1:1 Mapping)](#6-implementasi-klien-mobile-flutter-figma-11-mapping)
-7. [Skala Klasifikasi ICDR &amp; Mesin Aturan Perdami/ADA 2024](#7-skala-klasifikasi-icdr--mesin-aturan-perdamiada-2024)
-8. [Algoritma AI, Kendali Mutu Citra &amp; Interpretabilitas](#8-algoritma-ai-kendali-mutu-citra--interpretabilitas)
+7. [Skala Klasifikasi ICDR & Mesin Aturan Perdami/ADA 2024](#7-skala-klasifikasi-icdr--mesin-aturan-perdamiada-2024)
+8. [Algoritma AI, Kendali Mutu Citra & Interpretabilitas](#8-algoritma-ai-kendali-mutu-citra--interpretabilitas)
 9. [Katalog REST API v1 Terpadu (53 Endpoints)](#9-katalog-rest-api-v1-terpadu-53-endpoints)
 10. [Struktur Direktori Repositori Monorepo](#10-struktur-direktori-repositori-monorepo)
-11. [Panduan Instalasi &amp; Eksekusi Sistem (Quickstart)](#11-panduan-instalasi--eksekusi-sistem-quickstart)
-12. [Panduan Deployment Produksi &amp; Setup SSL Otomatis](#12-panduan-deployment-produksi--setup-ssl-otomatis)
+11. [Panduan Instalasi & Eksekusi Sistem (Quickstart)](#11-panduan-instalasi--eksekusi-sistem-quickstart)
+12. [Panduan Deployment Produksi & Setup SSL Otomatis](#12-panduan-deployment-produksi--setup-ssl-otomatis)
 13. [Verifikasi Otomatis Menyeluruh (Full-Stack 103/103 Passed)](#13-verifikasi-otomatis-menyeluruh-full-stack-103103-passed)
-14. [Kepatuhan Regulasi &amp; Standar Keamanan Medis](#14-kepatuhan-regulasi--standar-keamanan-medis)
-15. [Panduan Demonstrasi &amp; Skenario Uji Klinis](#15-panduan-demonstrasi--skenario-uji-klinis)
+14. [Kepatuhan Regulasi & Standar Keamanan Medis](#14-kepatuhan-regulasi--standar-keamanan-medis)
+15. [Panduan Demonstrasi & Skenario Uji Klinis](#15-panduan-demonstrasi--skenario-uji-klinis)
 16. [Indeks Dokumentasi Lengkap Proyek](#16-indeks-dokumentasi-lengkap-proyek)
 17. [Lisensi dan Hak Cipta](#17-lisensi-dan-hak-cipta)
 
@@ -51,8 +142,8 @@
 
 ## 2. Prinsip Medis & Batasan Keselamatan Klinis
 
-> ⚠️ **Pernyataan Batasan Klinis (Clinical Safety Mandate):**
-> **RETIVA adalah sistem pendukung keputusan penapisan (Screening Decision Support Tool), BUKAN alat penegak diagnosis definitif otonom, dan BUKAN pengganti dokter spesialis mata (Sp.M).**
+> ⚠️ **Pernyataan Batasan Klinis (Clinical Safety Mandate):**  
+> **RETIVA adalah sistem pendukung keputusan penapisan (Screening Decision Support Tool), BUKAN alat penegak diagnosis definitif otonom, dan BUKAN pengganti dokter spesialis mata (Sp.M).**  
 > Keputusan terapeutik, tindakan operatif, dan diagnosis definitif rekam medis tetap berada sepenuhnya di bawah tanggung jawab dokter yang memiliki Surat Izin Praktik (SIP) sah.
 
 ### Prinsip Utama Arsitektur Medis:
@@ -181,7 +272,7 @@ RETIVA mengadopsi pola **Clean Architecture (Ports & Adapters / Hexagonal Archit
 
 1. **Aplikasi Mobile Tenaga Kesehatan ([`mobile/`](mobile/README.md))**:
    - Dibangun dengan Flutter (Dart 3.x), mereplikasi 100% rancangan Figma (400 × 854 px) untuk kader dan perawat FKTP.
-   - **Multi-Environment Toggle**: Mendukung peralihan instan ke Subdomain HTTPS Resmi (`https://hackathon.mataceria.my.id`), VPS IP, Wi-Fi Lokal Laptop, Android Emulator, dan Fallback Offline Demo.
+   - **Multi-Environment Toggle**: Mendukung peralihan instan ke Subdomain HTTPS Resmi, VPS IP, Wi-Fi Lokal Laptop, Android Emulator, dan Fallback Offline Demo.
    - **Workstation Lengkap**: Penampil Grad-CAM interaktif (4.5x pinch-to-zoom, slider opasitas kontinu, grid anatomi), modal intake pasien NIK 16 digit, dan penerbitan SPK rujukan siap cetak/PDF.
 2. **Web Portal & API Gateway Terpadu ([`web/`](web/README.md))**:
    - Next.js 14 App Router, React 18, TypeScript (Strict Mode).
@@ -217,30 +308,30 @@ RETIVA melangkah lebih jauh dari sekadar penapisan citra dengan menghadirkan **A
 
 ## 6. Implementasi Klien Mobile Flutter (Figma 1:1 Mapping)
 
-| Layar / Frame Figma                       | Deskripsi Fungsional Medis                                                                                                                              | File Implementasi Flutter                                                                                     |
-| :---------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------ |
-| **`01. Homepage`**                | Beranda operasional nakes: ringkasan metrik skrining harian, panduan Perdami 2024, tombol skrining bilateral, dan navigasi cepat.                       | [`home_screen.dart`](mobile/lib/presentation/screens/home_screen.dart)                                       |
-| **`02 & 03. Upload I & II`**      | Pemilihan mata bilateral (Mata Kanan`OD` vs Mata Kiri `OS`), retikel optik sudut pandang 45° FOV, dan integrasi kamera/galeri.                     | [`upload_fundus_screen.dart`](mobile/lib/presentation/screens/upload_fundus_screen.dart)                     |
-| **`04 & 05. Kualitas Jelas`**     | Animasi pemindaian kendali mutu: Ketajaman Laplacian (`>= 0.40`), Pencahayaan Kanal Hijau, dan Cakupan FOV Makula.                                    | [`quality_scanning_screen.dart`](mobile/lib/presentation/screens/quality_scanning_screen.dart)               |
-| **`05. Kualitas Buram (Retake)`** | **Branch Retake**: Penolakan citra buram/gelap, metrik kegagalan mutu, panduan koreksi jarak lensa bagi nakes, dan tombol retake.                 | [`quality_failed_retake_screen.dart`](mobile/lib/presentation/screens/quality_failed_retake_screen.dart)     |
-| **`06–09. Analisis AI`**         | Tahapan inferensi konvolusi EfficientNet-B3 5-Class ICDR dan evaluasi ambang batas keandalan (*Reliability Gate*).                                    | [`ai_analyzing_screen.dart`](mobile/lib/presentation/screens/ai_analyzing_screen.dart)                       |
-| **`10 & 11. Human Review`**       | **Branch Human Review**: Penanganan kasus reliabilitas *borderline* (< 85%), sistem menahan prediksi dan mengalihkan ke antrean spesialis Sp.M. | [`human_review_pending_screen.dart`](mobile/lib/presentation/screens/human_review_pending_screen.dart)       |
-| **`11–13. Hasil & Grad-CAM`**    | Kartu derajat ICDR (Derajat 0–4), skor keyakinan, diagram distribusi probabilitas, dan penampil interaktif Heatmap Grad-CAM.                           | [`screening_result_screen.dart`](mobile/lib/presentation/screens/screening_result_screen.dart)               |
-| **`14. Tindakan Lanjutan`**       | Rekomendasi interval Perdami/ADA 2024 & pencocokan faskes rujukan sekunder/tersier terdekat (Haversine & BPJS Aktif).                                   | [`clinical_recommendation_screen.dart`](mobile/lib/presentation/screens/clinical_recommendation_screen.dart) |
-| **`15 & 16. Penerbitan SPK`**     | Penerbitan Surat Pengantar Rujukan (SPK) elektronik resmi berstandar ICD-10 (`E11.319`) siap cetak/unduh PDF.                                         | [`referral_letter_screen.dart`](mobile/lib/presentation/screens/referral_letter_screen.dart)                 |
-| **`17. Riwayat Pasien`**          | Pencarian NIK 16 digit pasien dan timeline visual longitudinal progresivitas lesi retina tahun ke tahun.                                                | [`patient_history_screen.dart`](mobile/lib/presentation/screens/patient_history_screen.dart)                 |
+| Layar / Frame Figma | Deskripsi Fungsional Medis | File Implementasi Flutter |
+| :--- | :--- | :--- |
+| **`01. Homepage`** | Beranda operasional nakes: ringkasan metrik skrining harian, panduan Perdami 2024, tombol skrining bilateral, dan navigasi cepat. | [`home_screen.dart`](mobile/lib/presentation/screens/home_screen.dart) |
+| **`02 & 03. Upload I & II`** | Pemilihan mata bilateral (Mata Kanan `OD` vs Mata Kiri `OS`), retikel optik sudut pandang 45° FOV, dan integrasi kamera/galeri. | [`upload_fundus_screen.dart`](mobile/lib/presentation/screens/upload_fundus_screen.dart) |
+| **`04 & 05. Kualitas Jelas`** | Animasi pemindaian kendali mutu: Ketajaman Laplacian (`>= 0.40`), Pencahayaan Kanal Hijau, dan Cakupan FOV Makula. | [`quality_scanning_screen.dart`](mobile/lib/presentation/screens/quality_scanning_screen.dart) |
+| **`05. Kualitas Buram (Retake)`** | **Branch Retake**: Penolakan citra buram/gelap, metrik kegagalan mutu, panduan koreksi jarak lensa bagi nakes, dan tombol retake. | [`quality_failed_retake_screen.dart`](mobile/lib/presentation/screens/quality_failed_retake_screen.dart) |
+| **`06–09. Analisis AI`** | Tahapan inferensi konvolusi EfficientNet-B3 5-Class ICDR dan evaluasi ambang batas keandalan (*Reliability Gate*). | [`ai_analyzing_screen.dart`](mobile/lib/presentation/screens/ai_analyzing_screen.dart) |
+| **`10 & 11. Human Review`** | **Branch Human Review**: Penanganan kasus reliabilitas *borderline* (< 85%), sistem menahan prediksi dan mengalihkan ke antrean spesialis Sp.M. | [`human_review_pending_screen.dart`](mobile/lib/presentation/screens/human_review_pending_screen.dart) |
+| **`11–13. Hasil & Grad-CAM`** | Kartu derajat ICDR (Derajat 0–4), skor keyakinan, diagram distribusi probabilitas, dan penampil interaktif Heatmap Grad-CAM. | [`screening_result_screen.dart`](mobile/lib/presentation/screens/screening_result_screen.dart) |
+| **`14. Tindakan Lanjutan`** | Rekomendasi interval Perdami/ADA 2024 & pencocokan faskes rujukan sekunder/tersier terdekat (Haversine & BPJS Aktif). | [`clinical_recommendation_screen.dart`](mobile/lib/presentation/screens/clinical_recommendation_screen.dart) |
+| **`15 & 16. Penerbitan SPK`** | Penerbitan Surat Pengantar Rujukan (SPK) elektronik resmi berstandar ICD-10 (`E11.319`) siap cetak/unduh PDF. | [`referral_letter_screen.dart`](mobile/lib/presentation/screens/referral_letter_screen.dart) |
+| **`17. Riwayat Pasien`** | Pencarian NIK 16 digit pasien dan timeline visual longitudinal progresivitas lesi retina tahun ke tahun. | [`patient_history_screen.dart`](mobile/lib/presentation/screens/patient_history_screen.dart) |
 
 ---
 
 ## 7. Skala Klasifikasi ICDR & Mesin Aturan Perdami/ADA 2024
 
-| Derajat ICDR | Istilah Medis           | Temuan Patologis Khas Funduskopi                                                                                             | Risiko Progresivitas | Tindakan & Rekomendasi Alur (Perdami & ADA 2024)                                                                                       |   Urgensi   | Kode ICD-10 |
-| :----------: | :---------------------- | :--------------------------------------------------------------------------------------------------------------------------- | :------------------: | :------------------------------------------------------------------------------------------------------------------------------------- | :----------: | :---------: |
-| **0** | **No DR**         | Tidak ditemukan lesi mikroretina; makula dan diskus optikus tenang.                                                          |     < 5% / tahun     | Skrining ulang rutin tahunan (12 bulan) di FKTP; kendali glikemik & HbA1c standar.                                                     |   `LOW`   |  `E11.9`  |
-| **1** | **Mild NPDR**     | Mikroaneurisma terisolasi fokal; tanpa eksudat atau perdarahan luas.                                                         |  5% – 15% / tahun  | Monitoring berkala 6–12 bulan di FKTP; konseling gaya hidup dan optimalisasi terapi DM.                                               |   `LOW`   | `E11.319` |
-| **2** | **Moderate NPDR** | Mikroaneurisma multipel, perdarahan bercak (*dot-blot*), *cotton-wool spots*, belum memenuhi kriteria 4-2-1.             |  15% – 27% / tahun  | Rujukan elektif ke Dokter Spesialis Mata (Sp.M) di FKRTL dalam kurun 3–6 bulan; evaluasi funduskopi lanjutan.                         |  `MEDIUM`  | `E11.319` |
-| **3** | **Severe NPDR**   | Memenuhi kriteria**4-2-1**: (a) Perdarahan berat 4 kuadran; (b) *Venous beading* 2 kuadran; atau (c) IRMA 1 kuadran. |  50% – 75% / tahun  | **Rujukan Cepat (2–4 minggu)** ke Spesialis Retina FKRTL; evaluasi fotokoagulasi laser argon panretina (PRP).                   |   `HIGH`   | `E11.319` |
-| **4** | **PDR**           | Neovaskularisasi retina/diskus (NVD/NVE), perdarahan vitreus pra-retina, atau ablasio retina traksional.                     |    > 75% / tahun    | **Rujukan Darurat (< 1–2 minggu)** ke Pusat Rujukan Mata Tersier; intervensi anti-VEGF intravitreal atau vitreoretinal surgery. | `CRITICAL` | `E11.359` |
+| Derajat ICDR | Istilah Medis | Temuan Patologis Khas Funduskopi | Risiko Progresivitas | Tindakan & Rekomendasi Alur (Perdami & ADA 2024) | Urgensi | Kode ICD-10 |
+| :---: | :--- | :--- | :---: | :--- | :---: | :---: |
+| **0** | **No DR** | Tidak ditemukan lesi mikroretina; makula dan diskus optikus tenang. | < 5% / tahun | Skrining ulang rutin tahunan (12 bulan) di FKTP; kendali glikemik & HbA1c standar. | `LOW` | `E11.9` |
+| **1** | **Mild NPDR** | Mikroaneurisma terisolasi fokal; tanpa eksudat atau perdarahan luas. | 5% – 15% / tahun | Monitoring berkala 6–12 bulan di FKTP; konseling gaya hidup dan optimalisasi terapi DM. | `LOW` | `E11.319` |
+| **2** | **Moderate NPDR** | Mikroaneurisma multipel, perdarahan bercak (*dot-blot*), *cotton-wool spots*, belum memenuhi kriteria 4-2-1. | 15% – 27% / tahun | Rujukan elektif ke Dokter Spesialis Mata (Sp.M) di FKRTL dalam kurun 3–6 bulan; evaluasi funduskopi lanjutan. | `MEDIUM` | `E11.319` |
+| **3** | **Severe NPDR** | Memenuhi kriteria **4-2-1**: (a) Perdarahan berat 4 kuadran; (b) *Venous beading* 2 kuadran; atau (c) IRMA 1 kuadran. | 50% – 75% / tahun | **Rujukan Cepat (2–4 minggu)** ke Spesialis Retina FKRTL; evaluasi fotokoagulasi laser argon panretina (PRP). | `HIGH` | `E11.319` |
+| **4** | **PDR** | Neovaskularisasi retina/diskus (NVD/NVE), perdarahan vitreus pra-retina, atau ablasio retina traksional. | > 75% / tahun | **Rujukan Darurat (< 1–2 minggu)** ke Pusat Rujukan Mata Tersier; intervensi anti-VEGF intravitreal atau vitreoretinal surgery. | `CRITICAL` | `E11.359` |
 
 ---
 
@@ -302,6 +393,7 @@ retiva-monorepo/
 │   ├── domain/                      # Clean Architecture: Pure Entities, Rules, & Care Companion
 │   ├── infrastructure/              # Adapters: Prisma PostgreSQL, S3 Storage, Security, AI Client
 │   ├── prisma/schema.prisma         # 18 Model Skema Relasional Medis Ternormalisasi
+│   ├── public/                      # Static assets & retiva-app.apk release binary
 │   ├── README.md                    # Dokumentasi subsistem Web & API Gateway
 │   └── scripts/                     # Test Suites (test-master.ts, test-care-companion.ts)
 │
@@ -326,65 +418,13 @@ retiva-monorepo/
 
 ## 11. Panduan Instalasi & Eksekusi Sistem (Quickstart)
 
-| Parameter                    | 🐳 Opsi A: Menggunakan Docker                | 💻 Opsi B: Tanpa Docker (Native Local)      |
-| :--------------------------- | :------------------------------------------- | :------------------------------------------ |
-| **Kebutuhan RAM**      | ~3.5 GB - 6 GB (Docker Engine + 4 Kontainer) | ~1 GB - 1.5 GB (Sangat Ringan)              |
-| **Instalasi Software** | Cukup Docker Desktop                         | Node.js, Python, & PostgreSQL (Lokal/Cloud) |
-| **Database**           | Otomatis terpasang di kontainer PostgreSQL   | PostgreSQL lokal atau Cloud (Neon/Supabase) |
-| **Object Storage**     | MinIO S3 otomatis dikontainerisasi           | Built-in Zero-BLOB Presigned Mock bawaan    |
-| **Kelebihan**          | 100% identik dengan environment produksi     | Cepat, hemat resource, debugging instan     |
-
-### 11.1 Opsi A: Menjalankan Menggunakan Docker
-
-#### Cara 1: One-Click Runner (Windows)
-
-Cukup klik dua kali file **`start-docker.bat`**.
-
-#### Cara 2: Terminal / CLI
-
-```bash
-# Salin konfigurasi environment
-cp .env.example web/.env
-
-# Nyalakan seluruh kontainer
-docker compose up -d
-
-# Periksa status
-docker compose ps
-```
-
-* 🌐 Web Portal & Gateway: `http://localhost:3000`
-* 🤖 AI Service: `http://localhost:8003/docs`
-* 🗄️ MinIO Console: `http://localhost:9001` (`minioadmin` / `minioadminpassword`)
-
-### 11.2 Opsi B: Menjalankan Tanpa Docker (Native Local Mode)
-
-#### Cara 1: One-Click Runner (Windows)
-
-Cukup klik dua kali file **`start-local.bat`**.
-
-#### Cara 2: Terminal Manual
-
-```bash
-# Terminal 1: Inisialisasi Database
-cd web
-npm install
-npx prisma generate
-npx prisma db push
-npm run dev
-
-# Terminal 2: FastAPI AI Service
-cd ai-service
-python -m venv .venv
-.venv\Scripts\activate   # Linux: source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --host 127.0.0.1 --port 8003 --reload
-
-# Terminal 3: Flutter Mobile (Opsional)
-cd mobile
-flutter pub get
-flutter run -d chrome
-```
+| Parameter | 🐳 Opsi A: Menggunakan Docker | 💻 Opsi B: Tanpa Docker (Native Local) |
+| :--- | :--- | :--- |
+| **Kebutuhan RAM** | ~3.5 GB - 6 GB (Docker Engine + 4 Kontainer) | ~1 GB - 1.5 GB (Sangat Ringan) |
+| **Instalasi Software** | Cukup Docker Desktop | Node.js (>= 18), Python (>= 3.10), & PostgreSQL |
+| **Database** | Otomatis terpasang di kontainer PostgreSQL | PostgreSQL lokal atau Cloud (Neon/Supabase) |
+| **Object Storage** | MinIO S3 otomatis dikontainerisasi | Built-in Zero-BLOB Presigned Mock bawaan |
+| **Kelebihan** | 100% identik dengan environment produksi | Cepat, hemat resource, debugging instan |
 
 ---
 
@@ -392,27 +432,16 @@ flutter run -d chrome
 
 RETIVA siap dideploy ke server VPS (Ubuntu 22.04 / 24.04 LTS) dengan sertifikat SSL resmi Let's Encrypt:
 
-### 1. Inisialisasi Server & Environment Produksi:
-
 ```bash
-# Salin template environment produksi
+# 1. Salin template environment produksi
 cp .env.production.example .env.production
-nano .env.production  # Sesuaikan kredensial database & kunci rahasia
-```
 
-### 2. Jalankan Deployment Mandiri:
-
-```bash
+# 2. Jalankan Deployment Mandiri
 bash deploy.sh
-```
 
-### 3. Aktifkan Sertifikat SSL HTTPS Let's Encrypt:
-
-```bash
+# 3. Aktifkan Sertifikat SSL HTTPS Let's Encrypt
 sudo bash setup-ssl.sh
 ```
-
-Skrip ini akan otomatis memasang Certbot, menerbitkan sertifikat SSL resmi untuk domain `hackathon.mataceria.my.id`, mengonfigurasi Nginx HTTP/2 reverse proxy, dan mengaktifkan auto-renewal cron job.
 
 ---
 
@@ -466,27 +495,33 @@ Platform RETIVA dilengkapi cakupan uji otomatis komprehensif pada seluruh subsis
 
 ## 15. Panduan Demonstrasi & Skenario Uji Klinis
 
-* **Skenario 1 (Cabang A: Normal / Autonomous)**: Unggah foto fundus tajam $\to$ Lolos Quality Gate $\to$ Hasil Moderate NPDR Derajat 2 $\to$ Rekomendasi rujukan elektif Perdami 3-6 bulan $\to$ Penerbitan SPK rujukan ICD-10 (`E11.319`).
-* **Skenario 2 (Cabang B: Retake Foto / Quality Gate Failure)**: Unggah foto fundus kabur/goyang $\to$ Sistem menolak memprediksi (Laplacian $< 0.40$) $\to$ Kartu edukasi jarak lensa bagi nakes $\to$ Tombol Ambil Ulang Foto.
-* **Skenario 3 (Cabang C: Human Review / Reliability Escalation)**: Kasus borderline ($\text{confidence} < 85\%$) $\to$ Sistem menahan hasil dari nakes $\to$ Masuk ke antrean web dokter spesialis Sp.M (`/reviews/pending`) $\to$ Sp.M mengadjudikasi diagnosis akhir dengan panduan heatmap Grad-CAM.
-* **Skenario 4 (Agentic AI Care Companion)**: Deteksi gejala darurat mata (kilatan cahaya/tirai hitam) seketika memicu alarm rujukan IGD RS Mata $\to$ Edukasi nutrisi harian rendah GI ramah budget IDR pasca-konfirmasi resume dokter.
+Juri dapat mengikuti 4 skenario klinis teruji berikut untuk mengevaluasi sistem secara bertahap:
+
+* **Skenario 1 (Cabang A: Normal / Autonomous)**:  
+  Unggah foto fundus tajam $\to$ Lolos Quality Gate (Laplacian $\ge 0.40$) $\to$ Hasil Moderate NPDR Derajat 2 $\to$ Rekomendasi rujukan elektif Perdami 3-6 bulan $\to$ Penerbitan SPK rujukan berstandar ICD-10 (`E11.319`).
+* **Skenario 2 (Cabang B: Retake Foto / Quality Gate Failure)**:  
+  Unggah foto fundus kabur/goyang $\to$ Sistem menolak memprediksi (Laplacian $< 0.40$) $\to$ Muncul kartu edukasi koreksi jarak lensa bagi nakes $\to$ Tombol *Ambil Ulang Foto*.
+* **Skenario 3 (Cabang C: Human Review / Reliability Escalation)**:  
+  Kasus borderline ($\text{confidence} < 85\%$) $\to$ Sistem menahan hasil dari nakes $\to$ Masuk ke antrean web dokter spesialis Sp.M (`/reviews/pending`) $\to$ Dokter Sp.M mengadjudikasi diagnosis akhir dengan panduan heatmap Grad-CAM interaktif.
+* **Skenario 4 (Agentic AI Care Companion)**:  
+  Deteksi gejala darurat mata (kilatan cahaya/tirai hitam) seketika memicu alarm rujukan IGD RS Mata $\to$ Edukasi nutrisi harian rendah GI ramah budget IDR pasca-konfirmasi resume dokter spesialis.
 
 ---
 
 ## 16. Indeks Dokumentasi Lengkap Proyek
 
-* 🌐 **[Dokumentasi Web &amp; Core API Gateway (web/README.md)](web/README.md)**: Arsitektur Next.js 14, 53 REST API endpoints, modul Care Companion, skema Prisma, dan panduan pengujian.
+* 🌐 **[Dokumentasi Web & Core API Gateway (web/README.md)](web/README.md)**: Arsitektur Next.js 14, 53 REST API endpoints, modul Care Companion, skema Prisma, dan panduan pengujian.
 * 📱 **[Dokumentasi Klien Mobile Flutter (mobile/README.md)](mobile/README.md)**: Multi-environment toggle, pemetaan 10 layar Figma, dan workstation klinis nakes.
 * 🧠 **[Dokumentasi AI Microservice (ai-service/README.md)](ai-service/README.md)**: Pipeline OpenCV Quality Gate, inferensi EfficientNet-B3 5-kelas, Reliability Gate, dan Grad-CAM.
-* 🩺 **[Spesifikasi Klinis &amp; CDSS (docs/clinical/CLINICAL_SPECIFICATION.md)](docs/clinical/CLINICAL_SPECIFICATION.md)**: Konsensus Perdami 2024, skala keparahan ICDR, formula kendali mutu, dan aturan CDSS.
+* 🩺 **[Spesifikasi Klinis & CDSS (docs/clinical/CLINICAL_SPECIFICATION.md)](docs/clinical/CLINICAL_SPECIFICATION.md)**: Konsensus Perdami 2024, skala keparahan ICDR, formula kendali mutu, dan aturan CDSS.
 * 🏛️ **[Spesifikasi Arsitektur Sistem (docs/architecture/ARCHITECTURE.md)](docs/architecture/ARCHITECTURE.md)**: Cetak biru Clean Architecture, diagram sekuensial, dan ports & adapters.
 * 📜 **[Kontrak API Kanonikal (docs/api-contracts.md)](docs/api-contracts.md)**: Spesifikasi DTO, envelope response, dan integrasi antar subsistem.
 * 🧪 **[Laporan Pengujian Terpadu (docs/test-report.md)](docs/test-report.md)**: Log eksekusi dan bukti verifikasi 100% lulus di seluruh stack.
-* 🛡️ **[Panduan Keamanan &amp; Regulasi (docs/security/SECURITY_COMPLIANCE.md)](docs/security/SECURITY_COMPLIANCE.md)**: Kepatuhan UU PDP No. 27/2022 & Permenkes No. 24/2022.
+* 🛡️ **[Panduan Keamanan & Regulasi (docs/security/SECURITY_COMPLIANCE.md)](docs/security/SECURITY_COMPLIANCE.md)**: Kepatuhan UU PDP No. 27/2022 & Permenkes No. 24/2022.
 
 ---
 
 ## 17. Lisensi dan Hak Cipta
 
-RETIVA dikembangkan untuk kompetisi Hackathon dan inovasi transformasi digital kesehatan nasional Indonesia.
+RETIVA dikembangkan untuk kompetisi Hackathon dan inovasi transformasi digital kesehatan nasional Indonesia.  
 Hak cipta © 2026 Tim Pengembang RETIVA. Seluruh hak cipta dilindungi undang-undang.
