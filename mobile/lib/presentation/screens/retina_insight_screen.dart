@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/utils/clinical_helpers.dart';
 import '../../data/models/screening_result_model.dart';
 import '../../data/models/patient_model.dart';
+import '../widgets/notification_bell_widget.dart';
 import 'clinical_recommendation_screen.dart';
 
 class RetinaInsightScreen extends StatefulWidget {
@@ -109,15 +110,18 @@ class _RetinaInsightScreenState extends State<RetinaInsightScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'Insight Retina',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF246BFD),
+          const Expanded(
+            child: Text(
+              'Insight Retina',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF246BFD),
+              ),
             ),
           ),
+          const NotificationBellWidget(),
         ],
       ),
     );

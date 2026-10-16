@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/constants/app_colors.dart';
-import 'presentation/screens/home_screen.dart';
+import 'presentation/screens/auth_welcome_screen.dart';
 import 'presentation/screens/daily_care_agenda_screen.dart';
 import 'presentation/screens/daily_health_checkin_screen.dart';
 import 'presentation/screens/smart_meal_detail_screen.dart';
@@ -187,7 +187,7 @@ class _RetivaMobileAppState extends State<RetivaMobileApp> {
         ),
         fontFamily: 'Inter',
       ),
-      home: const HomeScreen(title: 'RETIVA Mobile'),
+      home: const AuthWelcomeScreen(),
     );
   }
 }

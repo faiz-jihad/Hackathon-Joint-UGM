@@ -14,6 +14,7 @@ import {
   AlertTriangleIcon,
   MailIcon,
   PhoneIcon,
+  HospitalIcon,
 } from './Icons';
 
 interface DbUser {
@@ -24,6 +25,8 @@ interface DbUser {
   phoneNumber?: string | null;
   isActive: boolean;
   facilityId?: string | null;
+  hospital?: string;
+  facilityType?: string;
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string | null;
@@ -41,12 +44,33 @@ interface RoleDefinition {
   badgeBorder: string;
 }
 
+interface FacilityOption {
+  id: string;
+  name: string;
+  category: 'FKTP' | 'FKRTL';
+  categoryLabel?: string;
+  address?: string;
+}
+
+const DEFAULT_FACILITIES: FacilityOption[] = [
+  { id: 'fac-mlati-02', name: 'Puskesmas Mlati II (FKTP)', category: 'FKTP', categoryLabel: 'FKTP (Puskesmas & Klinik Tingkat Pertama)' },
+  { id: 'fac-sleman-01', name: 'Puskesmas Sleman (FKTP)', category: 'FKTP', categoryLabel: 'FKTP (Puskesmas & Klinik Tingkat Pertama)' },
+  { id: 'fac-depok-01', name: 'Puskesmas Depok I (FKTP)', category: 'FKTP', categoryLabel: 'FKTP (Puskesmas & Klinik Tingkat Pertama)' },
+  { id: 'fac-gamping-01', name: 'Puskesmas Gamping I (FKTP)', category: 'FKTP', categoryLabel: 'FKTP (Puskesmas & Klinik Tingkat Pertama)' },
+  { id: 'fac-yap-01', name: 'RS Mata Dr. Yap Yogyakarta', category: 'FKRTL', categoryLabel: 'FKRTL (RS Khusus Mata Tipe B)' },
+  { id: 'fac-sardjito-01', name: 'RSUP Dr. Sardjito (Pusat Subspesialis Retina FKRTL)', category: 'FKRTL', categoryLabel: 'FKRTL (Rujukan Nasional Tipe A)' },
+  { id: 'fac-rsa-ugm-01', name: 'RS Akademik UGM (RSA UGM)', category: 'FKRTL', categoryLabel: 'FKRTL (RS Rujukan Tipe B)' },
+  { id: 'fac-rsud-sleman-01', name: 'RSUD Sleman (FKRTL - Tipe B)', category: 'FKRTL', categoryLabel: 'FKRTL (RSUD Rujukan Tipe B)' },
+  { id: 'fac-bethesda-01', name: 'RS Bethesda Yogyakarta (FKRTL - Tipe B)', category: 'FKRTL', categoryLabel: 'FKRTL (RS Rujukan Tipe B)' },
+];
+
 interface UsersMasterViewProps {
   initialTab?: 'users' | 'roles';
 }
 
 export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) {
   const [users, setUsers] = useState<DbUser[]>([]);
+  const [facilities, setFacilities] = useState<FacilityOption[]>(DEFAULT_FACILITIES);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
@@ -67,6 +91,8 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
     phoneNumber: '',
     role: 'ADMIN',
     password: '',
+    hospital: 'Puskesmas Mlati II (FKTP)',
+    facilityType: 'FKTP Sleman',
     isActive: true,
   });
 
@@ -126,6 +152,35 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
     },
   ];
 
+  const fetchFacilities = async () => {
+    try {
+      const res = await fetch('/api/v1/master/facilities');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          const mapped: FacilityOption[] = json.data.map((f: any) => {
+            const isFKTP =
+              f.category === 'FKTP' ||
+              f.name.toLowerCase().includes('puskesmas') ||
+              f.name.toLowerCase().includes('klinik') ||
+              f.name.toLowerCase().includes('fktp');
+            return {
+              id: f.id,
+              name: f.name,
+              category: isFKTP ? 'FKTP' : 'FKRTL',
+              categoryLabel: isFKTP ? 'FKTP (Puskesmas & Klinik Tingkat Pertama)' : 'FKRTL (Rumah Sakit Rujukan Vitreoretina)',
+              address: f.address,
+            };
+          });
+          setFacilities(mapped);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Gagal memuat faskes master dari API:', e);
+    }
+  };
+
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
@@ -133,7 +188,12 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
-          setUsers(json.data);
+          const mapped = json.data.map((u: any) => ({
+            ...u,
+            hospital: u.hospital || (u.role === 'DOKTER' || u.role === 'OPHTHALMOLOGIST' ? 'RS Mata Dr. Yap Yogyakarta' : 'Puskesmas Mlati II (FKTP)'),
+            facilityType: u.facilityType || (u.hospital?.includes('FKTP') || u.hospital?.includes('Puskesmas') ? 'FKTP Sleman' : 'FKRTL Rujukan'),
+          }));
+          setUsers(mapped);
           return;
         }
       }
@@ -152,6 +212,8 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
         role: 'ADMIN',
         phoneNumber: '081234567890',
         isActive: true,
+        hospital: 'Puskesmas Mlati II (FKTP)',
+        facilityType: 'FKTP Sleman',
         createdAt: '2026-09-28T02:59:47.104Z',
       },
       {
@@ -161,13 +223,27 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
         role: 'ADMIN',
         phoneNumber: '081298765432',
         isActive: true,
+        hospital: 'Puskesmas Mlati II (FKTP)',
+        facilityType: 'FKTP Sleman',
         createdAt: '2026-09-28T02:59:47.218Z',
+      },
+      {
+        id: 'e1075f92-563d-4cba-a567-33fa123011a9',
+        email: 'tioramadhan3106@gmail.com',
+        fullName: 'dr. Yunani Setyandriana, Sp.M',
+        role: 'DOKTER',
+        phoneNumber: '0895358641445',
+        isActive: true,
+        hospital: 'RS Mata Dr. Yap Yogyakarta',
+        facilityType: 'RS Khusus Mata Tipe B',
+        createdAt: '2026-09-28T03:00:00.000Z',
       },
     ]);
   };
 
   useEffect(() => {
     fetchUsers();
+    fetchFacilities();
   }, []);
 
   const showAlert = (message: string, type: 'success' | 'danger') => {
@@ -219,12 +295,18 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
   };
 
   const handleOpenAdd = () => {
+    const defaultFac = facilities.find((f) => f.category === 'FKTP') || facilities[0];
+    const defaultHosp = defaultFac ? defaultFac.name : 'Puskesmas Mlati II (FKTP)';
+    const defaultType = defaultFac ? (defaultFac.category === 'FKTP' ? 'FKTP Sleman' : 'FKRTL Rujukan') : 'FKTP Sleman';
+
     setFormData({
       fullName: '',
       email: '',
       phoneNumber: '',
       role: 'ADMIN',
       password: '',
+      hospital: defaultHosp,
+      facilityType: defaultType,
       isActive: true,
     });
     setIsAddModalOpen(true);
@@ -232,12 +314,21 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
 
   const handleOpenEdit = (user: DbUser) => {
     setEditingUser(user);
+    const roleUpper = formatRoleLabel(user.role).toUpperCase();
+    const defaultFac = roleUpper === 'DOKTER'
+      ? facilities.find((f) => f.category === 'FKRTL') || facilities[0]
+      : facilities.find((f) => f.category === 'FKTP') || facilities[0];
+    const defaultHosp = defaultFac ? defaultFac.name : 'Puskesmas Mlati II (FKTP)';
+    const defaultType = defaultFac ? (defaultFac.category === 'FKTP' ? 'FKTP Sleman' : 'FKRTL Rujukan') : 'FKTP Sleman';
+
     setFormData({
       fullName: user.fullName,
       email: user.email,
       phoneNumber: user.phoneNumber || '',
-      role: formatRoleLabel(user.role).toUpperCase(),
+      role: roleUpper,
       password: '',
+      hospital: user.hospital || defaultHosp,
+      facilityType: user.facilityType || defaultType,
       isActive: user.isActive,
     });
   };
@@ -258,6 +349,18 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        if (formData.hospital && (formData.role === 'ADMIN' || formData.role === 'DOKTER')) {
+          try {
+            localStorage.setItem(
+              'retiva_active_facility',
+              JSON.stringify({
+                name: formData.hospital,
+                type: formData.facilityType || (formData.role === 'DOKTER' ? 'RS Khusus Mata Tipe A' : 'FKTP Sleman'),
+              })
+            );
+            window.dispatchEvent(new Event('storage'));
+          } catch {}
+        }
         showAlert('Pengguna baru berhasil ditambahkan.', 'success');
         setIsAddModalOpen(false);
         fetchUsers();
@@ -284,6 +387,18 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        if (formData.hospital && (formData.role === 'ADMIN' || formData.role === 'DOKTER')) {
+          try {
+            localStorage.setItem(
+              'retiva_active_facility',
+              JSON.stringify({
+                name: formData.hospital,
+                type: formData.facilityType || (formData.role === 'DOKTER' ? 'RS Khusus Mata Tipe A' : 'FKTP Sleman'),
+              })
+            );
+            window.dispatchEvent(new Event('storage'));
+          } catch {}
+        }
         showAlert('Data pengguna berhasil diperbarui.', 'success');
         setEditingUser(null);
         fetchUsers();
@@ -937,6 +1052,19 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
                               {u.phoneNumber ? `Telepon: ${u.phoneNumber}` : 'Telepon: —'}
                             </span>
                           </div>
+                          {(roleLabel === 'Admin' || roleLabel === 'Dokter' || u.hospital) && (
+                            <div className="vcard-meta-row" style={{ marginTop: '0.45rem', paddingTop: '0.45rem', borderTop: '1px solid rgba(255,255,255,0.18)' }}>
+                              <HospitalIcon size={14} style={{ color: '#FFFFFF', flexShrink: 0 }} />
+                              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                                <span className="vcard-facility-name" style={{ fontSize: '0.82rem', fontWeight: 700, color: '#FFFFFF', display: 'block' }}>
+                                  {u.hospital || (roleLabel === 'Dokter' ? 'RS Mata Dr. Yap' : 'Puskesmas Mlati II')}
+                                </span>
+                                <span className="vcard-facility-sub" style={{ opacity: 0.9 }}>
+                                  {u.facilityType || (roleLabel === 'Dokter' ? 'RS Khusus Mata Tipe A' : 'FKTP Sleman')} • Tempat Bekerja
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* ID & Registered Date Box */}
@@ -1291,7 +1419,15 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
                     <select
                       className="form-control"
                       value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      onChange={(e) => {
+                        const newRole = e.target.value;
+                        const defFac = newRole === 'DOKTER' 
+                          ? facilities.find((f) => f.category === 'FKRTL') || facilities[0]
+                          : facilities.find((f) => f.category === 'FKTP') || facilities[0];
+                        const defHosp = defFac ? defFac.name : (newRole === 'DOKTER' ? 'RS Mata Dr. Yap Yogyakarta' : 'Puskesmas Mlati II (FKTP)');
+                        const defType = defFac ? (defFac.category === 'FKRTL' ? 'FKRTL Rujukan' : 'FKTP Sleman') : 'FKTP Sleman';
+                        setFormData({ ...formData, role: newRole, hospital: defHosp, facilityType: defType });
+                      }}
                     >
                       <option value="ADMIN">Admin</option>
                       <option value="DOKTER">Dokter</option>
@@ -1299,6 +1435,54 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
                     </select>
                   </div>
                 </div>
+
+                {(formData.role === 'ADMIN' || formData.role === 'DOKTER') && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                      Rumah Sakit / Faskes Tempat Bekerja <span style={{ color: '#EF4444' }}>*</span>
+                    </label>
+                    <select
+                      className="form-control"
+                      value={formData.hospital}
+                      onChange={(e) => {
+                        const hName = e.target.value;
+                        const selectedFac = facilities.find((f) => f.name === hName);
+                        const fType = selectedFac
+                          ? (selectedFac.category === 'FKTP'
+                              ? 'FKTP Sleman'
+                              : selectedFac.name.includes('Sardjito')
+                              ? 'RSUP Rujukan Nasional Tipe A'
+                              : selectedFac.name.includes('Yap')
+                              ? 'RS Khusus Mata Tipe B'
+                              : 'FKRTL Rujukan')
+                          : 'FKTP Sleman';
+                        setFormData({ ...formData, hospital: hName, facilityType: fType });
+                      }}
+                    >
+                      <optgroup label="FKTP (Puskesmas & Klinik Pratama Tingkat Pertama)">
+                        {facilities
+                          .filter((f) => f.category === 'FKTP')
+                          .map((f) => (
+                            <option key={f.id} value={f.name}>
+                              {f.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="FKRTL (Rumah Sakit Rujukan Vitreoretina & Khusus Mata)">
+                        {facilities
+                          .filter((f) => f.category === 'FKRTL')
+                          .map((f) => (
+                            <option key={f.id} value={f.name}>
+                              {f.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                    </select>
+                    <span style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.2rem', display: 'block' }}>
+                      Terhubung langsung dengan seluruh <strong>{facilities.length} faskes</strong> yang terdaftar di database.
+                    </span>
+                  </div>
+                )}
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
@@ -1445,7 +1629,15 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
                     <select
                       className="form-control"
                       value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      onChange={(e) => {
+                        const newRole = e.target.value;
+                        const defFac = newRole === 'DOKTER' 
+                          ? facilities.find((f) => f.category === 'FKRTL') || facilities[0]
+                          : facilities.find((f) => f.category === 'FKTP') || facilities[0];
+                        const defHosp = defFac ? defFac.name : (newRole === 'DOKTER' ? 'RS Mata Dr. Yap Yogyakarta' : 'Puskesmas Mlati II (FKTP)');
+                        const defType = defFac ? (defFac.category === 'FKRTL' ? 'FKRTL Rujukan' : 'FKTP Sleman') : 'FKTP Sleman';
+                        setFormData({ ...formData, role: newRole, hospital: defHosp, facilityType: defType });
+                      }}
                     >
                       <option value="ADMIN">Admin</option>
                       <option value="DOKTER">Dokter</option>
@@ -1453,6 +1645,54 @@ export function UsersMasterView({ initialTab = 'users' }: UsersMasterViewProps) 
                     </select>
                   </div>
                 </div>
+
+                {(formData.role === 'ADMIN' || formData.role === 'DOKTER') && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                      Rumah Sakit / Faskes Tempat Bekerja <span style={{ color: '#EF4444' }}>*</span>
+                    </label>
+                    <select
+                      className="form-control"
+                      value={formData.hospital}
+                      onChange={(e) => {
+                        const hName = e.target.value;
+                        const selectedFac = facilities.find((f) => f.name === hName);
+                        const fType = selectedFac
+                          ? (selectedFac.category === 'FKTP'
+                              ? 'FKTP Sleman'
+                              : selectedFac.name.includes('Sardjito')
+                              ? 'RSUP Rujukan Nasional Tipe A'
+                              : selectedFac.name.includes('Yap')
+                              ? 'RS Khusus Mata Tipe B'
+                              : 'FKRTL Rujukan')
+                          : 'FKTP Sleman';
+                        setFormData({ ...formData, hospital: hName, facilityType: fType });
+                      }}
+                    >
+                      <optgroup label="FKTP (Puskesmas & Klinik Pratama Tingkat Pertama)">
+                        {facilities
+                          .filter((f) => f.category === 'FKTP')
+                          .map((f) => (
+                            <option key={f.id} value={f.name}>
+                              {f.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="FKRTL (Rumah Sakit Rujukan Vitreoretina & Khusus Mata)">
+                        {facilities
+                          .filter((f) => f.category === 'FKRTL')
+                          .map((f) => (
+                            <option key={f.id} value={f.name}>
+                              {f.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                    </select>
+                    <span style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.2rem', display: 'block' }}>
+                      Terhubung langsung dengan seluruh <strong>{facilities.length} faskes</strong> yang terdaftar di database.
+                    </span>
+                  </div>
+                )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>

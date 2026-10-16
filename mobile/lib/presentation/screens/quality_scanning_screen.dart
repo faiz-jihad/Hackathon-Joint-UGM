@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
@@ -9,6 +8,7 @@ import '../../data/models/screening_result_model.dart';
 import '../../data/models/patient_model.dart';
 import 'quality_failed_retake_screen.dart';
 import 'ai_analyzing_screen.dart';
+import '../widgets/notification_bell_widget.dart';
 
 /// Screens 04 & 05: 04. Kualitas I/II & 05. Kualitas Jelas (Figma Frames 133:49, 133:478, & 85:1054)
 /// Authoritative 1:1 Implementation matching Figma source of truth.
@@ -18,14 +18,16 @@ class QualityScanningScreen extends StatefulWidget {
   final String eyePosition;
   final String demoBranch;
   final PatientModel? patient;
+  final String? filename;
 
   const QualityScanningScreen({
     super.key,
     this.imageFile,
     this.imageBytes,
     required this.eyePosition,
-    required this.demoBranch,
+    this.demoBranch = 'AUTO',
     this.patient,
+    this.filename,
   });
 
   @override
@@ -74,6 +76,8 @@ class _QualityScanningScreenState extends State<QualityScanningScreen> with Sing
       imageFile: widget.imageFile,
       imageBytes: widget.imageBytes,
       eyePosition: widget.eyePosition,
+      patientId: widget.patient?.id,
+      filename: widget.filename,
       simulateRetake: widget.demoBranch == 'RETAKE',
       simulateHumanReview: widget.demoBranch == 'HUMAN_REVIEW',
     );
@@ -83,31 +87,28 @@ class _QualityScanningScreenState extends State<QualityScanningScreen> with Sing
 
     if (mounted) {
       _progressTimer?.cancel();
+      // If quality check failed -> immediately navigate to Retake screen
+      if (!result.qualityOD.passed) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => QualityFailedRetakeScreen(
+              eyePosition: widget.eyePosition,
+              qualityResult: result.qualityOD,
+              screeningResult: result,
+              patient: widget.patient,
+              imageBytes: widget.imageBytes,
+            ),
+          ),
+        );
+        return;
+      }
+
       setState(() {
         _isEvaluating = false;
         _scanProgress = 1.0;
         _result = result;
       });
-
-      // If quality check failed -> navigate to Retake screen
-      if (!result.qualityOD.passed) {
-        Future.delayed(const Duration(milliseconds: 800), () {
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => QualityFailedRetakeScreen(
-                  eyePosition: widget.eyePosition,
-                  qualityResult: result.qualityOD,
-                  screeningResult: result,
-                  patient: widget.patient,
-                  imageBytes: widget.imageBytes,
-                ),
-              ),
-            );
-          }
-        });
-      }
     }
   }
 
@@ -123,6 +124,7 @@ class _QualityScanningScreenState extends State<QualityScanningScreen> with Sing
           demoBranch: widget.demoBranch,
           patient: widget.patient,
           imageBytes: widget.imageBytes,
+          imageFile: widget.imageFile,
         ),
       ),
     );
@@ -214,15 +216,18 @@ class _QualityScanningScreenState extends State<QualityScanningScreen> with Sing
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'Kualitas Foto Retina',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.figmaBlue,
+          const Expanded(
+            child: Text(
+              'Kualitas Foto Retina',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.figmaBlue,
+              ),
             ),
           ),
+          const NotificationBellWidget(),
         ],
       ),
     );
@@ -234,41 +239,48 @@ class _QualityScanningScreenState extends State<QualityScanningScreen> with Sing
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: const BoxDecoration(
-                color: AppColors.figmaBlue,
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Text(
-                  '2',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: 0.4,
+        Expanded(
+          child: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: const BoxDecoration(
+                  color: AppColors.figmaBlue,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text(
+                    '2',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 0.4,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 6),
-            const Text(
-              'Langkah 2 dari 4: Kualitas Citra',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.figmaBlueDark,
-                letterSpacing: 0.3,
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'Langkah 2 dari 4: Kualitas Citra',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.figmaBlueDark,
+                    letterSpacing: 0.3,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        const SizedBox(width: 8),
 
         // Step 2 is active (24px width in #0D47A1)
         Row(
@@ -568,16 +580,21 @@ class _QualityScanningScreenState extends State<QualityScanningScreen> with Sing
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.figmaTextHeading,
-                        letterSpacing: 0.26,
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.figmaTextHeading,
+                          letterSpacing: 0.26,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
@@ -630,16 +647,21 @@ class _QualityScanningScreenState extends State<QualityScanningScreen> with Sing
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'STATUS VALIDASI REALTIME',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.figmaBlueDark,
-                  letterSpacing: 0.28,
+              const Expanded(
+                child: Text(
+                  'STATUS VALIDASI REALTIME',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.figmaBlueDark,
+                    letterSpacing: 0.28,
+                  ),
                 ),
               ),
+              const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                 decoration: BoxDecoration(
@@ -726,20 +748,24 @@ class _QualityScanningScreenState extends State<QualityScanningScreen> with Sing
 
         const SizedBox(height: 8),
 
-        // 3 High Quality Verified Factors (Figma Node 92:1411, 92:1419, 92:1427)
+        // 3 High Quality Verified Factors (Dynamically driven by real image quality evaluation)
         _buildQualityFactorCard(
           title: 'Ketajaman citra baik',
-          subtitle: 'Skor Ketajaman 95%',
+          subtitle: 'Skor Ketajaman ${((_result?.qualityOD.blurScore ?? 0.95) * 100).toInt()}%',
         ),
         const SizedBox(height: 8),
         _buildQualityFactorCard(
           title: 'Pencahayaan cukup merata',
-          subtitle: 'Tidak ditemukan refleksi berlebih yang mengganggu',
+          subtitle: () {
+            final score = ((_result?.qualityOD.illuminationScore ?? 0.92) * 100).toInt();
+            final label = score >= 75 ? '(Optimal)' : score >= 60 ? '(Cukup)' : '(Kurang)';
+            return 'Keseimbangan Luminesensi $score% $label';
+          }(),
         ),
         const SizedBox(height: 8),
         _buildQualityFactorCard(
           title: 'Cakupan retina mencukupi',
-          subtitle: 'Area retina dan pembuluh darah terlihat dengan baik',
+          subtitle: 'Integritas Bidang Pandang FOV ${((_result?.qualityOD.fovScore ?? 0.94) * 100).toInt()}% (45°)',
         ),
       ],
     );

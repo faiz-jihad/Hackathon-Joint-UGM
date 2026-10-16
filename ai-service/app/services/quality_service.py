@@ -87,48 +87,68 @@ class ImageQualityService:
         effective_var = float(np.mean(sorted_vars[:top_k]))
 
         # Normalization:
-        # Extreme Gaussian blur has variance < 2.0 -> score < 0.20 (triggers RETAKE)
-        # Low/borderline focus: variance 8-15 -> score 0.40 - 0.58
-        # Standard good fundus: variance 25-80+ -> score 0.70 - 0.98
+        # Extreme Gaussian blur has variance < 5.0 -> score < 0.35 (triggers RETAKE)
+        # Moderate blur: variance 6-18 -> score 0.40 - 0.58 (triggers RETAKE because < 0.60 threshold)
+        # Standard sharp fundus: variance 25-80+ -> score 0.70 - 0.98
         normalized_score = min(1.0, max(0.0, (effective_var / (effective_var + 16.0)) * 1.35))
         normalized_score = round(normalized_score, 2)
 
         passed = normalized_score >= self.blur_threshold
-        details = f"Sharpness variance: {round(effective_var, 1)} (score: {normalized_score})"
+        if passed:
+            details = f"Ketajaman citra memadai: {round(effective_var, 1)} (skor: {normalized_score})"
+        else:
+            details = f"Citra mengalami blur / tidak fokus: {round(effective_var, 1)} (skor: {normalized_score} < ambang {self.blur_threshold})"
         return passed, normalized_score, details
 
     def inspect_brightness(self, gray: np.ndarray) -> Tuple[bool, float, str]:
         """
         Evaluates illumination, underexposure, and glare/overexposure.
-        Supports natural Asian / Indonesian darker fundus melanin pigmentation.
+        Supports natural Asian / Indonesian darker fundus melanin pigmentation,
+        while strictly rejecting underexposed or overexposed images.
         """
         # Exclude black background (pixel values < 15) to inspect actual fundus retina
         mask = gray > 15
-        if np.count_nonzero(mask) == 0:
-            return False, 0.0, "Image is entirely black/underexposed"
+        retina_pixel_count = np.count_nonzero(mask)
+        total_pixels = gray.size
+
+        # If less than 15% of frame has retinal signal, it's pitch black / empty
+        if retina_pixel_count == 0 or (retina_pixel_count / total_pixels) < 0.15:
+            return False, 0.05, "Citra terlalu gelap / underexposed (hampir hitam seluruhnya)"
 
         retina_pixels = gray[mask] / 255.0
         mean_lum = float(np.mean(retina_pixels))
 
         # Check severe underexposure
         if mean_lum < self.brightness_min:
-            score = max(0.0, (mean_lum / self.brightness_min) * 0.45)
+            score = round(max(0.05, (mean_lum / self.brightness_min) * 0.50), 2)
             passed = False
-            details = f"Underexposed / too dark (luminance: {round(mean_lum, 2)})"
+            details = f"Citra mengalami underexposure / terlalu gelap (luminansi: {round(mean_lum, 2)} < ambang {self.brightness_min})"
         elif mean_lum > self.brightness_max:
             excess = mean_lum - self.brightness_max
-            score = max(0.0, 1.0 - (excess / (1.0 - self.brightness_max)))
+            score = round(max(0.05, 1.0 - (excess / (1.0 - self.brightness_max))), 2)
             passed = False
-            details = f"Overexposed / flash glare (luminance: {round(mean_lum, 2)})"
+            details = f"Citra mengalami overexposure / silau flash (luminansi: {round(mean_lum, 2)} > ambang {self.brightness_max})"
         else:
-            # Optimal illumination is between 0.15 and 0.70
-            if mean_lum >= 0.15 and mean_lum <= 0.70:
-                dist = abs(mean_lum - 0.42)
-                score = round(max(0.65, 1.0 - (dist * 0.8)), 2)
-            else:
-                score = round(max(0.45, 0.80 - abs(mean_lum - 0.42) * 0.9), 2)
-            passed = True
-            details = f"Optimal illumination (luminance: {round(mean_lum, 2)})"
+            # Optimal illumination is between 0.32 and 0.65
+            if 0.32 <= mean_lum <= 0.65:
+                dist = abs(mean_lum - 0.45)
+                score = round(max(0.75, 1.0 - (dist * 1.0)), 2)
+                passed = True
+                details = f"Pencahayaan optimal (luminansi: {round(mean_lum, 2)})"
+            elif self.brightness_min <= mean_lum < 0.32:
+                # Borderline illumination: acceptable only if score >= 0.60
+                score = round(0.60 + ((mean_lum - self.brightness_min) / (0.32 - self.brightness_min)) * 0.14, 2)
+                passed = score >= 0.60
+                details = f"Pencahayaan memadai (luminansi: {round(mean_lum, 2)})"
+            else: # 0.65 < mean_lum <= self.brightness_max
+                dist = abs(mean_lum - 0.65)
+                score = round(max(0.55, 0.75 - (dist * 1.5)), 2)
+                passed = score >= 0.60
+                details = f"Pencahayaan agak terang (luminansi: {round(mean_lum, 2)})"
+
+        # Hard clinical guard: Any score below 0.60 must fail illumination
+        if score < 0.60:
+            passed = False
 
         return passed, round(score, 2), details
 
@@ -214,6 +234,12 @@ class ImageQualityService:
         all_checks_passed = dim_passed and blur_passed and bright_passed and fov_passed
         overall_passed = all_checks_passed and (composite_score >= self.quality_threshold)
 
+        if not overall_passed:
+            # When any critical safety check fails, cap composite score to reflect RETAKE status (< 0.50)
+            failed_subscores = [s for p, s in [(dim_passed, dim_score), (blur_passed, blur_score), (bright_passed, bright_score), (fov_passed, fov_score)] if not p]
+            min_failed = min(failed_subscores) if failed_subscores else 0.40
+            composite_score = round(min(composite_score, max(0.15, min_failed + 0.10), 0.48), 2)
+
         if overall_passed:
             decision = "ANALYZE"
             reason = None
@@ -226,16 +252,20 @@ class ImageQualityService:
                 reasons.append("Resolusi citra terlalu rendah.")
                 instructions_list.append(f"Gunakan kamera fundus dengan resolusi minimal {self.min_dimension}x{self.min_dimension} piksel.")
             if not blur_passed:
-                reasons.append("Citra mengalami blur / tidak fokus.")
+                reasons.append(f"Citra mengalami blur / tidak fokus (skor {int(blur_score * 100)}% < ambang {int(self.blur_threshold * 100)}%).")
                 instructions_list.append("Pastikan kamera fundus stabil dan fokus tepat pada diskus optikus sebelum menangkap citra.")
             if not bright_passed:
-                reasons.append("Pencahayaan / eksposur tidak memadai.")
+                reasons.append(f"Pencahayaan tidak memadai / terlalu gelap (skor {int(bright_score * 100)}% < ambang 60%).")
                 instructions_list.append("Sesuaikan intensitas flash kamera atau pastikan pupil pasien cukup terdilasi.")
             if not fov_passed:
                 reasons.append("Bidang pandang (field of view) retina tidak mencakup area 45 derajat.")
                 instructions_list.append("Posisikan fovea sentral dan papil saraf optik di tengah bidang pandang kamera.")
 
-            reason = "Image quality is insufficient for reliable screening: " + " ".join(reasons)
+            if not reasons and composite_score < self.quality_threshold:
+                reasons.append(f"Skor komposit kualitas citra ({int(composite_score * 100)}%) berada di bawah standar diagnostik ({int(self.quality_threshold * 100)}%).")
+                instructions_list.append("Lakukan pengambilan ulang foto dengan fokus dan pencahayaan optimal.")
+
+            reason = " ".join(reasons)
             instructions = " ".join(instructions_list)
 
         return QualityCheckResult(

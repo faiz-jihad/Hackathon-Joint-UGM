@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Mode Environment Backend Retiva
@@ -26,14 +25,31 @@ class ApiConstants {
 
   /// Ganti pilihan environment aktif:
   /// Default: `BackendEnvironment.onlineDomain` -> Menggunakan https://hackathon.mataceria.my.id
-  static BackendEnvironment currentEnvironment = BackendEnvironment.onlineDomain;
+  static BackendEnvironment currentEnvironment = BackendEnvironment.offlineLocalhost;
 
   // Daftar Endpoint URL
   static const String domainUrl = 'https://hackathon.mataceria.my.id';
   static const String vpsUrl = 'http://43.173.35.200';
-  static const String laptopWifiUrl = 'http://192.168.1.13:3000';
+  static const String laptopWifiUrl = 'http://192.168.1.25:3000';
   static const String emulatorUrl = 'http://10.0.2.2:3000';
   static const String localhostUrl = 'http://localhost:3000';
+
+  /// Daftar kandidat Base URL untuk multi-path fallback di perangkat mobile (USB ADB reverse, Wi-Fi LAN, dan online)
+  static List<String> get candidateBaseUrls {
+    final list = <String>[];
+    if (customBaseUrl.isNotEmpty) list.add(customBaseUrl);
+    list.add(baseUrl);
+    list.add(defaultBaseUrl);
+    if (!kIsWeb) {
+      list.add('http://localhost:3000'); // Port reverse via USB ADB
+      list.add(laptopWifiUrl); // IP LAN Wi-Fi Laptop (192.168.1.25:3000)
+      list.add(domainUrl); // Subdomain HTTPS Resmi
+      list.add(emulatorUrl); // Emulator loopback
+    } else {
+      list.add(localhostUrl);
+    }
+    return list.toSet().toList();
+  }
 
   /// Toggle cepat menggunakan boolean:
   /// ApiConstants.isOnline = true  -> Pindah ke Subdomain Resmi HTTPS
@@ -54,6 +70,11 @@ class ApiConstants {
 
   /// Resolusi Base URL aktif berdasarkan environment terpilih
   static String get defaultBaseUrl {
+    // Pada Flutter Web (Chrome), otomatis prioritaskan server lokal port 3000 agar tersambung ke database lokal
+    if (kIsWeb) {
+      return localhostUrl;
+    }
+
     switch (currentEnvironment) {
       case BackendEnvironment.onlineDomain:
         return domainUrl;
@@ -73,9 +94,19 @@ class ApiConstants {
   static String get baseUrl =>
       customBaseUrl.isNotEmpty ? customBaseUrl : defaultBaseUrl;
 
-  // Authentication
+  // Authentication & Users
   static String get login => '$baseUrl/api/v1/auth/login';
+  static String get register => '$baseUrl/api/v1/auth/register';
   static String get me => '$baseUrl/api/v1/auth/me';
+  static String get users => '$baseUrl/api/v1/users';
+  static String get doctors => '$baseUrl/api/v1/doctors';
+  static String getDoctors({String? category, String? query}) {
+    final params = <String>[];
+    if (category != null && category != 'Semua') params.add('category=$category');
+    if (query != null && query.isNotEmpty) params.add('query=${Uri.encodeComponent(query)}');
+    final qs = params.isNotEmpty ? '?${params.join('&')}' : '';
+    return '$baseUrl/api/v1/doctors$qs';
+  }
 
   // Patients & Diabetes Profile
   static String get patients => '$baseUrl/api/v1/patients';
@@ -97,6 +128,8 @@ class ApiConstants {
       '$baseUrl/api/v1/screenings/$screeningId/complete';
 
   // Recommendations & Referrals
+  static String reviewStatus(String screeningId) =>
+      '$baseUrl/api/v1/reviews/status?screeningId=$screeningId';
   static String recommendations(String screeningId) =>
       '$baseUrl/api/v1/recommendations/$screeningId';
   static String get facilitiesMatch => '$baseUrl/api/v1/facilities/match';

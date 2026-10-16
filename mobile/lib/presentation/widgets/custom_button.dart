@@ -94,17 +94,22 @@ class CustomButton extends StatelessWidget {
     if (icon != null) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 20, color: color),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              fontFamily: 'Inter',
-              color: color,
-              letterSpacing: 0.2,
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Inter',
+                color: color,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
         ],
@@ -112,8 +117,10 @@ class CustomButton extends StatelessWidget {
     }
     return Text(
       label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: TextStyle(
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: FontWeight.w700,
         fontFamily: 'Inter',
         color: color,

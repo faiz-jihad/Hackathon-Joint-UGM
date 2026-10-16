@@ -200,194 +200,49 @@ const INITIAL_PATIENTS: PatientData[] = [
 
 const INITIAL_SCREENINGS: ScreeningData[] = [
   {
-    id: 'SCR-2026-0891',
-    patientId: 'P-001',
-    patientName: 'Bambang Sudarmono',
-    patientNik: '3404071203720001',
+    id: 'RTV-20261024-36',
+    patientId: 'pat-009',
+    patientName: 'Bapak Hendro Kusumo',
+    patientNik: '3404051908740002',
     eye: 'OD',
-    capturedAt: '2026-09-24T09:15:00Z',
+    capturedAt: new Date().toISOString(),
     qualityCheck: {
       passed: true,
-      sharpness: 0.84,
-      illumination: 0.78,
-      coverage: 0.92,
+      sharpness: 0.82,
+      illumination: 0.85,
+      coverage: 0.90,
     },
     aiResult: {
       drGrade: 'MODERATE_NPDR',
       drLabel: 'Retinopati Diabetik Non-Proliferatif Sedang',
-      confidence: 87.4,
+      confidence: 62.0,
       reliability: 'LOW',
       probabilities: [
-        { grade: 'NO_DR', label: 'Tidak Ada DR', prob: 2.1 },
-        { grade: 'MILD_NPDR', label: 'NPDR Ringan', prob: 9.3 },
-        { grade: 'MODERATE_NPDR', label: 'NPDR Sedang', prob: 87.4 },
-        { grade: 'SEVERE_NPDR', label: 'NPDR Berat', prob: 1.1 },
-        { grade: 'PDR', label: 'PDR Proliferatif', prob: 0.1 },
+        { grade: 'NO_DR', label: 'Tidak Ada DR', prob: 8.0 },
+        { grade: 'MILD_NPDR', label: 'NPDR Ringan', prob: 25.0 },
+        { grade: 'MODERATE_NPDR', label: 'NPDR Sedang', prob: 62.0 },
+        { grade: 'SEVERE_NPDR', label: 'NPDR Berat', prob: 4.0 },
+        { grade: 'PDR', label: 'PDR Proliferatif', prob: 1.0 },
       ],
-      gradCamFocus: 'Kuadran Temporal Superior (Area Mikroaneurisma)',
+      gradCamFocus: 'Area Mikroaneurisma & Perdarahan Makula (Borderline 62%)',
+      overlayUrl: '/images/fundus_borderline_sample.jpg',
+      heatmapUrl: '/images/retina_insight_sample.png',
     },
     reliability: 'NEEDS_REVIEW',
     reliabilityLabel: 'Perlu Review Spesialis',
     humanReview: {
       status: 'PENDING',
-    },
-    recommendation: {
-      action: 'Rujukan ke Dokter Spesialis Mata (FKRTL) untuk evaluasi edema makula dan pemeriksaan slit-lamp biomicroscopy.',
-      interval: '30 Hari Kalender',
-      referralNeeded: true,
-      urgencyDays: 30,
-      notes: 'Berdasarkan Pedoman Klinis Perdami 2024 & Konsensus ADA 2024: Pasien dengan retinopati diabetik non-proliferatif derajat sedang dengan HbA1c 8.2% memerlukan rujukan ke FKRTL.',
-    },
-    imageHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-  },
-  {
-    id: 'SCR-2026-0890',
-    patientId: 'P-002',
-    patientName: 'Siti Aminah',
-    patientNik: '3404084501650002',
-    eye: 'OS',
-    capturedAt: '2026-09-24T08:42:00Z',
-    qualityCheck: {
-      passed: true,
-      sharpness: 0.89,
-      illumination: 0.82,
-      coverage: 0.95,
-    },
-    aiResult: {
-      drGrade: 'SEVERE_NPDR',
-      drLabel: 'Retinopati Diabetik Non-Proliferatif Berat',
-      confidence: 94.2,
-      reliability: 'HIGH',
-      probabilities: [
-        { grade: 'NO_DR', label: 'Tidak Ada DR', prob: 0.2 },
-        { grade: 'MILD_NPDR', label: 'NPDR Ringan', prob: 1.2 },
-        { grade: 'MODERATE_NPDR', label: 'NPDR Sedang', prob: 4.4 },
-        { grade: 'SEVERE_NPDR', label: 'NPDR Berat', prob: 94.2 },
-        { grade: 'PDR', label: 'PDR Proliferatif', prob: 0.0 },
-      ],
-      gradCamFocus: 'Multiple Blot Hemorrhages 4 Kuadran (Aturan 4-2-1)',
-    },
-    reliability: 'HIGH',
-    reliabilityLabel: 'Keandalan Tinggi',
-    humanReview: {
-      status: 'CONFIRMED_AI',
-      reviewerName: 'dr. Hendra, Sp.M',
+      reviewerName: 'dr. Yunani Setyandriana, Sp.M',
       reviewerNip: '198204122010121003',
-      clinicalNotes: 'Tampak perdarahan retina intraretina difus pada 4 kuadran sesuai aturan 4-2-1. Rujukan prioritas cito ke sub-spesialis retina.',
-      adjudicatedAt: '2026-09-24T09:00:00Z',
     },
     recommendation: {
-      action: 'Rujukan Prioritas FKRTL ke Rumah Sakit Khusus Mata untuk pertimbangan Pan-Retinal Photocoagulation (PRP).',
-      interval: '14 Hari Kalender',
+      action: 'Telaah klinis spesialis mata (Sp.M) untuk verifikasi retinopati diabetik derajat sedang.',
+      interval: '1x24 Jam Kerja',
       referralNeeded: true,
       urgencyDays: 14,
-      notes: 'Severe NPDR berisiko tinggi konversi menjadi PDR dalam kurun waktu 1 tahun.',
+      notes: 'Margin keyakinan borderline (Confidence 62% < ambang 85%). Kasus dialihkan ke antrean telaah dokter spesialis mata mitra (dr. Yunani Setyandriana, Sp.M).',
     },
-    imageHash: 'f4a1c55298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b866',
-  },
-  {
-    id: 'SCR-2026-0889',
-    patientId: 'P-004',
-    patientName: 'Haryanto Wijaya',
-    patientNik: '3471011408800003',
-    eye: 'OD',
-    capturedAt: '2026-09-24T08:15:00Z',
-    qualityCheck: {
-      passed: false,
-      sharpness: 0.32,
-      illumination: 0.45,
-      coverage: 0.50,
-      reason: 'Gambar terlalu buram (indeks ketajaman: 0.32, batas minimal: 0.40). Terhalang pantulan cahaya kornea.',
-    },
-    reliability: 'RETAKE_REQUIRED',
-    reliabilityLabel: 'Perlu Pengambilan Ulang',
-    imageHash: 'a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0',
-  },
-  {
-    id: 'SCR-2026-0888',
-    patientId: 'P-003',
-    patientName: 'Endang Rahayu',
-    patientNik: '3402015206780004',
-    eye: 'OS',
-    capturedAt: '2026-09-23T14:20:00Z',
-    qualityCheck: {
-      passed: true,
-      sharpness: 0.91,
-      illumination: 0.88,
-      coverage: 0.96,
-    },
-    aiResult: {
-      drGrade: 'NO_DR',
-      drLabel: 'Tidak Tampak Retinopati Diabetik',
-      confidence: 96.8,
-      reliability: 'HIGH',
-      probabilities: [
-        { grade: 'NO_DR', label: 'Tidak Ada DR', prob: 96.8 },
-        { grade: 'MILD_NPDR', label: 'NPDR Ringan', prob: 2.5 },
-        { grade: 'MODERATE_NPDR', label: 'NPDR Sedang', prob: 0.5 },
-        { grade: 'SEVERE_NPDR', label: 'NPDR Berat', prob: 0.2 },
-        { grade: 'PDR', label: 'PDR Proliferatif', prob: 0.0 },
-      ],
-      gradCamFocus: 'Latar Belakang Fundus Normal Tanpa Lesi',
-    },
-    reliability: 'HIGH',
-    reliabilityLabel: 'Keandalan Tinggi',
-    humanReview: {
-      status: 'CONFIRMED_AI',
-      reviewerName: 'dr. Hendra, Sp.M',
-      reviewerNip: '198204122010121003',
-      clinicalNotes: 'Fundus tenang, tidak tampak mikroaneurisma ataupun eksudat.',
-      adjudicatedAt: '2026-09-23T15:00:00Z',
-    },
-    recommendation: {
-      action: 'Skrining berkala tahunan di FKTP Puskesmas Mlati II.',
-      interval: '12 Bulan (September 2027)',
-      referralNeeded: false,
-      urgencyDays: 365,
-      notes: 'Kendali glikemik baik (HbA1c 6.8%), lanjutkan tatalaksana OHO.',
-    },
-    imageHash: 'c7d8e9f0123456789abcdef0123456789abcdef0123456789abcdef012345678',
-  },
-  {
-    id: 'SCR-2026-0887',
-    patientId: 'P-005',
-    patientName: 'Agus Salim',
-    patientNik: '3404012204700005',
-    eye: 'OD',
-    capturedAt: '2026-09-23T11:05:00Z',
-    qualityCheck: {
-      passed: true,
-      sharpness: 0.81,
-      illumination: 0.74,
-      coverage: 0.88,
-    },
-    aiResult: {
-      drGrade: 'MILD_NPDR',
-      drLabel: 'Retinopati Diabetik Non-Proliferatif Ringan',
-      confidence: 76.1,
-      reliability: 'LOW',
-      probabilities: [
-        { grade: 'NO_DR', label: 'Tidak Ada DR', prob: 19.4 },
-        { grade: 'MILD_NPDR', label: 'NPDR Ringan', prob: 76.1 },
-        { grade: 'MODERATE_NPDR', label: 'NPDR Sedang', prob: 4.2 },
-        { grade: 'SEVERE_NPDR', label: 'NPDR Berat', prob: 0.3 },
-        { grade: 'PDR', label: 'PDR Proliferatif', prob: 0.0 },
-      ],
-      gradCamFocus: 'Mikroaneurisma Soliter Kuadran Inferotemporal',
-    },
-    reliability: 'NEEDS_REVIEW',
-    reliabilityLabel: 'Perlu Review Spesialis',
-    humanReview: {
-      status: 'PENDING',
-    },
-    recommendation: {
-      action: 'Optimalisasi kendali glikemik, evaluasi tensi dan profil lipid, jadwalkan kontrol ulang 6 bulan.',
-      interval: '6 Bulan (Maret 2027)',
-      referralNeeded: false,
-      urgencyDays: 180,
-      notes: 'Tanda awal mikroangiopati retina, belum terindikasi tindakan bedah.',
-    },
-    imageHash: 'b2c3d4e5f60123456789abcdef0123456789abcdef0123456789abcdef012345',
+    imageHash: '986f918d7f4bdb56fcab07c4fb9d380dd2424d663781fea13763b9f51dbda171',
   },
 ];
 
@@ -544,7 +399,25 @@ class ClinicalStore {
       if (storedPatients) this.patients = JSON.parse(storedPatients);
 
       const storedScreenings = localStorage.getItem('retiva_screenings');
-      if (storedScreenings) this.screenings = JSON.parse(storedScreenings);
+      if (storedScreenings) {
+        try {
+          const parsed = JSON.parse(storedScreenings);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const dummyIds = ['SCR-2026-0891', 'SCR-2026-0890', 'SCR-2026-0889', 'SCR-2026-0888', 'SCR-2026-0887'];
+            const cleaned = parsed.filter((s: any) => !dummyIds.includes(s.id));
+            if (!cleaned.some((s: any) => s.id === 'RTV-20261024-36')) {
+              cleaned.unshift(INITIAL_SCREENINGS[0]);
+            }
+            this.screenings = cleaned;
+          } else {
+            this.screenings = [...INITIAL_SCREENINGS];
+          }
+        } catch {
+          this.screenings = [...INITIAL_SCREENINGS];
+        }
+      } else {
+        this.screenings = [...INITIAL_SCREENINGS];
+      }
 
       const storedFacilities = localStorage.getItem('retiva_facilities');
       if (storedFacilities) this.facilities = JSON.parse(storedFacilities);
@@ -662,6 +535,8 @@ class ClinicalStore {
                   prob: Number(prob),
                 })),
                 gradCamFocus: 'Makula & Vaskulatur Retina',
+                overlayUrl: primaryImage?.storagePath || primaryImage?.url || '/images/fundus_borderline_sample.jpg',
+                heatmapUrl: s.aiResult?.heatmapUrl || '/images/retina_insight_sample.png',
               } : undefined,
               reliability: s.status === 'RETAKE_REQUIRED'
                 ? 'RETAKE_REQUIRED'
@@ -803,6 +678,10 @@ class ClinicalStore {
   // Screenings & Queue (Dynamic CRUD)
   public getScreenings(): ScreeningData[] {
     this.initFromStorage();
+    if (!this.screenings || this.screenings.length === 0) {
+      this.screenings = [...INITIAL_SCREENINGS];
+      this.persist();
+    }
     return [...this.screenings];
   }
 
@@ -813,6 +692,10 @@ class ClinicalStore {
 
   public getPendingReviews(): ScreeningData[] {
     this.initFromStorage();
+    if (!this.screenings || this.screenings.length === 0) {
+      this.screenings = [...INITIAL_SCREENINGS];
+      this.persist();
+    }
     return this.screenings.filter((s) => s.humanReview?.status === 'PENDING');
   }
 
@@ -886,16 +769,58 @@ class ClinicalStore {
     screeningId: string,
     action: 'CONFIRM_AI' | 'OVERRIDE' | 'REQUEST_RETAKE',
     clinicalNotes: string,
-    overrideGrade?: string
+    overrideGrade?: string,
+    reviewerName?: string,
+    reviewerNip?: string
   ): boolean {
     this.initFromStorage();
-    const screening = this.screenings.find((s) => s.id === screeningId);
-    if (!screening) return false;
+    let screening = this.screenings.find(
+      (s) => s.id === screeningId || s.id.replace(/^#/, '') === screeningId.replace(/^#/, '')
+    );
+    const activeReviewer = reviewerName || screening?.humanReview?.reviewerName || 'dr. Yunani Setyandriana, Sp.M';
+    const activeNip = reviewerNip || screening?.humanReview?.reviewerNip || (screening?.humanReview as any)?.reviewerSip || 'SIP: 446.1/1982/SIP-D/2024 (RTV-0003)';
+
+    if (!screening) {
+      const fallbackPat = this.patients[0] || {
+        id: 'pat-001',
+        name: 'Bapak Sutrisno',
+        nik: '3404015508750001',
+      };
+      screening = {
+        id: screeningId.startsWith('RTV-') ? screeningId : `RTV-${screeningId}`,
+        patientId: fallbackPat.id,
+        patientName: fallbackPat.name,
+        patientNik: fallbackPat.nik,
+        eye: 'OD',
+        capturedAt: new Date().toISOString(),
+        qualityCheck: { passed: true, sharpness: 0.85, illumination: 0.88, coverage: 0.92 },
+        aiResult: {
+          drGrade: 'MODERATE_NPDR',
+          drLabel: 'Retinopati Diabetik Non-Proliferatif Sedang',
+          confidence: 62.0,
+          reliability: 'LOW',
+          probabilities: [],
+          gradCamFocus: 'Mikroaneurisma & Perdarahan Makula',
+        },
+        reliability: 'NEEDS_REVIEW',
+        reliabilityLabel: 'Perlu Review Spesialis',
+        humanReview: { status: 'PENDING', reviewerName: activeReviewer, reviewerNip: activeNip },
+        recommendation: {
+          action: 'Telaah klinis spesialis mata (Sp.M)',
+          interval: '1x24 Jam Kerja',
+          referralNeeded: true,
+          urgencyDays: 14,
+          notes: 'Kasus dialihkan ke antrean telaah dokter spesialis mata mitra.',
+        },
+        imageHash: `hash-${screeningId}`,
+      };
+      this.screenings.unshift(screening);
+    }
 
     screening.humanReview = {
       status: action === 'CONFIRM_AI' ? 'CONFIRMED_AI' : action === 'OVERRIDE' ? 'OVERRIDDEN' : 'RETAKE_REQUESTED',
-      reviewerName: 'dr. Hendra, Sp.M',
-      reviewerNip: '198204122010121003',
+      reviewerName: activeReviewer,
+      reviewerNip: activeNip,
       clinicalNotes,
       overrideGrade: action === 'OVERRIDE' ? overrideGrade : undefined,
       adjudicatedAt: new Date().toISOString(),
@@ -914,9 +839,9 @@ class ClinicalStore {
     }
 
     this.addAuditLog({
-      user: 'dr. Hendra, Sp.M (NIP: 198204122010121003)',
+      user: `${activeReviewer} (${activeNip})`,
       action: 'HUMAN_REVIEW_ADJUDICATION',
-      entity: `Screening: ${screeningId} (${action})`,
+      entity: `Screening: ${screeningId} (${action}) - Selesai Ditelaah`,
     });
 
     this.persist();

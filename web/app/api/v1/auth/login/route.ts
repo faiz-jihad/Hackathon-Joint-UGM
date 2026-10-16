@@ -3,6 +3,10 @@ import { authService } from "@/lib/container";
 import { HttpResponse } from "@/lib/http-response";
 import { loginSchema } from "@/lib/validations/auth.validation";
 
+export async function OPTIONS() {
+  return HttpResponse.corsOptions();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

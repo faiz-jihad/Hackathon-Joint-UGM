@@ -4,6 +4,10 @@ import { HttpResponse } from "@/lib/http-response";
 import { registerSchema } from "@/lib/validations/auth.validation";
 import { prisma } from "@/infrastructure/database/prisma/client";
 
+export async function OPTIONS() {
+  return HttpResponse.corsOptions();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

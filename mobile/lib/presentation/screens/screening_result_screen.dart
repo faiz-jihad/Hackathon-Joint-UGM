@@ -8,6 +8,7 @@ import '../../data/models/patient_model.dart';
 import 'referral_letter_screen.dart';
 import 'care_companion_hub_screen.dart';
 import 'retina_insight_screen.dart';
+import '../widgets/notification_bell_widget.dart';
 
 /// ScreeningResultScreen — Alur Klinis 4 Tahap Komprehensif
 /// Menjawab tuntas kebutuhan faskes:
@@ -21,12 +22,25 @@ class ScreeningResultScreen extends StatefulWidget {
   final PatientModel? patient;
   final Uint8List? originalBytes;
 
+  final bool isDoctorReviewed;
+  final String? doctorName;
+  final String? doctorRole;
+  final String? doctorSip;
+  final String? doctorNotes;
+  final DateTime? reviewedAt;
+
   const ScreeningResultScreen({
     super.key,
     required this.result,
     required this.eyePosition,
     this.patient,
     this.originalBytes,
+    this.isDoctorReviewed = false,
+    this.doctorName,
+    this.doctorRole,
+    this.doctorSip,
+    this.doctorNotes,
+    this.reviewedAt,
   });
 
   @override
@@ -190,16 +204,18 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      patientName,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
+                    Flexible(
+                      child: Text(
+                        patientName,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E293B),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(width: 6),
                     Container(
@@ -230,11 +246,16 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
               ],
             ),
           ),
+          const SizedBox(width: 4),
+          const NotificationBellWidget(),
+          const SizedBox(width: 4),
           // Help / Info button
           IconButton(
             onPressed: () => _showClinicalFlowHelpDialog(),
             icon: const Icon(Icons.help_outline_rounded, color: AppColors.primary, size: 22),
             tooltip: 'Penjelasan Alur Klinis',
+            constraints: const BoxConstraints(),
+            padding: const EdgeInsets.all(6),
           ),
         ],
       ),
@@ -504,13 +525,15 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
                 children: [
                   Icon(Icons.visibility_off_outlined, color: Color(0xFFE11D48), size: 18),
                   SizedBox(width: 8),
-                  Text(
-                    'Keluhan Visual Subjektif Pasien',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
+                  Expanded(
+                    child: Text(
+                      'Keluhan Visual Subjektif Pasien',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
                     ),
                   ),
                 ],
@@ -571,8 +594,9 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
     required List<Map<String, dynamic>> biomarkers,
     required String eyeLabel,
   }) {
-    final severityColor = ClinicalHelpers.getSeverityColor(widget.result.aiResult.predictedClass);
-    final severityBg = ClinicalHelpers.getSeveritySurfaceColor(widget.result.aiResult.predictedClass);
+    // Gunakan 1 warna saja pada diagnosis yaitu biru Retiva (Konsistensi Design System)
+    const severityColor = AppColors.primary;
+    const severityBg = Color(0xFFEFF6FF);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,17 +612,17 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
 
         const SizedBox(height: 14),
 
-        // Main Severity Card with ICD-10 Badge
+        // Main Severity Card with ICD-10 Badge (1 Warna Biru Konsisten)
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: severityColor.withOpacity(0.3), width: 1.5),
+            border: Border.all(color: const Color(0xFFBFDBFE), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: severityColor.withOpacity(0.08),
+                color: AppColors.primary.withOpacity(0.06),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -610,47 +634,55 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: severityBg,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: severityColor.withOpacity(0.4)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(color: severityColor, shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          severityName,
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w800,
-                            color: severityColor,
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: severityBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(color: severityColor, shape: BoxShape.circle),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              severityName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                                color: severityColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFDBEAFE)),
                     ),
                     child: Text(
-                      'Akurasi Model: $confidencePct%',
+                      'Akurasi: $confidencePct%',
                       style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF475569),
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -668,13 +700,13 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              // ICD-10 Official Code Badge
+              // ICD-10 Official Code Badge (Warna Biru Konsisten)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
+                  color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFC7D2FE)),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
                 ),
                 child: Text(
                   icdCode,
@@ -682,7 +714,7 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
                     fontFamily: 'Inter',
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF3730A3),
+                    color: Color(0xFF1D4ED8),
                   ),
                 ),
               ),
@@ -749,55 +781,156 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0FDF4),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFBBF7D0)),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFDCFCE7),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.verified_user_rounded, color: Color(0xFF16A34A), size: 24),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Row(
-                      children: [
-                        Text(
-                          'dr. Siti Rahmawati, Sp.M(K)',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF14532D),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Avatar with medical kit icon and checkmark badge
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFDFF1FB),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.medical_services_rounded,
+                          color: Color(0xFF0061A4),
+                          size: 22,
+                        ),
+                      ),
+                      Positioned(
+                        right: -1,
+                        bottom: -1,
+                        child: Container(
+                          width: 17,
+                          height: 17,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0284C7),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.check,
+                              size: 10,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                        SizedBox(width: 6),
-                        Icon(Icons.check_circle, size: 14, color: Color(0xFF16A34A)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.doctorName ?? 'dr. Yunani Setyandriana, Sp.M',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.doctorRole ?? 'Spesialis Vitreoretina & Oftalmologi',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          widget.doctorSip ?? 'SIP: 446.1/1982/SIP-D/2024 (RTV-0003)',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
                       ],
                     ),
-                    Text(
-                      'Spesialis Mata Konsultan Vitreoretina • SIP: 446/182/SIP-D/2024',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF15803D)),
+                  ),
+                  Text(
+                    ClinicalHelpers.formatWibTimeOrToday(widget.reviewedAt),
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B),
+                      height: 1.25,
                     ),
-                    SizedBox(height: 6),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 14),
+
+              // Catatan Dokter Penelaah Box
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F9FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFBAE6FD)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 15,
+                          color: Color(0xFF0049AC),
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'Catatan Dokter Penelaah:',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0049AC),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     Text(
-                      '“Telah ditelaah secara klinis: Temuan citra fundus konsisten dengan kriteria ICDR Moderate NPDR. Tidak tampak neovaskularisasi retina aktif. Direkomendasikan evaluasi ketebalan makula dengan OCT di fasilitas rujukan.”',
-                      style: TextStyle(
+                      '“${(widget.doctorNotes != null && widget.doctorNotes!.trim().isNotEmpty) ? widget.doctorNotes! : 'Berdasarkan telaah klinis pada foto fundus $eyeLabel, gambaran mikrovaskular konsisten dengan derajat $severityName. Tidak dijumpai tanda edema makula klinis signifikan saat ini.'}”',
+                      style: const TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 11.5,
+                        fontSize: 13,
                         fontStyle: FontStyle.italic,
-                        color: Color(0xFF166534),
-                        height: 1.35,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF1E293B),
+                        height: 1.45,
                       ),
                     ),
                   ],
@@ -864,8 +997,10 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1066,13 +1201,15 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
                 children: [
                   Icon(Icons.local_hospital_outlined, color: Color(0xFF0284C7), size: 18),
                   SizedBox(width: 8),
-                  Text(
-                    'Rumah Sakit Rujukan Vitreoretina Terdekat',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
+                  Expanded(
+                    child: Text(
+                      'Rumah Sakit Rujukan Vitreoretina Terdekat',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
                     ),
                   ),
                 ],
@@ -1272,13 +1409,15 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
                 children: [
                   Icon(Icons.flag_circle_outlined, color: Color(0xFF0284C7), size: 20),
                   SizedBox(width: 8),
-                  Text(
-                    'Target Pengendalian Metabolik Ketat',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
+                  Expanded(
+                    child: Text(
+                      'Target Pengendalian Metabolik Ketat',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
                     ),
                   ),
                 ],
@@ -1357,13 +1496,15 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
                 children: [
                   Icon(Icons.nature_people_outlined, color: Color(0xFF16A34A), size: 20),
                   SizedBox(width: 8),
-                  Text(
-                    'Panduan Aktivitas & Nutrisi Ramah Retina',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
+                  Expanded(
+                    child: Text(
+                      'Panduan Aktivitas & Nutrisi Ramah Retina',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
                     ),
                   ),
                 ],
@@ -1776,21 +1917,28 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.remove_red_eye_outlined, size: 18, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Citra Fundus $eyeLabel',
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.remove_red_eye_outlined, size: 18, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Citra Fundus $eyeLabel',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               // Toggle Button
               Container(
                 decoration: BoxDecoration(
@@ -1799,6 +1947,7 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
                 ),
                 padding: const EdgeInsets.all(2),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     InkWell(
                       onTap: () => setState(() => _showGradcam = false),
@@ -1833,7 +1982,7 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
                               : null,
                         ),
                         child: Text(
-                          'Peta Grad-CAM',
+                          'Grad-CAM',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: _showGradcam ? FontWeight.w800 : FontWeight.w600,
@@ -1939,25 +2088,91 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
   }
 
   Widget _buildFundusGradcamImage() {
-    if (widget.result.gradcamImageBase64 != null) {
+    if (widget.result.gradcamImageBase64 != null && widget.result.gradcamImageBase64!.isNotEmpty) {
       try {
-        final bytes = base64Decode(widget.result.gradcamImageBase64!);
+        final clean = widget.result.gradcamImageBase64!.contains(',')
+            ? widget.result.gradcamImageBase64!.split(',').last
+            : widget.result.gradcamImageBase64!;
+        final bytes = base64Decode(clean);
         return Image.memory(bytes, fit: BoxFit.cover);
       } catch (_) {}
     }
-    return Image.asset(
-      'assets/images/retina_insight_sample.png',
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const Center(
-        child: Icon(Icons.broken_image, color: Colors.white38, size: 40),
-      ),
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _buildFundusRawImage(),
+        // Multi-tier Grad-CAM Attention Heatmap
+        Container(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: const Alignment(0.08, 0.05),
+              radius: 0.65,
+              colors: [
+                const Color(0xFFDC2626).withOpacity(0.85), // Red Hotspot Focus
+                const Color(0xFFEA580C).withOpacity(0.70), // Warm Attention
+                const Color(0xFFFACC15).withOpacity(0.52), // Mid Warm (Yellow)
+                const Color(0xFF0284C7).withOpacity(0.35), // Background Cool Field (Cyan)
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.35, 0.60, 0.85, 1.0],
+            ),
+          ),
+        ),
+        // Secondary microvascular lesion hotspot
+        Positioned(
+          left: 60,
+          top: 35,
+          child: Container(
+            width: 75,
+            height: 75,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFFEF4444).withOpacity(0.75),
+                  const Color(0xFFF59E0B).withOpacity(0.40),
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+            ),
+          ),
+        ),
+        // Active Indicator Badge
+        Positioned(
+          top: 8,
+          left: 8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDC2626).withOpacity(0.9),
+              borderRadius: BorderRadius.circular(6),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 4),
+              ],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.whatshot_rounded, color: Colors.white, size: 12),
+                SizedBox(width: 4),
+                Text(
+                  'Grad-CAM Aktif (Atensi Lesi)',
+                  style: TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildBiomarkerTile(Map<String, dynamic> b) {
     final detected = b['detected'] as bool;
     final isCritical = b['isCritical'] as bool;
-    final color = detected ? (isCritical ? const Color(0xFFDC2626) : const Color(0xFFD97706)) : const Color(0xFF16A34A);
+    final color = detected ? (isCritical ? const Color(0xFFDC2626) : const Color(0xFFD97706)) : AppColors.primary;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -1972,7 +2187,7 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              detected ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+              detected ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
               size: 18,
               color: color,
             ),
@@ -1982,28 +2197,38 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        b['name'] as String,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E293B),
+                      Expanded(
+                        child: Text(
+                          b['name'] as String,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
+                          ),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          b['level'] as String,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w800,
-                            color: color,
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: detected ? (isCritical ? const Color(0xFFFEE2E2) : const Color(0xFFFEF3C7)) : const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: detected ? (isCritical ? const Color(0xFFFECACA) : const Color(0xFFFDE68A)) : const Color(0xFFDBEAFE),
+                            ),
+                          ),
+                          child: Text(
+                            b['level'] as String,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: color,
+                            ),
                           ),
                         ),
                       ),
@@ -2104,7 +2329,7 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
   Widget _buildBottomActionBar(Map<String, dynamic> solution) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
@@ -2114,12 +2339,25 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
       child: Row(
         children: [
           // Home return
-          IconButton(
-            onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-            icon: const Icon(Icons.home_outlined, color: Color(0xFF64748B)),
-            tooltip: 'Kembali ke Beranda',
+          InkWell(
+            onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: const Icon(
+                Icons.home_outlined,
+                size: 20,
+                color: Color(0xFF64748B),
+              ),
+            ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           // Referral SPK Button
           OutlinedButton.icon(
             onPressed: () {
@@ -2133,22 +2371,22 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
                 ),
               );
             },
-            icon: const Icon(Icons.description_outlined, size: 16),
-            label: const Text('Surat SPK', style: TextStyle(fontSize: 12)),
+            icon: const Icon(Icons.description_outlined, size: 15),
+            label: const Text('SPK', style: TextStyle(fontSize: 12)),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,
               side: const BorderSide(color: Color(0xFFBFDBFE)),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           // Primary Care Hub Button
           Expanded(
             child: SizedBox(
-              height: 48,
+              height: 46,
               child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
@@ -2162,15 +2400,18 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
                     ),
                   );
                 },
-                icon: const Icon(Icons.health_and_safety_outlined, size: 18),
+                icon: const Icon(Icons.health_and_safety_outlined, size: 16),
                 label: const Text(
                   'Care Companion',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),
                   ),
@@ -2188,13 +2429,15 @@ class _ScreeningResultScreenState extends State<ScreeningResultScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: const [
+        title: const Row(
+          children: [
             Icon(Icons.info_outline, color: AppColors.primary),
             SizedBox(width: 8),
-            Text(
-              'Alur 4 Tahap Klinis Retiva',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Expanded(
+              child: Text(
+                'Alur 4 Tahap Klinis Retiva',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),

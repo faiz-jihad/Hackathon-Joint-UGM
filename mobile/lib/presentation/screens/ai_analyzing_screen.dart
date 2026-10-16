@@ -1,9 +1,10 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../data/models/screening_result_model.dart';
 import '../../data/models/patient_model.dart';
-import 'screening_result_screen.dart';
 import 'human_review_pending_screen.dart';
+import '../widgets/notification_bell_widget.dart';
 
 class AiAnalyzingScreen extends StatefulWidget {
   final CompleteScreeningResult result;
@@ -11,6 +12,7 @@ class AiAnalyzingScreen extends StatefulWidget {
   final String demoBranch;
   final PatientModel? patient;
   final Uint8List? imageBytes;
+  final File? imageFile;
 
   const AiAnalyzingScreen({
     super.key,
@@ -19,6 +21,7 @@ class AiAnalyzingScreen extends StatefulWidget {
     required this.demoBranch,
     this.patient,
     this.imageBytes,
+    this.imageFile,
   });
 
   @override
@@ -82,30 +85,18 @@ class _AiAnalyzingScreenState extends State<AiAnalyzingScreen>
 
     if (!mounted) return;
 
-    if (widget.result.reliability.requiresHumanReview ||
-        widget.demoBranch == 'HUMAN_REVIEW') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => HumanReviewPendingScreen(
-            result: widget.result,
-            eyePosition: widget.eyePosition,
-          ),
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HumanReviewPendingScreen(
+          result: widget.result,
+          eyePosition: widget.eyePosition,
+          patient: widget.patient,
+          imageBytes: widget.imageBytes,
+          imageFile: widget.imageFile,
         ),
-      );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ScreeningResultScreen(
-            result: widget.result,
-            eyePosition: widget.eyePosition,
-            patient: widget.patient,
-            originalBytes: widget.imageBytes,
-          ),
-        ),
-      );
-    }
+      ),
+    );
   }
 
   @override
@@ -152,7 +143,7 @@ class _AiAnalyzingScreenState extends State<AiAnalyzingScreen>
                     const SizedBox(height: 16),
 
                     // Heading 3
-                    Align(
+                    const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Menganalisis Retina...',
@@ -225,15 +216,18 @@ class _AiAnalyzingScreenState extends State<AiAnalyzingScreen>
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'Analisis Retina',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF246BFD),
+          const Expanded(
+            child: Text(
+              'Analisis Retina',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF246BFD),
+              ),
             ),
           ),
+          const NotificationBellWidget(),
         ],
       ),
     );
@@ -245,40 +239,47 @@ class _AiAnalyzingScreenState extends State<AiAnalyzingScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF246BFD),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    '3',
-                    style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      height: 1.0,
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF246BFD),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '3',
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.0,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Langkah 3 dari 4: Analisis Retina',
-                style: TextStyle(
-                  fontFamily: 'Manrope',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF003178),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Langkah 3 dari 4: Analisis Retina',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF003178),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           Row(
             children: [
               _buildStepIndicator(isActive: false, isCurrent: false),
@@ -329,7 +330,7 @@ class _AiAnalyzingScreenState extends State<AiAnalyzingScreen>
           Container(
             width: 128,
             height: 128,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: const [
                 BoxShadow(
@@ -507,33 +508,40 @@ class _AiAnalyzingScreenState extends State<AiAnalyzingScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFD1FAE5),
-                      shape: BoxShape.circle,
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFD1FAE5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        size: 13,
+                        color: Color(0xFF059669),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.check_rounded,
-                      size: 13,
-                      color: Color(0xFF059669),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF334155),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF334155),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                 decoration: BoxDecoration(
@@ -573,38 +581,45 @@ class _AiAnalyzingScreenState extends State<AiAnalyzingScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF2196F3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: SizedBox(
-                        width: 10,
-                        height: 10,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF2196F3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: SizedBox(
+                          width: 10,
+                          height: 10,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF246BFD),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF246BFD),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                 decoration: BoxDecoration(
@@ -639,33 +654,40 @@ class _AiAnalyzingScreenState extends State<AiAnalyzingScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE2E8F0),
-                        shape: BoxShape.circle,
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE2E8F0),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.access_time_rounded,
+                          size: 12,
+                          color: Color(0xFF94A3B8),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.access_time_rounded,
-                        size: 12,
-                        color: Color(0xFF94A3B8),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
                   child: Text(

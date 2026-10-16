@@ -17,6 +17,7 @@ import {
   FollowUpStatus,
 } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
+import { COMPREHENSIVE_MASTER_MEALS } from "../infrastructure/database/master-meals-data";
 
 const prisma = new PrismaClient();
 
@@ -211,8 +212,9 @@ async function main() {
     },
   ];
 
+  const userMap: Record<string, string> = {};
   for (const u of usersData) {
-    await prisma.user.upsert({
+    const user = await prisma.user.upsert({
       where: { email: u.email },
       update: {
         fullName: u.fullName,
@@ -233,6 +235,7 @@ async function main() {
         isActive: true,
       },
     });
+    userMap[u.id] = user.id;
   }
 
   // ==========================================
@@ -427,6 +430,21 @@ async function main() {
   // ==========================================
   console.log("📋 Seeding riwayat skrining longitudinal medis...");
 
+  const demoScreeningIds = ["scr-2026-0891", "scr-2026-0889", "scr-2026-0890", "scr-2026-0888"];
+  await prisma.referral.deleteMany({ where: { screeningId: { in: demoScreeningIds } } });
+  await prisma.followUp.deleteMany({ where: { screeningId: { in: demoScreeningIds } } });
+  await prisma.recommendation.deleteMany({ where: { screeningId: { in: demoScreeningIds } } });
+  await prisma.humanReview.deleteMany({ where: { screeningId: { in: demoScreeningIds } } });
+  await prisma.reliabilityAssessment.deleteMany({ where: { screeningId: { in: demoScreeningIds } } });
+  await prisma.aIResult.deleteMany({ where: { screeningId: { in: demoScreeningIds } } });
+  const demoImages = await prisma.retinalImage.findMany({ where: { screeningId: { in: demoScreeningIds } }, select: { id: true } });
+  const demoImageIds = demoImages.map((i) => i.id);
+  await prisma.qualityCheck.deleteMany({ where: { retinalImageId: { in: demoImageIds } } });
+  await prisma.retinalImage.deleteMany({ where: { screeningId: { in: demoScreeningIds } } });
+  await prisma.screening.deleteMany({
+    where: { id: { in: demoScreeningIds } },
+  });
+
   // Screening 1: Ny. Siti Aminah -> MODERATE NPDR (Normal Flow / High Reliability)
   const scr1 = await prisma.screening.upsert({
     where: { id: "scr-2026-0891" },
@@ -434,7 +452,7 @@ async function main() {
     create: {
       id: "scr-2026-0891",
       patientId: "pat-002",
-      conductedById: "usr-nakes-01",
+      conductedById: userMap["usr-nakes-01"] || "usr-nakes-01",
       facilityId: "fac-sleman-01",
       status: ScreeningStatus.SCREENING_COMPLETED,
       notes: "Skrining penapisan tahunan berkala. Pasien mengeluh pandangan agak buram saat membaca.",
@@ -526,7 +544,7 @@ async function main() {
     create: {
       id: "scr-2026-0889",
       patientId: "pat-005",
-      conductedById: "usr-nakes-01",
+      conductedById: userMap["usr-nakes-01"] || "usr-nakes-01",
       facilityId: "fac-sleman-01",
       status: ScreeningStatus.RETAKE_REQUIRED,
       notes: "Foto fundus buram karena gerakan mata pasien.",
@@ -577,7 +595,7 @@ async function main() {
     create: {
       id: "scr-2026-0890",
       patientId: "pat-004",
-      conductedById: "usr-nakes-02",
+      conductedById: userMap["usr-nakes-02"] || "usr-nakes-02",
       facilityId: "fac-mlati-02",
       status: ScreeningStatus.HUMAN_REVIEW,
       notes: "Kasus borderline pada area makula. Diteruskan ke dokter spesialis.",
@@ -639,7 +657,7 @@ async function main() {
   await prisma.humanReview.create({
     data: {
       screeningId: scr3.id,
-      reviewerId: "usr-doc-01",
+      reviewerId: userMap["usr-doc-01"] || "usr-doc-01",
       reviewStatus: HumanReviewStatus.PENDING,
     },
   });
@@ -651,7 +669,7 @@ async function main() {
     create: {
       id: "scr-2026-0888",
       patientId: "pat-006",
-      conductedById: "usr-nakes-02",
+      conductedById: userMap["usr-nakes-02"] || "usr-nakes-02",
       facilityId: "fac-mlati-02",
       status: ScreeningStatus.SCREENING_COMPLETED,
       notes: "Skrining tahunan rutin. Pasien tenang.",
@@ -734,9 +752,22 @@ async function main() {
   // ==========================================
   console.log("🛡️ Seeding log audit kepatuhan rekam medis elektronik...");
 
+  await prisma.auditLog.deleteMany({
+    where: {
+      action: {
+        in: [
+          "PATIENT_INTAKE_VERIFIED",
+          "FUNDUS_QUALITY_CHECK_PASSED",
+          "AI_MODEL_ACTIVE_VERIFIED",
+          "HUMAN_REVIEW_QUEUE_VIEWED",
+        ],
+      },
+    },
+  });
+
   const auditLogsData = [
     {
-      actorId: "usr-nakes-01",
+      actorId: userMap["usr-nakes-01"] || "usr-nakes-01",
       actorRole: "HEALTHCARE_WORKER",
       action: "PATIENT_INTAKE_VERIFIED",
       resource: "Patient",
@@ -746,7 +777,7 @@ async function main() {
       metadata: { nik: "3404084501650002", informedConsentSigned: true },
     },
     {
-      actorId: "usr-nakes-01",
+      actorId: userMap["usr-nakes-01"] || "usr-nakes-01",
       actorRole: "HEALTHCARE_WORKER",
       action: "FUNDUS_QUALITY_CHECK_PASSED",
       resource: "QualityCheck",
@@ -756,7 +787,7 @@ async function main() {
       metadata: { blurScore: 0.84, fovScore: 0.94 },
     },
     {
-      actorId: "usr-admin-01",
+      actorId: userMap["usr-admin-01"] || "usr-admin-01",
       actorRole: "ADMIN",
       action: "AI_MODEL_ACTIVE_VERIFIED",
       resource: "ModelVersion",
@@ -766,7 +797,7 @@ async function main() {
       metadata: { version: "efficientnet-b3-v1.0.0", status: "HEALTHY" },
     },
     {
-      actorId: "usr-doc-01",
+      actorId: userMap["usr-doc-01"] || "usr-doc-01",
       actorRole: "OPHTHALMOLOGIST",
       action: "HUMAN_REVIEW_QUEUE_VIEWED",
       resource: "HumanReview",
@@ -781,6 +812,34 @@ async function main() {
     await prisma.auditLog.create({
       data: log,
     });
+  }
+
+  // ==========================================
+  // MASTER MEAL ITEMS (ANEKA LAUK & MENU NUTRISI)
+  // ==========================================
+  console.log("🥗 Seeding aneka master data makanan nutrisi & lauk sehat...");
+  try {
+    await (prisma as any).masterMealItem.deleteMany({});
+    for (const meal of COMPREHENSIVE_MASTER_MEALS) {
+      await (prisma as any).masterMealItem.create({
+        data: {
+          id: meal.id,
+          name: meal.name,
+          category: meal.category,
+          portion: meal.portion,
+          estimatedCostIdr: meal.estimatedCostIdr,
+          glycemicIndex: meal.glycemicIndex,
+          carbsGrams: meal.carbsGrams,
+          proteinGrams: meal.proteinGrams,
+          ingredients: meal.ingredients,
+          preparationNotes: meal.preparationNotes,
+          isActive: meal.isActive,
+        },
+      });
+    }
+    console.log(`✅ Berhasil seeding ${COMPREHENSIVE_MASTER_MEALS.length} variasi menu & aneka lauk sehat diabetes.`);
+  } catch (err: any) {
+    console.warn("⚠️ Lewati seeding master_meal_items (tabel belum dimigrasi di DB):", err?.message);
   }
 
   console.log("✨ Seeding seluruh data medis relasional RETIVA selesai dengan sukses!");

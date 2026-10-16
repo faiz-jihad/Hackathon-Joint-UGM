@@ -960,3 +960,4 @@ model EmergencyFollowUp {
   @@map("emergency_follow_ups")
 }
 
+

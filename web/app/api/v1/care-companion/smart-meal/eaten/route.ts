@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/infrastructure/database/prisma/client";
+import { HttpResponse, CORS_HEADERS } from "@/lib/http-response";
+
+export async function OPTIONS() {
+  return HttpResponse.corsOptions();
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -79,12 +84,12 @@ export async function POST(req: NextRequest) {
             ? "Pilihan menu yang tepat! Gula darah Anda stabil setelah makan 💙"
             : "Terima kasih sudah mencatat menu makan sehat hari ini 🥗",
       },
-    });
+    }, { headers: CORS_HEADERS });
   } catch (error: any) {
     console.error("[smart-meal eaten POST]:", error);
     return NextResponse.json(
       { success: false, error: error?.message || "Failed to mark meal as eaten." },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }

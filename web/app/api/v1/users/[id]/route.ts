@@ -10,7 +10,7 @@ export async function PUT(
   try {
     const { id } = params;
     const body = await req.json();
-    const { email, password, fullName, role, phoneNumber, isActive } = body;
+    const { email, password, fullName, role, phoneNumber, isActive, hospital, facilityId } = body;
 
     const existing = await prisma.user.findUnique({
       where: { id },
@@ -33,6 +33,20 @@ export async function PUT(
     if (role === "DOKTER") userRole = "OPHTHALMOLOGIST";
     if (role === "PENGGUNA") userRole = "PATIENT";
 
+    let resolvedFacilityId = facilityId;
+    if (resolvedFacilityId === undefined && hospital) {
+      const cleanHospName = hospital.split('(')[0].trim();
+      const matchedFac = await prisma.facility.findFirst({
+        where: {
+          OR: [
+            { name: hospital },
+            { name: { contains: cleanHospName, mode: 'insensitive' } },
+          ],
+        },
+      });
+      if (matchedFac) resolvedFacilityId = matchedFac.id;
+    }
+
     const dataToUpdate: any = {
       fullName: fullName !== undefined ? fullName.trim() : existing.fullName,
       email: email ? email.toLowerCase().trim() : existing.email,
@@ -40,6 +54,10 @@ export async function PUT(
       phoneNumber: phoneNumber !== undefined ? (phoneNumber?.trim() || null) : existing.phoneNumber,
       isActive: isActive !== undefined ? isActive : existing.isActive,
     };
+
+    if (resolvedFacilityId !== undefined) {
+      dataToUpdate.facilityId = resolvedFacilityId;
+    }
 
     if (password && password.trim() !== "") {
       dataToUpdate.passwordHash = await bcrypt.hash(password.trim(), 10);

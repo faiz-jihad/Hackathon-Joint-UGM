@@ -9,6 +9,10 @@ import {
   XIcon,
   AlertTriangleIcon,
   FileTextIcon,
+  UtensilsIcon,
+  HeartHandshakeIcon,
+  BowlFoodIcon,
+  StethoscopeIcon,
 } from './Icons';
 
 interface MasterMeal {
@@ -378,35 +382,31 @@ export function CareCompanionAdminView() {
     <div style={{ padding: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-            Master Data Pendamping Perawatan (Care Companion)
-          </h1>
-          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem', color: '#64748B' }}>
-            Kelola katalog menu makanan rendah glikemik, estimasi biaya lokal, dan panduan pertanyaan konsultasi dokter yang tersimpan di PostgreSQL.
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div
+            style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              backgroundColor: '#EFF6FF',
+              border: '1.5px solid #BFDBFE',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#0F5FC2',
+            }}
+          >
+            <HeartHandshakeIcon size={22} />
+          </div>
+          <div>
+            <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+              Pendamping Perawatan (Care Companion)
+            </h1>
+          </div>
         </div>
 
         {/* Action Button */}
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button
-            onClick={() => (activeSubTab === 'meals' ? fetchMeals() : fetchQuestions())}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.6rem 1rem',
-              background: '#F1F5F9',
-              border: '1px solid #CBD5E1',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              color: '#334155',
-              cursor: 'pointer',
-            }}
-          >
-            <RotateCwIcon size={16} /> Refresh
-          </button>
+        <div>
           <button
             onClick={() => (activeSubTab === 'meals' ? openAddMeal() : openAddQuestion())}
             style={{
@@ -414,14 +414,15 @@ export function CareCompanionAdminView() {
               alignItems: 'center',
               gap: '0.4rem',
               padding: '0.6rem 1.15rem',
-              background: '#0D47A1',
+              background: '#0F5FC2',
               border: 'none',
               borderRadius: '8px',
               fontSize: '0.85rem',
               fontWeight: 700,
               color: '#FFFFFF',
               cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(13, 71, 161, 0.25)',
+              boxShadow: '0 2px 8px rgba(15, 95, 194, 0.25)',
+              transition: 'all 0.2s ease',
             }}
           >
             <PlusIcon size={16} /> {activeSubTab === 'meals' ? 'Tambah Menu Nutrisi' : 'Tambah Pertanyaan Dokter'}
@@ -459,18 +460,21 @@ export function CareCompanionAdminView() {
             setSearchQuery('');
           }}
           style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
             padding: '0.75rem 1.25rem',
             background: 'none',
             border: 'none',
-            borderBottom: activeSubTab === 'meals' ? '3px solid #0D47A1' : '3px solid transparent',
-            color: activeSubTab === 'meals' ? '#0D47A1' : '#64748B',
+            borderBottom: activeSubTab === 'meals' ? '3px solid #0F5FC2' : '3px solid transparent',
+            color: activeSubTab === 'meals' ? '#0F5FC2' : '#64748B',
             fontWeight: activeSubTab === 'meals' ? 700 : 500,
             fontSize: '0.95rem',
             cursor: 'pointer',
             marginBottom: '-2px',
           }}
         >
-          🍱 Menu Nutrisi Ramah Kantong ({meals.length})
+          <BowlFoodIcon size={18} /> Menu Nutrisi Ramah Kantong ({meals.length})
         </button>
         <button
           onClick={() => {
@@ -478,18 +482,21 @@ export function CareCompanionAdminView() {
             setSearchQuery('');
           }}
           style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
             padding: '0.75rem 1.25rem',
             background: 'none',
             border: 'none',
-            borderBottom: activeSubTab === 'questions' ? '3px solid #0D47A1' : '3px solid transparent',
-            color: activeSubTab === 'questions' ? '#0D47A1' : '#64748B',
+            borderBottom: activeSubTab === 'questions' ? '3px solid #0F5FC2' : '3px solid transparent',
+            color: activeSubTab === 'questions' ? '#0F5FC2' : '#64748B',
             fontWeight: activeSubTab === 'questions' ? 700 : 500,
             fontSize: '0.95rem',
             cursor: 'pointer',
             marginBottom: '-2px',
           }}
         >
-          🩺 Daftar Pertanyaan Konsultasi Dokter ({questions.length})
+          <StethoscopeIcon size={17} /> Daftar Pertanyaan Konsultasi Dokter ({questions.length})
         </button>
       </div>
 

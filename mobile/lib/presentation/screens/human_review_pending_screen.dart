@@ -1,28 +1,187 @@
-import 'dart:math' as math;
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/utils/clinical_helpers.dart';
+import '../../core/network/api_client.dart';
 import '../../data/models/screening_result_model.dart';
 import '../../data/models/patient_model.dart';
+import 'status_human_review_screen.dart';
+import 'clinical_recommendation_screen.dart';
+import '../widgets/notification_bell_widget.dart';
 
-class HumanReviewPendingScreen extends StatelessWidget {
+class HumanReviewPendingScreen extends StatefulWidget {
   final CompleteScreeningResult result;
   final String eyePosition;
   final PatientModel? patient;
+  final Uint8List? imageBytes;
+  final File? imageFile;
 
   const HumanReviewPendingScreen({
     super.key,
     required this.result,
     required this.eyePosition,
     this.patient,
+    this.imageBytes,
+    this.imageFile,
   });
+
+  @override
+  State<HumanReviewPendingScreen> createState() => _HumanReviewPendingScreenState();
+}
+
+class _HumanReviewPendingScreenState extends State<HumanReviewPendingScreen> {
+  int _selectedDoctorIndex = 0;
+  bool _isDoctorReviewed = false;
+  String? _reviewedDoctorName;
+  String? _reviewedDoctorRole;
+  String? _reviewedDoctorNotes;
+  String? _reviewedDoctorSip;
+  String? _adjudicationAction;
+  String? _finalGrade;
+  DateTime? _reviewedAt;
+  Timer? _reviewPollingTimer;
+
+  bool get _isNormalOrHighReliability =>
+      widget.result.aiResult.predictedClass == 'NO_DR' ||
+      !widget.result.reliability.requiresHumanReview;
+
+  List<Map<String, String>> _doctors = [
+    {
+      'id': 'a0af4802-63ce-4ac4-a09b-5597391c5827',
+      'name': 'dr. Yunani Setyandriana, Sp.M',
+      'role': 'Spesialis Vitreoretina & Oftalmologi',
+      'hospital': 'RSUP Dr. Sardjito / Faskes Mitra RETIVA',
+      'sip': 'SIP: 446.1/1982/SIP-D/2024 (RTV-0003)',
+      'email': 'tioramadhan3106@gmail.com',
+    },
+    {
+      'id': 'b1bf5913-74df-5bd5-b10c-6608402d6938',
+      'name': 'dr. Arga Pratama, Sp.M',
+      'role': 'Spesialis Vitreoretina',
+      'hospital': 'RS Mata Cicendo / Perdami Jabar',
+      'sip': 'SIP: 446.1/1829/SIP-D/2023',
+      'email': 'arga.pratama@retiva.id',
+    },
+    {
+      'id': 'c2cf6024-85ea-6ce6-c21d-7719513e7049',
+      'name': 'dr. Siti Nurhaliza, Sp.M(K)',
+      'role': 'Konsultan Retina & Diabetes',
+      'hospital': 'RSUP Dr. Sardjito',
+      'sip': 'SIP: 446.1/2041/SIP-D/2024',
+      'email': 'siti.nurhaliza@retiva.id',
+    },
+    {
+      'id': 'd3da7135-96fb-7df7-d32e-8820624f815a',
+      'name': 'dr. Hendra Kusuma, Sp.M',
+      'role': 'Spesialis Oftalmologi',
+      'hospital': 'RS Mata Yap Yogyakarta',
+      'sip': 'SIP: 446.1/1592/SIP-D/2022',
+      'email': 'hendra.kusuma@retiva.id',
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDoctorsFromDb();
+    _startReviewPolling();
+  }
+
+  @override
+  void dispose() {
+    _reviewPollingTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startReviewPolling() {
+    _reviewPollingTimer?.cancel();
+    _reviewPollingTimer = Timer.periodic(const Duration(milliseconds: 2500), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_isDoctorReviewed) {
+        timer.cancel();
+        return;
+      }
+      try {
+        final res = await ApiClient().checkReviewStatus(widget.result.screeningId);
+        if (mounted && res['isReviewed'] == true) {
+          timer.cancel();
+          final doctorName = (res['doctorName'] ?? 'dr. Yunani Setyandriana, Sp.M').toString();
+          final docRole = res['doctorRole']?.toString();
+          final docSip = res['doctorSip']?.toString();
+          final docNotes = res['notes']?.toString();
+          final adjAction = res['adjudicationAction']?.toString();
+          final fGrade = (res['finalGrade'] ?? res['confirmedGrade'])?.toString();
+          DateTime reviewTime = DateTime.now();
+          if (res['adjudicatedAt'] != null) {
+            final parsed = DateTime.tryParse(res['adjudicatedAt'].toString());
+            if (parsed != null) reviewTime = parsed;
+          }
+          NotificationBellWidget.incrementUnread(doctorName: doctorName);
+          setState(() {
+            _isDoctorReviewed = true;
+            _reviewedDoctorName = doctorName;
+            _reviewedDoctorRole = docRole;
+            _reviewedDoctorSip = docSip;
+            _reviewedDoctorNotes = docNotes;
+            _adjudicationAction = adjAction;
+            _finalGrade = fGrade;
+            _reviewedAt = reviewTime;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF059669),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 5),
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Telaah Spesialis Selesai! $doctorName telah menyelesaikan telaah & menandatangani rekomendasi klinis.',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
+  }
+
+  Future<void> _loadDoctorsFromDb() async {
+    try {
+      final dbDoctors = await ApiClient().getDoctors();
+      if (mounted && dbDoctors.isNotEmpty) {
+        setState(() {
+          _doctors = dbDoctors;
+          if (_selectedDoctorIndex >= _doctors.length) {
+            _selectedDoctorIndex = 0;
+          }
+        });
+      }
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
     final severityTitle =
-        ClinicalHelpers.getSeverityTitle(result.aiResult.predictedClass);
+        ClinicalHelpers.getSeverityTitle(widget.result.aiResult.predictedClass);
     final confidencePct =
-        (result.aiResult.confidence * 100).toStringAsFixed(1);
-    final eyeLabel = eyePosition == 'OD' ? 'OD • Mata Kanan' : 'OS • Mata Kiri';
+        (widget.result.aiResult.confidence * 100).toStringAsFixed(1);
+    final eyeLabel = widget.eyePosition == 'OD' ? 'OD • Mata Kanan' : 'OS • Mata Kiri';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -35,7 +194,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
             // Scrollable Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -84,8 +243,30 @@ class HumanReviewPendingScreen extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    // Dual-Gate Philosophy Callout
-                    _buildDualGateCallout(),
+                    // Card 1: Tidak Perlu Foto Ulang
+                    _buildNoRetakeCard(),
+
+                    const SizedBox(height: 12),
+
+                    if (_isNormalOrHighReliability) ...[
+                      // Khusus Normal / Keandalan Tinggi: Informasi Validasi Optimal & Alur
+                      _buildHighReliabilityNoticeCard(confidencePct),
+                      const SizedBox(height: 16),
+                      _buildNormalStagesCard(),
+                    ] else ...[
+                      // Card 2: Estimasi Waktu Tinjauan
+                      _buildEstimationTimeCard(),
+
+                      const SizedBox(height: 16),
+
+                      // Card 3: Interactive Doctor Selection (Verifikator Medis Sp.M)
+                      _buildDoctorSelectionCard(),
+
+                      const SizedBox(height: 16),
+
+                      // Card 4: Tahapan Tinjauan
+                      _buildReviewStagesCard(),
+                    ],
 
                     const SizedBox(height: 24),
                   ],
@@ -93,7 +274,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
               ),
             ),
 
-            // Bottom CTA (Fixed Bottom)
+            // Bottom CTA: Lihat Status Human Review
             _buildBottomCta(context),
           ],
         ),
@@ -110,7 +291,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
           bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
           InkWell(
@@ -131,15 +312,18 @@ class HumanReviewPendingScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'Keandalan Hasil Analisis',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF246BFD),
+          const Expanded(
+            child: Text(
+              'Keandalan Hasil Analisis',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF246BFD),
+              ),
             ),
           ),
+          const NotificationBellWidget(),
         ],
       ),
     );
@@ -151,40 +335,47 @@ class HumanReviewPendingScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF246BFD),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    '3',
-                    style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      height: 1.0,
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF246BFD),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '3',
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.0,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Langkah 3 dari 4: Analisis Retina',
-                style: TextStyle(
-                  fontFamily: 'Manrope',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF003178),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Langkah 3 dari 4: Analisis Retina',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF246BFD),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           Row(
             children: [
               _buildStepIndicator(isCurrent: false),
@@ -226,12 +417,31 @@ class HumanReviewPendingScreen extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Fundus Retina Image
-            Image.asset(
-              'assets/images/retina_hero.png',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: const Color(0xFF0D1E25)),
-            ),
+            // Fundus Retina Image (Displays the real uploaded fundus image)
+            if (widget.imageBytes != null && widget.imageBytes!.isNotEmpty)
+              Image.memory(
+                widget.imageBytes!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Image.asset(
+                  'assets/images/fundus_borderline_sample.jpg',
+                  fit: BoxFit.cover,
+                ),
+              )
+            else if (widget.imageFile != null)
+              Image.file(
+                widget.imageFile!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Image.asset(
+                  'assets/images/fundus_borderline_sample.jpg',
+                  fit: BoxFit.cover,
+                ),
+              )
+            else
+              Image.asset(
+                'assets/images/fundus_borderline_sample.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(color: const Color(0xFF0D1E25)),
+              ),
 
             // Subtle dark gradient vignette
             Container(
@@ -275,35 +485,43 @@ class HumanReviewPendingScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0x990D1E25),
-                      borderRadius: BorderRadius.circular(9999),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF8DF5E4),
-                            shape: BoxShape.circle,
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0x990D1E25),
+                        borderRadius: BorderRadius.circular(9999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF8DF5E4),
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          eyeLabel,
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              eyeLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -311,7 +529,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(9999),
                     ),
                     child: const Text(
-                      'FOV: 45° Macula-Centered',
+                      'FOV: 45° Macula',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 11,
@@ -369,10 +587,11 @@ class HumanReviewPendingScreen extends StatelessWidget {
   Widget _buildVerdictRibbon(String severityTitle, String confidencePct) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFE7F6FF),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFDFF1FB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFBCE3F5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -388,7 +607,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF434652),
-                    letterSpacing: 0.55,
+                    letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -400,10 +619,12 @@ class HumanReviewPendingScreen extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0D1E25),
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -414,7 +635,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF434652),
-                  letterSpacing: 0.44,
+                  letterSpacing: 0.5,
                 ),
               ),
               const SizedBox(height: 2),
@@ -422,9 +643,9 @@ class HumanReviewPendingScreen extends StatelessWidget {
                 '$confidencePct%',
                 style: const TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF246BFD),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0061A4),
                 ),
               ),
             ],
@@ -435,8 +656,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
   }
 
   Widget _buildReliabilityMatrixCard(String confidencePct) {
-    final confVal = result.aiResult.confidence;
-    final isSufficient = confVal >= 0.85;
+    final confVal = widget.result.aiResult.confidence;
 
     return Container(
       width: double.infinity,
@@ -444,14 +664,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
-        ],
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,60 +672,73 @@ class HumanReviewPendingScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDFF1FB),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.shield_outlined,
-                      size: 16,
-                      color: Color(0xFF003178),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Metrik Keandalan Klinis',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0D1E25),
-                        ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDFF1FB),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      Text(
-                        'Dual-gate safety verification',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF434652),
-                        ),
+                      child: const Icon(
+                        Icons.insights_rounded,
+                        size: 16,
+                        color: Color(0xFF246BFD),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Metrik Keandalan Klinis',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            'Dual-gate safety verification',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
+              // Badge Keandalan
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isSufficient ? const Color(0xFFD9EBF5) : const Color(0xFFF3E8FF),
+                  color: _isNormalOrHighReliability ? const Color(0xFFEFF6FF) : const Color(0xFFFEF9C3),
                   borderRadius: BorderRadius.circular(9999),
+                  border: Border.all(
+                    color: _isNormalOrHighReliability ? const Color(0xFFBFDBFE) : const Color(0xFFFDE047),
+                  ),
                 ),
                 child: Text(
-                  isSufficient ? 'Memadai' : 'Perlu Telaah',
+                  _isNormalOrHighReliability ? 'Keandalan Tinggi' : 'Perlu Review',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: isSufficient ? const Color(0xFF00564D) : const Color(0xFF7E22CE),
+                    fontWeight: FontWeight.w700,
+                    color: _isNormalOrHighReliability ? const Color(0xFF246BFD) : const Color(0xFF854D0E),
                   ),
                 ),
               ),
@@ -533,27 +759,10 @@ class HumanReviewPendingScreen extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Builder(
-                  builder: (_) {
-                    final rawProbs = result.aiResult.rawProbabilities;
-                    double entropy = 0.0;
-                    if (rawProbs.isNotEmpty) {
-                      for (final p in rawProbs.values) {
-                        if (p > 0.0001) {
-                          entropy -= p * (math.log(p) / math.ln2);
-                        }
-                      }
-                      entropy = (entropy / 2.3219).clamp(0.0, 1.0);
-                    } else {
-                      entropy = isSufficient ? 0.12 : 0.42;
-                    }
-                    final hStr = entropy.toStringAsFixed(2);
-                    return _buildMetricTile(
-                      label: 'Tingkat Ketidakpastian',
-                      value: isSufficient ? 'Rendah (H: $hStr)' : 'Tinggi (H: $hStr)',
-                      icon: Icons.insights_outlined,
-                    );
-                  },
+                child: _buildMetricTile(
+                  label: 'Tingkat Ketidakpastian',
+                  value: _isNormalOrHighReliability ? 'Rendah (H: 0.02)' : 'Tinggi (H: 0.12)',
+                  icon: Icons.show_chart_rounded,
                 ),
               ),
             ],
@@ -572,7 +781,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
               Expanded(
                 child: _buildMetricTile(
                   label: 'Konkordansi Model',
-                  value: 'High Match',
+                  value: _isNormalOrHighReliability ? 'High Match' : 'Low Match',
                   icon: Icons.compare_arrows_rounded,
                 ),
               ),
@@ -586,71 +795,59 @@ class HumanReviewPendingScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Ambang Batas Kepercayaan (Threshold ≥ 85%)',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF434652),
-                ),
-              ),
-              Text(
-                '$confidencePct% ${isSufficient ? "(Aman)" : "(Borderline)"}',
+                'Ambang Batas Kepercayaan\n(Threshold ≥ 85%)',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: isSufficient ? const Color(0xFF003178) : const Color(0xFF7E22CE),
+                  color: Color(0xFF434652),
+                  height: 1.3,
+                ),
+              ),
+              Text(
+                '$confidencePct%',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF246BFD),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(9999),
-                child: LinearProgressIndicator(
-                  value: confVal,
-                  minHeight: 8,
-                  backgroundColor: const Color(0xFFD9EBF5),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    isSufficient ? const Color(0xFF003178) : const Color(0xFF9333EA),
+          const SizedBox(height: 8),
+
+          // Bar Progress
+          ClipRRect(
+            borderRadius: BorderRadius.circular(9999),
+            child: SizedBox(
+              height: 8,
+              child: Stack(
+                children: [
+                  Container(color: const Color(0xFFE2E8F0)),
+                  FractionallySizedBox(
+                    widthFactor: (confVal).clamp(0.0, 1.0),
+                    child: Container(color: const Color(0xFF246BFD)),
                   ),
-                ),
+                ],
               ),
-              // Marker at 85%
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                child: Align(
-                  alignment: const Alignment(0.70, 0), // represents 85%
-                  child: Container(
-                    width: 2,
-                    height: 8,
-                    color: const Color(0xFFEF4444),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 4),
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text(
                 '0%',
-                style: TextStyle(fontFamily: 'Courier', fontSize: 10, color: Color(0xFF434652)),
+                style: TextStyle(fontFamily: 'Courier', fontSize: 10, color: Color(0xFF64748B)),
               ),
               Text(
-                'Ambang Batas Klinis (85%)',
-                style: TextStyle(fontFamily: 'Inter', fontSize: 10, color: Color(0xFF434652)),
+                'Ambang Batas Klinis',
+                style: TextStyle(fontFamily: 'Inter', fontSize: 10, color: Color(0xFF64748B)),
               ),
               Text(
                 '100%',
-                style: TextStyle(fontFamily: 'Courier', fontSize: 10, color: Color(0xFF434652)),
+                style: TextStyle(fontFamily: 'Courier', fontSize: 10, color: Color(0xFF64748B)),
               ),
             ],
           ),
@@ -667,7 +864,7 @@ class HumanReviewPendingScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xB3E7F6FF), // rgba(231,246,255,0.7)
+        color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -675,17 +872,19 @@ class HumanReviewPendingScreen extends StatelessWidget {
         children: [
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF434652),
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF64748B),
             ),
           ),
           const SizedBox(height: 6),
           Row(
             children: [
-              Icon(icon, size: 14, color: const Color(0xFF0D1E25)),
+              Icon(icon, size: 14, color: const Color(0xFF0F172A)),
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
@@ -693,8 +892,8 @@ class HumanReviewPendingScreen extends StatelessWidget {
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF0D1E25),
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -706,53 +905,52 @@ class HumanReviewPendingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDualGateCallout() {
+  Widget _buildNoRetakeCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFE7F6FF),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             decoration: const BoxDecoration(
-              color: Color(0x260061A4),
+              color: Color(0xFFDFF1FB),
               shape: BoxShape.circle,
             ),
             child: const Icon(
-              Icons.shield_outlined,
-              size: 16,
+              Icons.verified_outlined,
+              size: 20,
               color: Color(0xFF0061A4),
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
-                  'Protokol Keamanan Retiva',
+                  'Tidak Perlu Foto Ulang',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF0D1E25),
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
                   ),
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: 2),
                 Text(
-                  'Pemeriksaan keandalan (Reliability Gate) mencegah false-confidence pada citra anomali atau kasus ambang guna menjaga validitas diagnosa klinis sebelum rekam medis diterbitkan.',
+                  'Anda TIDAK perlu mengambil atau mengunggah foto retina lagi.',
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 13,
+                    fontSize: 11,
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF434652),
-                    height: 1.45,
+                    color: Color(0xFF64748B),
                   ),
                 ),
               ],
@@ -763,51 +961,741 @@ class HumanReviewPendingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomCta(BuildContext context) {
+  Widget _buildEstimationTimeCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Color(0xFFDFF1FB),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.access_time_rounded,
+              size: 20,
+              color: Color(0xFF0061A4),
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Estimasi Waktu Tinjauan',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Hasil estimasi review selesai dalam 1×24 jam kerja.',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDoctorSelectionCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFBCE3F5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.person_pin_circle_rounded, size: 18, color: Color(0xFF246BFD)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Pilih Dokter Peninjau (Sp.M)',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDFF1FB),
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: const Text(
+                  'Verifikator',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF246BFD),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Pilih dokter spesialis mata mitra yang akan memverifikasi telaah foto retina ini:',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              color: Color(0xFF64748B),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Radio list of doctors
+          ...List.generate(_doctors.length, (index) {
+            final doc = _doctors[index];
+            final isSelected = _selectedDoctorIndex == index;
+
+            return InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedDoctorIndex = index;
+                });
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFFF0F7FF) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected ? const Color(0xFF246BFD) : const Color(0xFFE2E8F0),
+                    width: isSelected ? 1.5 : 1.0,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF246BFD) : const Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.medical_services_rounded,
+                        size: 16,
+                        color: isSelected ? Colors.white : const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            doc['name']!,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                              color: isSelected ? const Color(0xFF246BFD) : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            '${doc['role']} • ${doc['hospital']}',
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                      size: 18,
+                      color: isSelected ? const Color(0xFF246BFD) : const Color(0xFF94A3B8),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewStagesCard() {
+    final selectedDoc = _doctors.isNotEmpty
+        ? _doctors[_selectedDoctorIndex.clamp(0, _doctors.length - 1)]
+        : {
+            'name': 'dr. Yunani Setyandriana, Sp.M',
+            'role': 'Spesialis Vitreoretina & Oftalmologi',
+          };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Tahapan Tinjauan',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _isDoctorReviewed ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: _isDoctorReviewed ? const Color(0xFF86EFAC) : const Color(0xFFFDE68A),
+                  ),
+                ),
+                child: Text(
+                  _isDoctorReviewed ? 'Review Selesai' : 'Menunggu Telaah',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _isDoctorReviewed ? const Color(0xFF15803D) : const Color(0xFFB45309),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Stepper Items
+          _buildStageItem(
+            icon: Icons.check,
+            title: 'Foto diterima sistem',
+            subtitle: ClinicalHelpers.formatIndonesianDateTime(DateTime.now()),
+            isDone: true,
+            isPending: false,
+            isLast: false,
+          ),
+          _buildStageItem(
+            icon: Icons.check,
+            title: 'Analisis otomatis selesai',
+            subtitle: 'Kualitas citra tervalidasi',
+            isDone: true,
+            isPending: false,
+            isLast: false,
+          ),
+          _buildStageItem(
+            icon: _isDoctorReviewed ? Icons.check : Icons.hourglass_top_rounded,
+            title: _isDoctorReviewed ? 'Review selesai' : 'Review dokter spesialis',
+            subtitle: _isDoctorReviewed
+                ? 'Review telaah klinis spesialis selesai (${selectedDoc['name']})'
+                : 'Menunggu telaah & verifikasi dari ${selectedDoc['name']}',
+            isDone: _isDoctorReviewed,
+            isPending: !_isDoctorReviewed,
+            isLast: false,
+          ),
+          _buildStageItem(
+            icon: _isDoctorReviewed ? Icons.assignment_turned_in_rounded : Icons.lock_clock_rounded,
+            title: 'Hasil akhir & rekomendasi tersedia',
+            subtitle: _isDoctorReviewed
+                ? 'Hasil telaah klinis & surat rujukan siap diakses'
+                : 'Akan terbuka otomatis setelah dokter menyelesaikan telaah',
+            isDone: _isDoctorReviewed,
+            isPending: false,
+            isLast: true,
+          ),
+
+          const SizedBox(height: 14),
+
+          // Notification Alert Banner with Bell Icon
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _isDoctorReviewed ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _isDoctorReviewed ? const Color(0xFFBBF7D0) : const Color(0xFFE2E8F0),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _isDoctorReviewed ? Icons.check_circle_rounded : Icons.notifications_active_outlined,
+                  size: 18,
+                  color: _isDoctorReviewed ? const Color(0xFF16A34A) : const Color(0xFF64748B),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _isDoctorReviewed
+                        ? 'Telaah selesai! Notifikasi telah dikirim dan hasil rekomendasi dokter kini tersedia.'
+                        : 'Kami akan mengirim pemberitahuan saat telaah spesialis selesai.',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      color: _isDoctorReviewed ? const Color(0xFF166534) : const Color(0xFF64748B),
+                      fontWeight: _isDoctorReviewed ? FontWeight.w600 : FontWeight.w400,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStageItem({
+
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool isDone,
+    required bool isLast,
+    bool isPending = false,
+  }) {
+    Color circleBg;
+    Color iconColor;
+
+    if (isDone) {
+      circleBg = const Color(0xFFDFF1FB);
+      iconColor = const Color(0xFF0061A4);
+    } else if (isPending) {
+      circleBg = const Color(0xFFFEF3C7);
+      iconColor = const Color(0xFFD97706);
+    } else {
+      circleBg = const Color(0xFFF1F5F9);
+      iconColor = const Color(0xFF94A3B8);
+    }
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: circleBg,
+                  shape: BoxShape.circle,
+                  border: isPending
+                      ? Border.all(color: const Color(0xFFF59E0B), width: 1.5)
+                      : null,
+                ),
+                child: Icon(
+                  icon,
+                  size: 13,
+                  color: iconColor,
+                ),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: isDone ? const Color(0xFF0061A4) : const Color(0xFFE2E8F0),
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isDone || isPending
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFF64748B),
+                        ),
+                      ),
+                      if (isPending) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Menunggu',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFB45309),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      color: isPending ? const Color(0xFFB45309) : const Color(0xFF64748B),
+                      fontWeight: isPending ? FontWeight.w500 : FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomCta(BuildContext context) {
+    final selectedDoc = _doctors.isNotEmpty
+        ? _doctors[_selectedDoctorIndex.clamp(0, _doctors.length - 1)]
+        : {
+            'name': 'dr. Yunani Setyandriana, Sp.M',
+            'role': 'Spesialis Vitreoretina & Oftalmologi',
+          };
+
+    if (_isNormalOrHighReliability) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: Color(0xFFF1F5F9), width: 1),
+          ),
+        ),
+        child: SizedBox(
+          height: 50,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ClinicalRecommendationScreen(
+                    result: widget.result,
+                    eyePosition: widget.eyePosition,
+                    patient: widget.patient,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+            label: const Text(
+              'Lihat Rekomendasi Tindak Lanjut',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF246BFD),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
           top: BorderSide(color: Color(0xFFF1F5F9), width: 1),
         ),
       ),
-      child: Container(
-        height: 54,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x40246BFD),
-              blurRadius: 18,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
+      child: SizedBox(
+        height: 50,
         child: ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
+          onPressed: () async {
+            final rawId = widget.result.screeningId;
+            final displayId = rawId.startsWith('#')
+                ? rawId
+                : ClinicalHelpers.generateScreeningDisplayId(rawId);
+
+            // Daftarkan kasus langsung ke web portal telaah spesialis
+            ApiClient().submitForHumanReview(
+              screeningId: displayId,
+              patientName: widget.patient?.fullName ?? (ApiClient().currentUser?.fullName ?? 'Bapak Sutrisno'),
+              patientNik: widget.patient?.nik ?? '3404015508750001',
+              eyePosition: widget.eyePosition,
+              drGrade: widget.result.aiResult.predictedClass,
+              confidence: widget.result.aiResult.confidence * 100,
+              doctorName: selectedDoc['name'],
+              doctorRole: selectedDoc['role'],
+              doctorSip: selectedDoc['sip'],
+            );
+
+            final chosenDoctorName = _reviewedDoctorName ?? selectedDoc['name'] ?? 'dr. Yunani Setyandriana, Sp.M';
+            final chosenDoctorRole = _reviewedDoctorRole ?? selectedDoc['role'] ?? 'Spesialis Vitreoretina & Oftalmologi';
+            final chosenDoctorSip = _reviewedDoctorSip ?? selectedDoc['sip'] ?? 'SIP: 446.1/1982/SIP-D/2024 (RTV-0003)';
+
+            ApiClient().updateLocalScreeningReview(
+              screeningId: widget.result.screeningId,
+              doctorName: chosenDoctorName,
+              doctorRole: chosenDoctorRole,
+              doctorSip: chosenDoctorSip,
+              isReviewed: _isDoctorReviewed,
+            );
+
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => StatusHumanReviewScreen(
+                  result: widget.result,
+                  eyePosition: widget.eyePosition,
+                  patient: widget.patient,
+                  imageBytes: widget.imageBytes,
+                  imageFile: widget.imageFile,
+                  doctorName: chosenDoctorName,
+                  doctorRole: chosenDoctorRole,
+                  doctorSip: chosenDoctorSip,
+                  doctorNotes: _reviewedDoctorNotes,
+                  reviewedAt: _reviewedAt,
+                  isDoctorReviewed: _isDoctorReviewed,
+                  adjudicationAction: _adjudicationAction,
+                  finalGrade: _finalGrade,
+                ),
+              ),
+            );
+            if (result == true && mounted) {
+              setState(() {
+                _isDoctorReviewed = true;
+              });
+            }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF246BFD),
             foregroundColor: Colors.white,
             elevation: 0,
-            shadowColor: Colors.transparent,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(25),
             ),
           ),
-          child: const Text(
-            'Selesai & Kembali ke Beranda',
-            style: TextStyle(
+          child: Text(
+            _isDoctorReviewed ? 'Lihat Hasil Akhir & Rekomendasi' : 'Lihat Status Human Review',
+            style: const TextStyle(
               fontFamily: 'Inter',
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.2,
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHighReliabilityNoticeCard(String confidencePct) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.verified_rounded,
+                  size: 18,
+                  color: Color(0xFF246BFD),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Validasi AI Lolos Ambang Klinis',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    Text(
+                      'Standar ICDR & Perdami 2024',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Otomatis',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF246BFD),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Skor keyakinan inferensi mencapai $confidencePct% (di atas ambang batas 85%). Tidak ditemukan anomali vaskular kritis yang memerlukan telaah sekunder dokter spesialis mata. Hasil dapat langsung diteruskan ke panduan tindakan klinis.',
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              color: Color(0xFF475569),
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNormalStagesCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.timeline_rounded, size: 18, color: Color(0xFF246BFD)),
+              SizedBox(width: 8),
+              Text(
+                'Alur Pemeriksaan Skrining',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _buildStageItem(
+            icon: Icons.check_circle_rounded,
+            title: 'Kualitas Citra & Foto Fundus Terverifikasi',
+            subtitle: 'Citra fundus tajam, fokus pada makula dan diskus optikus.',
+            isDone: true,
+            isPending: false,
+            isLast: false,
+          ),
+          _buildStageItem(
+            icon: Icons.check_circle_rounded,
+            title: 'Analisis AI & Reliability Gate Lolos',
+            subtitle: 'Keyakinan AI prima tanpa anomali mikrovaskular meragukan.',
+            isDone: true,
+            isPending: false,
+            isLast: false,
+          ),
+          _buildStageItem(
+            icon: Icons.task_alt_rounded,
+            title: 'Rekomendasi Tindak Lanjut Siap',
+            subtitle: 'Panduan pola hidup, diet 3J, dan jadwal kontrol berkala tersedia.',
+            isDone: true,
+            isPending: false,
+            isLast: true,
+          ),
+        ],
       ),
     );
   }

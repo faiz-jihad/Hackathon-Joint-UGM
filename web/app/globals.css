@@ -1448,9 +1448,9 @@ body {
   display: flex;
   justify-content: center;
   align-items: stretch;
-  gap: 1.75rem;
+  gap: 1.5rem;
   width: 100%;
-  max-width: 1140px;
+  max-width: 1060px;
   margin-top: 1.25rem;
   margin-bottom: 2.5rem;
   flex-wrap: wrap;
@@ -1458,10 +1458,10 @@ body {
 
 /* Individual Card */
 .modern-character-card {
-  flex: 1;
-  min-width: 290px;
-  max-width: 345px;
-  height: 520px;
+  flex: 1 1 0px;
+  min-width: 320px;
+  max-width: 500px;
+  height: 540px;
   position: relative;
   cursor: pointer;
   user-select: none;
@@ -1620,7 +1620,7 @@ body {
   left: 0;
   right: 0;
   z-index: 5;
-  padding: 3.5rem 1.25rem 1.35rem;
+  padding: 3.5rem 1.75rem 1.5rem;
   background: linear-gradient(
     180deg,
     transparent 0%,
@@ -1636,7 +1636,7 @@ body {
 }
 
 .modern-card-role-title {
-  font-size: 1.4rem;
+  font-size: 1.55rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   color: #FFFFFF;
@@ -1669,21 +1669,23 @@ body {
 }
 
 .modern-card-role-tagline {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: #E3F2FD;
   opacity: 0.85;
-  margin-top: 0.35rem;
-  margin-bottom: 1.25rem;
+  margin-top: 0.4rem;
+  margin-bottom: 1.35rem;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.4;
+  max-width: 400px;
 }
 
 /* Action Button at bottom of Card */
 .modern-card-action-btn {
   width: 100%;
-  padding: 0.8rem 1.25rem;
+  max-width: 420px;
+  padding: 0.85rem 1.5rem;
   border-radius: 12px;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   cursor: pointer;
@@ -2628,4 +2630,252 @@ body {
   animation: paneFadeOutRight 0.18s cubic-bezier(0.4, 0, 1, 1) forwards;
   pointer-events: none;
 }
+
+/* ==========================================================================
+   Comprehensive Responsive System (Desktop, Tablet, Mobile)
+   ========================================================================== */
+
+/* Universal Layout Grids */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+/* Universal Table Horizontal Scroll Container */
+.table-responsive,
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+}
+
+/* Mobile Navigation Drawer Components */
+.admin-mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #1E293B;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.admin-mobile-menu-btn:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.admin-sidebar-mobile-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-sidebar-mobile-close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.admin-sidebar-backdrop {
+  display: none;
+}
+
+/* ==========================================================================
+   Tablet Responsive Breakpoint (max-width: 1024px)
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .admin-shell {
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .admin-mobile-menu-btn {
+    display: inline-flex;
+  }
+
+  .admin-sidebar-mobile-close {
+    display: inline-flex;
+  }
+
+  /* Off-canvas mobile slide-over sidebar */
+  .admin-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    width: 280px !important;
+    max-width: 82vw !important;
+    z-index: 9999 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.45) !important;
+  }
+
+  .admin-sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  /* Backdrop for mobile drawer */
+  .admin-sidebar-backdrop {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    background-color: rgba(15, 23, 42, 0.65) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    z-index: 9998 !important;
+    animation: fadeIn 0.2s ease forwards !important;
+  }
+
+  .admin-viewport {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  .admin-topbar {
+    padding: 0 1rem !important;
+  }
+
+  .admin-scrollable-content {
+    padding: 1.25rem 1rem !important;
+  }
+
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ==========================================================================
+   Mobile Responsive Breakpoint (max-width: 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .admin-topbar {
+    height: 56px !important;
+    padding: 0 0.75rem !important;
+  }
+
+  .admin-breadcrumb-section,
+  .admin-breadcrumb-sep {
+    display: none !important;
+  }
+
+  .admin-breadcrumb-current {
+    font-size: 0.85rem !important;
+    max-width: 140px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .admin-scrollable-content {
+    padding: 0.85rem 0.65rem !important;
+  }
+
+  /* Ensure all tables are horizontally scrollable without breaking viewport */
+  table {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    white-space: nowrap;
+  }
+
+  table th,
+  table td {
+    padding: 0.5rem 0.65rem !important;
+    font-size: 0.78rem !important;
+  }
+
+  /* Universal single-column collapse for cards and sections */
+  .section-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.65rem !important;
+  }
+
+  .section-title {
+    font-size: 1.15rem !important;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.65rem !important;
+  }
+
+  .metric-card {
+    padding: 0.85rem !important;
+  }
+
+  /* Modals & Dialogs full width */
+  .modal-dialog,
+  .modal-content,
+  [role="dialog"] {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    margin: 10px auto !important;
+  }
+
+  /* Notification center dropdown responsive */
+  .admin-topbar-actions [style*="position: absolute"] {
+    max-width: calc(100vw - 20px) !important;
+    right: -8px !important;
+  }
+
+  /* Patient Portal Header Responsive */
+  .patient-portal-header,
+  header[style*="justifyContent: space-between"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+}
+
+/* ==========================================================================
+   Small Mobile Phone Breakpoint (max-width: 480px)
+   ========================================================================== */
+@media (max-width: 480px) {
+  .metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-breadcrumb-current {
+    max-width: 100px !important;
+  }
+
+  .admin-topbar-actions {
+    gap: 0.4rem !important;
+  }
+}
+
 

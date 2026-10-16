@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
 import '../../core/services/emergency_location_service.dart';
 import '../../data/models/sos_incident_model.dart';
+import '../widgets/notification_bell_widget.dart';
 
 enum SosStage {
   countingDown,
@@ -197,6 +198,10 @@ class _SosActivationScreenState extends State<SosActivationScreen>
             Navigator.of(context).pop();
           },
         ),
+        actions: const [
+          Center(child: NotificationBellWidget()),
+          SizedBox(width: 14),
+        ],
       ),
       body: SafeArea(
         child: _stage == SosStage.countingDown

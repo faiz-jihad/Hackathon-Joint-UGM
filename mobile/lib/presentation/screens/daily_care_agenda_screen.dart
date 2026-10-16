@@ -8,6 +8,7 @@ import '../../data/models/patient_model.dart';
 import 'daily_health_checkin_screen.dart';
 import 'health_progress_screen.dart';
 import 'smart_meal_detail_screen.dart';
+import '../widgets/notification_bell_widget.dart';
 
 class DailyCareAgendaScreen extends StatefulWidget {
   final PatientModel? patient;
@@ -106,7 +107,7 @@ class _DailyCareAgendaScreenState extends State<DailyCareAgendaScreen> {
   }
 
   void _openGoogleCalendar(DailyAgendaItem item) {
-    final url = CalendarExportHelper.buildGoogleCalendarUrl(
+    CalendarExportHelper.buildGoogleCalendarUrl(
       title: item.title,
       description: item.subtitle,
       dateStr: _dateStr,
@@ -129,7 +130,7 @@ class _DailyCareAgendaScreenState extends State<DailyCareAgendaScreen> {
   void _exportFullIcs() {
     if (_agendaSummary == null || _agendaSummary!.agenda.isEmpty) return;
 
-    final ics = CalendarExportHelper.buildIcsString(
+    CalendarExportHelper.buildIcsString(
       items: _agendaSummary!.agenda,
       dateStr: _dateStr,
     );
@@ -379,9 +380,14 @@ class _DailyCareAgendaScreenState extends State<DailyCareAgendaScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text(
-          'Agenda Sehat Harian',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+        titleSpacing: 0,
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Agenda Sehat Harian',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+          ),
         ),
         backgroundColor: Colors.white,
         elevation: 0.5,
@@ -407,6 +413,8 @@ class _DailyCareAgendaScreenState extends State<DailyCareAgendaScreen> {
               );
             },
           ),
+          const Center(child: NotificationBellWidget()),
+          const SizedBox(width: 8),
         ],
       ),
       body: _isLoading
@@ -454,7 +462,7 @@ class _DailyCareAgendaScreenState extends State<DailyCareAgendaScreen> {
                     else
                       _buildEmptyState(),
 
-                    const SizedBox(height: 80),
+                    const SizedBox(height: 110),
                   ],
                 ),
               ),
@@ -482,7 +490,7 @@ class _DailyCareAgendaScreenState extends State<DailyCareAgendaScreen> {
                     if (res == true) _loadAgendaData();
                   },
                   icon: const Icon(Icons.add_task_rounded, size: 18),
-                  label: const Text('Isi Check-in Harian (30 Detik)'),
+                  label: const Text('Isi Check-in Harian'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -785,13 +793,14 @@ class _DailyCareAgendaScreenState extends State<DailyCareAgendaScreen> {
     return Container(
       padding: const EdgeInsets.all(32),
       alignment: Alignment.center,
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Icons.event_available_rounded, size: 48, color: Color(0xFFCBD5E1)),
-          SizedBox(height: 12),
+          const Icon(Icons.event_available_rounded, size: 48, color: Color(0xFFCBD5E1)),
+          const SizedBox(height: 12),
           Text(
-            'Tidak ada jadwal agenda pada tanggal ini.',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+            _errorMessage ?? 'Tidak ada jadwal agenda pada tanggal ini.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
           ),
         ],
       ),

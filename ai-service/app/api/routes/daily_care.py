@@ -366,6 +366,114 @@ BASE_MEAL_DATABASE = {
             "has_seafood": False,
             "has_poultry": True,
             "is_vegetarian": False
+        },
+        {
+            "id": "meal-lu-04",
+            "category": "MAKAN_SIANG",
+            "time_recommendation": "12.30",
+            "name": "Nasi Jagung, Tahu Kukus Bumbu Kunyit & Sayur Bening Bayam",
+            "main_dish": "Tahu Sutra Kukus Bumbu Kunyit & Daun Kemangi (2 Potong)",
+            "complementary_foods": ["Sayur Bening Bayam Segar Kaldu Bawang Dapur (1 Mangkuk)", "Nasi Jagung Pulen Rendah Glikemik 100g", "Lalap Timun Iris Segar"],
+            "suggested_portion": "Piring Model T dari Dapur: 1/2 piring sayur bening bayam, 1/4 nasi jagung, 1/4 tahu kukus kunyit.",
+            "ingredients": [
+                {"name": "Tahu Sutra Dapur", "quantity": "2 kotak (120g)", "est_cost_idr": 2500},
+                {"name": "Bayam Hijau Segar", "quantity": "1 ikat", "est_cost_idr": 2000},
+                {"name": "Beras Jagung Lokal Pulen", "quantity": "80 gram", "est_cost_idr": 1800},
+                {"name": "Bawang Merah & Putih", "quantity": "Secukupnya", "est_cost_idr": 1000},
+            ],
+            "estimated_cost_idr": 7300,
+            "affordable_alternatives": [
+                {
+                    "title": "Kreasi Bakar Teflon",
+                    "savings_idr": 0,
+                    "description": "Panggang tahu di teflon tanpa minyak untuk aroma karamelisasi gurih.",
+                    "substitution_type": "COOKING_METHOD"
+                }
+            ],
+            "nutrition": {
+                "calories_kcal": 285,
+                "carbs_grams": 27,
+                "fiber_grams": 7.2,
+                "protein_grams": 14,
+                "glycemic_index": "RENDAH",
+                "sodium_mg": 130
+            },
+            "allergens": [],
+            "has_seafood": False,
+            "has_poultry": False,
+            "is_vegetarian": True
+        },
+        {
+            "id": "meal-lu-05",
+            "category": "MAKAN_SIANG",
+            "time_recommendation": "12.30",
+            "name": "Menu Nutrisi Lengkap: Nasi Merah Organik, Fillet Dada Ayam Herbal & Tumis Brokoli Jamur",
+            "main_dish": "Fillet Dada Ayam Organik Panggang Herbal Rosemary (100g)",
+            "complementary_foods": ["Tumis Brokoli Kembang Kol & Jamur Kancing Organik", "Nasi Beras Merah Organik Pulen 100g", "Salad Mini Tomat Ceri Minyak Zaitun"],
+            "suggested_portion": "Piring Model T Premium: 1/2 brokoli jamur organik, 1/4 nasi beras merah, 1/4 fillet ayam herbal.",
+            "ingredients": [
+                {"name": "Dada Ayam Organik", "quantity": "100 gram", "est_cost_idr": 12000},
+                {"name": "Brokoli & Jamur Kancing", "quantity": "120 gram", "est_cost_idr": 4500},
+                {"name": "Beras Merah Organik", "quantity": "75 gram", "est_cost_idr": 2500},
+                {"name": "Minyak Zaitun EVOO & Rempah", "quantity": "1 sdm", "est_cost_idr": 1500},
+            ],
+            "estimated_cost_idr": 20500,
+            "affordable_alternatives": [
+                {
+                    "title": "Substitusi Ayam Pasar Lokal",
+                    "savings_idr": 4000,
+                    "description": "Gunakan dada ayam segar pasar tradisional untuk penghematan.",
+                    "substitution_type": "LOCAL_SAVING"
+                }
+            ],
+            "nutrition": {
+                "calories_kcal": 395,
+                "carbs_grams": 30,
+                "fiber_grams": 8.5,
+                "protein_grams": 28,
+                "glycemic_index": "RENDAH",
+                "sodium_mg": 150
+            },
+            "allergens": [],
+            "has_seafood": False,
+            "has_poultry": True,
+            "is_vegetarian": False
+        },
+        {
+            "id": "meal-lu-06",
+            "category": "MAKAN_SIANG",
+            "time_recommendation": "12.30",
+            "name": "Menu Rendah Garam: Nasi Merah, Ayam Ungkep Rempah Daun Jeruk & Tumis Buncis",
+            "main_dish": "Dada Ayam Ungkep Rempah Daun Jeruk & Serai (Bebas Garam Tambahan)",
+            "complementary_foods": ["Tumis Buncis Bawang Putih Bakar (Tanpa Garam / MSG)", "Nasi Beras Merah Pulen 100g", "Lalap Timun Kemangi"],
+            "suggested_portion": "Piring Anti-Hipertensi: 1/2 tumis buncis rempah, 1/4 nasi merah, 1/4 ayam ungkep serai.",
+            "ingredients": [
+                {"name": "Dada Ayam Fillet", "quantity": "75 gram", "est_cost_idr": 6000},
+                {"name": "Buncis Muda Segar", "quantity": "100 gram", "est_cost_idr": 2500},
+                {"name": "Beras Merah Pulen", "quantity": "75 gram", "est_cost_idr": 2000},
+                {"name": "Serai, Daun Jeruk, Bawang Putih, Kunyit", "quantity": "Secukupnya", "est_cost_idr": 1500},
+            ],
+            "estimated_cost_idr": 12000,
+            "affordable_alternatives": [
+                {
+                    "title": "Substitusi Tempe Rempah Daun Salam",
+                    "savings_idr": 3500,
+                    "description": "Ganti ayam dengan tempe ungkep rempah untuk opsi lebih hemat dan ramah tensi.",
+                    "substitution_type": "LOW_SODIUM_ECONOMICAL"
+                }
+            ],
+            "nutrition": {
+                "calories_kcal": 325,
+                "carbs_grams": 30,
+                "fiber_grams": 7.0,
+                "protein_grams": 22,
+                "glycemic_index": "RENDAH",
+                "sodium_mg": 85
+            },
+            "allergens": [],
+            "has_seafood": False,
+            "has_poultry": True,
+            "is_vegetarian": False
         }
     ],
     "DINNER": [
@@ -513,21 +621,46 @@ def evaluate_smart_meal(request: SmartMealRecommendationRequest):
     if not filtered_candidates:
         filtered_candidates = [candidates[-1]]  # Safe plant-based fallback
 
+    # Check available kitchen ingredients
+    pantry_keywords = [ing.lower().strip() for ing in (request.available_ingredients or []) if ing.strip()]
+    if pantry_keywords:
+        pantry_matches = []
+        for m in filtered_candidates:
+            meal_text = (m["name"] + " " + m["main_dish"] + " " + " ".join(i["name"] for i in m["ingredients"])).lower()
+            if any(k in meal_text for k in pantry_keywords):
+                pantry_matches.append(m)
+        if pantry_matches:
+            filtered_candidates = pantry_matches
+
     # Deterministic Filter 2: Kidney / Renal safety (Nefropati Diabetik)
     is_kidney_restricted = False
     req_restrictions = " ".join((request.dietary_restrictions or []) + [request.clinician_notes or ""]).lower()
     if any(k in req_restrictions for k in ["ginjal", "nefropati", "ckd", "batasi protein"]):
         is_kidney_restricted = True
-        # Prioritize meals with moderate protein (<= 18g) and lower sodium
         low_protein_candidates = [m for m in filtered_candidates if m["nutrition"]["protein_grams"] <= 18]
         if low_protein_candidates:
             filtered_candidates = low_protein_candidates
 
-    # Deterministic Filter 3: Budget check
+    # Deterministic Filter 3: Low Sodium / Hypertension
+    is_low_salt = any(k in req_restrictions for k in ["garam", "hipertensi", "tensi", "sodium", "rendah_garam"])
+    if is_low_salt:
+        low_salt_candidates = [m for m in filtered_candidates if m["nutrition"].get("sodium_mg", 200) <= 200]
+        if low_salt_candidates:
+            filtered_candidates = low_salt_candidates
+
+    # Deterministic Filter 4: Budget tier check
     target_budget = request.daily_budget or 35000
-    per_meal_budget = target_budget if target_budget < 25000 else (target_budget / 3)
-    budget_friendly = [m for m in filtered_candidates if m["estimated_cost_idr"] <= per_meal_budget * 1.2]
-    chosen_meal = budget_friendly[0] if budget_friendly else filtered_candidates[0]
+    if target_budget <= 25000:
+        # Budget hemat: sort ascending by cost
+        filtered_candidates.sort(key=lambda x: x["estimated_cost_idr"])
+        chosen_meal = filtered_candidates[0]
+    elif target_budget >= 45000:
+        # Budget premium / tinggi: sort descending by cost and nutrition
+        filtered_candidates.sort(key=lambda x: x["estimated_cost_idr"], reverse=True)
+        chosen_meal = filtered_candidates[0]
+    else:
+        # Moderate budget
+        chosen_meal = filtered_candidates[0]
 
     # Generate Simple Indonesian Nutritional Explanations
     nutr = chosen_meal["nutrition"]

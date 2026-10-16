@@ -102,6 +102,60 @@ class MainActivity : FlutterActivity() {
                             result.success(false)
                         }
                     }
+                    "openUrl" -> {
+                        val url = call.argument<String>("url")
+                        if (url != null) {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                startActivity(intent)
+                                result.success(true)
+                            } catch (e: Exception) {
+                                android.util.Log.e("MainActivity", "Error opening URL: $url", e)
+                                result.error("CANNOT_OPEN", e.message, null)
+                            }
+                        } else {
+                            result.error("INVALID_URL", "URL is null", null)
+                        }
+                    }
+                    "saveDownloadedFile" -> {
+                        val filename = call.argument<String>("filename") ?: "SPK_RETIVA_2026090084.pdf"
+                        val content = call.argument<String>("content") ?: ""
+                        val bytes = call.argument<ByteArray>("bytes")
+                        try {
+                            val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                            if (!downloadsDir.exists()) {
+                                downloadsDir.mkdirs()
+                            }
+                            val targetFile = java.io.File(downloadsDir, filename)
+                            if (bytes != null) {
+                                targetFile.writeBytes(bytes)
+                            } else {
+                                targetFile.writeBytes(content.toByteArray(java.nio.charset.StandardCharsets.ISO_8859_1))
+                            }
+
+                            try {
+                                val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+                                mediaScanIntent.data = android.net.Uri.fromFile(targetFile)
+                                sendBroadcast(mediaScanIntent)
+                            } catch (_: Exception) {}
+
+                            result.success(targetFile.absolutePath)
+                        } catch (e: Exception) {
+                            try {
+                                val fallbackFile = java.io.File(getExternalFilesDir(null), filename)
+                                if (bytes != null) {
+                                    fallbackFile.writeBytes(bytes)
+                                } else {
+                                    fallbackFile.writeBytes(content.toByteArray(java.nio.charset.StandardCharsets.ISO_8859_1))
+                                }
+                                result.success(fallbackFile.absolutePath)
+                            } catch (e2: Exception) {
+                                result.error("SAVE_FAILED", e2.message, null)
+                            }
+                        }
+                    }
                     else -> result.notImplemented()
                 }
             }

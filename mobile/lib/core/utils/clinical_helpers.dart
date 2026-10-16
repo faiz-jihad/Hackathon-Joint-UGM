@@ -149,21 +149,21 @@ class ClinicalHelpers {
       {
         'name': 'Mikroaneurisma (MA)',
         'detected': !isNo,
-        'level': isNo ? 'Negatif' : (isMild ? 'Minimal (1-3 titik)' : (isMod ? 'Moderat (Multipel)' : 'Difus (>20/kuadran)')),
+        'level': isNo ? 'Negatif' : (isMild ? 'Minimal (1-3)' : (isMod ? 'Moderat' : 'Difus (>20)')),
         'desc': 'Dilatasi sakular fokal pada dinding kapiler retina akibat hilangnya perisit.',
         'isCritical': isSev || isPdr,
       },
       {
         'name': 'Perdarahan Intraretina (Dot/Blot)',
         'detected': isMod || isSev || isPdr,
-        'level': (isMod || isSev || isPdr) ? (isSev || isPdr ? 'Masif (4 Kuadran)' : 'Ada (Kuadran Temporal & Nasal)') : 'Negatif',
+        'level': (isMod || isSev || isPdr) ? (isSev || isPdr ? 'Masif (4 Kuadran)' : 'Ada (Temporal/Nasal)') : 'Negatif',
         'desc': 'Kebocoran eritrosit di lapisan pleksiform dalam akibat mikroangiopati kronis.',
         'isCritical': isSev || isPdr,
       },
       {
         'name': 'Eksudat Keras (Hard Exudates)',
         'detected': isMod || isSev || isPdr,
-        'level': (isMod || isSev || isPdr) ? 'Ada (Deposit Lipid Dekat Makula)' : 'Negatif',
+        'level': (isMod || isSev || isPdr) ? 'Ada (Perimacular)' : 'Negatif',
         'desc': 'Presipitasi lipoprotein & lipid akibat gangguan sawar darah-retina (blood-retinal barrier).',
         'isCritical': false,
       },
@@ -177,14 +177,14 @@ class ClinicalHelpers {
       {
         'name': 'Neovaskularisasi (NVD/NVE)',
         'detected': isPdr,
-        'level': isPdr ? 'Positif (Diskus/Retina)' : 'Negatif (Non-Proliferatif)',
+        'level': isPdr ? 'Positif (Diskus/Retina)' : 'Negatif',
         'desc': 'Pembentukan pembuluh darah baru abnormal yang rapuh dipicu hipersekresi VEGF.',
         'isCritical': isPdr,
       },
       {
         'name': 'Risiko Edema Makula Diabetik (DME)',
         'detected': isMod || isSev || isPdr,
-        'level': isNo ? 'Sangat Rendah' : (isMild ? 'Rendah' : (isMod ? 'Sedang (<1 DD dari Fovea)' : 'Tinggi (Ancaman Visus)')),
+        'level': isNo ? 'Sangat Rendah' : (isMild ? 'Rendah' : (isMod ? 'Sedang (<1 DD)' : 'Tinggi')),
         'desc': 'Penebalan makula foveal yang menjadi penyebab nomor satu penurunan tajam penglihatan sentral.',
         'isCritical': isSev || isPdr,
       },
@@ -307,5 +307,63 @@ class ClinicalHelpers {
         'Nyeri mendadak pada bola mata disertai mata merah, mual, dan muntah.',
       ],
     };
+  }
+
+  /// Konversi objek DateTime ke Waktu Indonesia Barat (WIB, UTC+7) secara akurat
+  static DateTime toWib(DateTime? dt) {
+    if (dt == null) {
+      return DateTime.now().toUtc().add(const Duration(hours: 7));
+    }
+    final utc = dt.isUtc ? dt : dt.toUtc();
+    return utc.add(const Duration(hours: 7));
+  }
+
+  /// Format tanggal dan jam dinamis secara real-time ke format Indonesia WIB
+  static String formatIndonesianDateTime(DateTime? dateTime) {
+    final d = toWib(dateTime);
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    final monthName = months[(d.month - 1).clamp(0, 11)];
+    final hour = d.hour.toString().padLeft(2, '0');
+    final minute = d.minute.toString().padLeft(2, '0');
+    return '${d.day} $monthName ${d.year}, $hour:$minute WIB';
+  }
+
+  /// Format jam saja dalam WIB (misal: 10:14 WIB)
+  static String formatTimeOnly(DateTime? dateTime) {
+    final d = toWib(dateTime);
+    final hour = d.hour.toString().padLeft(2, '0');
+    final minute = d.minute.toString().padLeft(2, '0');
+    return '$hour:$minute WIB';
+  }
+
+  /// Format ringkas waktu untuk kartu telaah: 'Hari Ini,\n10:00 WIB' atau '15 Okt,\n10:00 WIB'
+  static String formatWibTimeOrToday(DateTime? dateTime) {
+    final wib = toWib(dateTime);
+    final nowWib = toWib(DateTime.now());
+    final hour = wib.hour.toString().padLeft(2, '0');
+    final minute = wib.minute.toString().padLeft(2, '0');
+    final isToday = wib.year == nowWib.year && wib.month == nowWib.month && wib.day == nowWib.day;
+    if (isToday) {
+      return 'Hari Ini,\n$hour:$minute WIB';
+    }
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    final monthName = months[(wib.month - 1).clamp(0, 11)];
+    return '${wib.day} $monthName,\n$hour:$minute WIB';
+  }
+
+  /// Buat ID skrining dinamis sesuai tanggal hari ini (#RTV-YYYYMMDD-XX)
+  static String generateScreeningDisplayId(String? rawId) {
+    final now = toWib(DateTime.now());
+    final y = now.year.toString();
+    final m = now.month.toString().padLeft(2, '0');
+    final d = now.day.toString().padLeft(2, '0');
+    final digits = (rawId ?? '').replaceAll(RegExp(r'[^0-9]'), '').padRight(2, '1').substring(0, 2);
+    return '#RTV-$y$m$d-$digits';
   }
 }

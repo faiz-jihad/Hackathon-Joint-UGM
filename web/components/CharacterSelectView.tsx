@@ -17,17 +17,8 @@ interface CharacterInfo {
 
 const CHARACTERS: CharacterInfo[] = [
   {
-    id: 'pengguna',
-    roleNumberLabel: 'PERAN 01',
-    displayTitle: 'PENGGUNA',
-    categoryTag: 'PASIEN',
-    tagline: 'Pemeriksaan Mandiri & Pantau Retina',
-    imageSrc: '/images/character/Pengguna.png',
-    imageAlt: 'Foto Profil Ny. Siti Aminah - Pengguna / Pasien',
-  },
-  {
     id: 'admin',
-    roleNumberLabel: 'PERAN 02',
+    roleNumberLabel: 'PERAN 01',
     displayTitle: 'ADMINISTRATOR',
     categoryTag: 'ADMIN',
     tagline: 'Verifikasi & Pengawasan Skrining',
@@ -36,7 +27,7 @@ const CHARACTERS: CharacterInfo[] = [
   },
   {
     id: 'dokter',
-    roleNumberLabel: 'PERAN 03',
+    roleNumberLabel: 'PERAN 02',
     displayTitle: 'DOKTER',
     categoryTag: 'DOKTER',
     tagline: 'Telaah Vitreoretina & Adjudikasi',
@@ -52,11 +43,11 @@ interface CharacterSelectViewProps {
 
 export function CharacterSelectView({
   onSelectRole,
-  initialRole = 'pengguna',
+  initialRole = 'admin',
 }: CharacterSelectViewProps) {
   const [selectedIndex, setSelectedIndex] = useState<number>(() => {
     const idx = CHARACTERS.findIndex((c) => c.id === initialRole);
-    return idx >= 0 ? idx : 0; // Default to Pengguna (index 0)
+    return idx >= 0 ? idx : 0; // Default to Administrator (index 0)
   });
 
   useEffect(() => {
@@ -318,7 +309,7 @@ export function CharacterSelectView({
                       src={char.imageSrc}
                       alt={char.imageAlt}
                       fill
-                      sizes="(max-width: 768px) 100vw, 360px"
+                      sizes="(max-width: 768px) 100vw, 550px"
                       priority
                       className="modern-character-image-full"
                     />

@@ -3,6 +3,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
 import '../../core/services/widget_service.dart';
 import '../../data/models/smart_meal_model.dart';
+import '../widgets/notification_bell_widget.dart';
+import 'daily_care_agenda_screen.dart';
 
 class SmartMealDetailScreen extends StatefulWidget {
   final String initialCategory;
@@ -28,13 +30,11 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
   double _budget = 35000;
   final List<String> _selectedAllergies = [];
   final List<String> _selectedRestrictions = [];
-  final List<String> _selectedProteins = ['tempe', 'tahu', 'ikan'];
   final TextEditingController _ingredientsController = TextEditingController();
 
   // Post-meal glucose recording
   final TextEditingController _glucoseController = TextEditingController();
   bool _isSavingGlucose = false;
-  Map<String, dynamic>? _lastGlucoseEvaluation;
 
   @override
   void initState() {
@@ -70,6 +70,56 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
         _errorMessage = 'Gagal memuat rekomendasi menu: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _updateBudgetAndApply(double newBudget) async {
+    setState(() {
+      _budget = newBudget;
+      _isLoading = true;
+    });
+
+    try {
+      final filter = PersonalizationFilter(
+        dailyBudget: _budget,
+        mealCategory: _selectedCategory,
+        allergies: _selectedAllergies,
+        dietaryRestrictions: _selectedRestrictions,
+        availableIngredients: _ingredientsController.text
+            .split(',')
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList(),
+      );
+      final personalized = await _apiClient.personalizeSmartMeal('P-001', filter);
+      setState(() {
+        _currentMeal = personalized;
+        _isLoading = false;
+      });
+      await WidgetService.updateNextMealData(personalized);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF1565C0),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: Row(
+              children: [
+                const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Rekomendasi disesuaikan: ${personalized.mainDish}',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -131,7 +181,7 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
     setState(() => _isSavingGlucose = true);
 
     try {
-      final res = await _apiClient.markSmartMealAsEaten(
+      await _apiClient.markSmartMealAsEaten(
         'P-001',
         _currentMeal?.id ?? 'meal-curr',
         _currentMeal?.name ?? 'Menu',
@@ -143,9 +193,6 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
         _isSavingGlucose = false;
         _currentMeal?.postMealGlucoseMgDl = bgVal;
         _currentMeal?.isEaten = true;
-        _lastGlucoseEvaluation = res['glucoseEvaluation'] is Map<String, dynamic>
-            ? res['glucoseEvaluation']
-            : null;
       });
 
       if (_currentMeal != null) {
@@ -239,7 +286,7 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: AppColors.secondary,
+            backgroundColor: AppColors.primary,
             content: Text('Alternatif berhasil diterapkan: ${alt.title} (Hemat Rp ${alt.savingsIdr.toInt()})'),
           ),
         );
@@ -377,7 +424,7 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
                         return FilterChip(
                           label: Text(item['label']!, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : AppColors.textPrimary)),
                           selected: isSelected,
-                          selectedColor: AppColors.secondary,
+                          selectedColor: AppColors.primary,
                           checkmarkColor: Colors.white,
                           onSelected: (val) {
                             setSheetState(() {
@@ -418,7 +465,7 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
                             allergies: _selectedAllergies,
                             dietaryRestrictions: _selectedRestrictions,
                             availableIngredients: _ingredientsController.text
-                                .split(',')
+                                .split(RegExp(r'[,.\n]+'))
                                 .map((s) => s.trim())
                                 .where((s) => s.isNotEmpty)
                                 .toList(),
@@ -429,6 +476,27 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
                             _isLoading = false;
                           });
                           await WidgetService.updateNextMealData(personalized);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: const Color(0xFF1565C0),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                content: Row(
+                                  children: [
+                                    const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'Rekomendasi disesuaikan: ${personalized.mainDish}',
+                                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
                         } catch (e) {
                           setState(() => _isLoading = false);
                         }
@@ -519,13 +587,23 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Rekomendasi Menu Cerdas'),
+        titleSpacing: 0,
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Rekomendasi Menu Cerdas',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.tune_outlined, color: AppColors.primary),
-            tooltip: 'Personalisasi Menu',
+            tooltip: 'Personalisasi Menu & Budget',
             onPressed: _showPersonalizationSheet,
           ),
+          const Center(child: NotificationBellWidget()),
+          const SizedBox(width: 8),
         ],
       ),
       body: _isLoading
@@ -572,13 +650,17 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
         children: [
           // 1. Category Selector
           _buildCategoryTabs(),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
-          // 2. Mascot Guidance Banner
+          // 2. Budget Input & AI Healthy Activities Banner (Fitur Range Harga Harian)
+          _buildBudgetAndActivityBanner(),
+          const SizedBox(height: 12),
+
+          // 3. Mascot Guidance Banner
           _buildMascotBanner(),
           const SizedBox(height: 14),
 
-          // 3. Main Dish Card
+          // 4. Main Dish Card
           _buildMainDishCard(meal),
           const SizedBox(height: 14),
 
@@ -628,6 +710,7 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
+              checkmarkColor: Colors.white,
               label: Text(
                 cat['label']!,
                 style: TextStyle(
@@ -740,16 +823,16 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDCFCE7),
+                    color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.check, size: 14, color: Color(0xFF15803D)),
+                      Icon(Icons.check, size: 14, color: AppColors.primary),
                       SizedBox(width: 4),
                       Text(
                         'Sudah Dikonsumsi',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
                       ),
                     ],
                   ),
@@ -766,16 +849,113 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
               height: 1.25,
             ),
           ),
-          const SizedBox(height: 6),
+
+          // Dynamic Personalization Badges from 3 Factors (Alergi, Pembatasan Klinis, Bahan Dapur)
+          if (meal.personalizationTags.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: meal.personalizationTags.map((tag) {
+                const Color chipBg = Color(0xFFEFF6FF);
+                const Color chipFg = AppColors.primary;
+                IconData chipIcon = Icons.auto_awesome;
+
+                if (tag.contains('Dapur')) {
+                  chipIcon = Icons.kitchen_outlined;
+                } else if (tag.contains('Nefropati')) {
+                  chipIcon = Icons.health_and_safety_outlined;
+                } else if (tag.contains('Rendah Garam')) {
+                  chipIcon = Icons.favorite_outline;
+                } else if (tag.contains('Bebas Alergen') || tag.contains('Bebas')) {
+                  chipIcon = Icons.shield_outlined;
+                }
+
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                  decoration: BoxDecoration(
+                    color: chipBg,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFBFDBFE), width: 0.8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(chipIcon, size: 12, color: chipFg),
+                      const SizedBox(width: 4),
+                      Text(
+                        tag,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: chipFg),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+
+          const SizedBox(height: 12),
+
+          // Lauk Utama Terpilih Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.lunch_dining, size: 18, color: AppColors.primary),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Lauk Utama Terpilih:',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        meal.mainDish,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
           Row(
             children: [
               const Icon(Icons.payments_outlined, size: 16, color: AppColors.textMuted),
               const SizedBox(width: 4),
-              Text(
-                'Estimasi Biaya: Rp ${meal.estimatedCostIdr.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+              Expanded(
+                child: Text(
+                  'Estimasi Biaya: Rp ${meal.estimatedCostIdr.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
@@ -793,11 +973,11 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
             children: [
               _buildNutrChip('Kalori', '${meal.nutrition.caloriesKcal.toInt()} kkal', const Color(0xFFEFF6FF), AppColors.primary),
               const SizedBox(width: 8),
-              _buildNutrChip('Karbohidrat', '${meal.nutrition.carbsGrams.toInt()}g', const Color(0xFFF0FDF4), const Color(0xFF16A34A)),
+              _buildNutrChip('Karbohidrat', '${meal.nutrition.carbsGrams.toInt()}g', const Color(0xFFEFF6FF), AppColors.primary),
               const SizedBox(width: 8),
-              _buildNutrChip('Serat', '${meal.nutrition.fiberGrams}g', const Color(0xFFFEF3C7), const Color(0xFFD97706)),
+              _buildNutrChip('Serat', '${meal.nutrition.fiberGrams}g', const Color(0xFFEFF6FF), AppColors.primary),
               const SizedBox(width: 8),
-              _buildNutrChip('Protein', '${meal.nutrition.proteinGrams.toInt()}g', const Color(0xFFF5F3FF), const Color(0xFF7C3AED)),
+              _buildNutrChip('Protein', '${meal.nutrition.proteinGrams.toInt()}g', const Color(0xFFEFF6FF), AppColors.primary),
             ],
           ),
         ],
@@ -839,9 +1019,13 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
             children: [
               Icon(Icons.pie_chart_outline, color: AppColors.primary, size: 20),
               SizedBox(width: 8),
-              Text(
-                'Komposisi "Piring Model T" (Kemenkes)',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              Expanded(
+                child: Text(
+                  'Komposisi "Piring Model T" (Kemenkes)',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -856,7 +1040,7 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
           ...meal.complementaryFoods.map(
             (food) => Padding(
               padding: const EdgeInsets.only(bottom: 6),
-              child: _buildPortionRow('Lauk Pendamping / Sayur', food, Icons.eco, const Color(0xFF16A34A)),
+              child: _buildPortionRow('Lauk Pendamping / Sayur', food, Icons.eco, AppColors.primary),
             ),
           ),
         ],
@@ -902,9 +1086,13 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
             children: [
               Icon(Icons.insights, color: AppColors.primary, size: 20),
               SizedBox(width: 8),
-              Text(
-                'Penjelasan Dampak Nutrisi Bagi Glukosa',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              Expanded(
+                child: Text(
+                  'Penjelasan Dampak Nutrisi Bagi Glukosa',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -951,9 +1139,13 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
             children: [
               Icon(Icons.shopping_basket_outlined, color: AppColors.primary, size: 20),
               SizedBox(width: 8),
-              Text(
-                'Daftar Bahan & Estimasi Harga',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              Expanded(
+                child: Text(
+                  'Daftar Bahan & Estimasi Harga',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -1011,11 +1203,15 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
         children: [
           const Row(
             children: [
-              Icon(Icons.swap_horiz, color: AppColors.secondary, size: 20),
+              Icon(Icons.swap_horiz, color: AppColors.primary, size: 20),
               SizedBox(width: 8),
-              Text(
-                'Alternatif Ekonomis & Substitusi Bahan',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              Expanded(
+                child: Text(
+                  'Alternatif Ekonomis & Substitusi Bahan',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -1050,12 +1246,12 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
+                            color: const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             'Hemat Rp ${alt.savingsIdr.toInt()}',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
                           ),
                         ),
                     ],
@@ -1091,7 +1287,7 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
         // Button: Tandai Sudah Makan
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
-            backgroundColor: meal.isEaten ? const Color(0xFF15803D) : AppColors.primary,
+            backgroundColor: meal.isEaten ? const Color(0xFF1E3A8A) : AppColors.primary,
             minimumSize: const Size.fromHeight(50),
           ),
           onPressed: meal.isEaten ? null : _markMealAsEaten,
@@ -1142,6 +1338,176 @@ class _SmartMealDetailScreenState extends State<SmartMealDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBudgetAndActivityBanner() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.account_balance_wallet_rounded, size: 16, color: AppColors.primary),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Target Anggaran Makan Harian:',
+                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Rp ${_budget.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / hari',
+                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              InkWell(
+                onTap: _showPersonalizationSheet,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.tune_rounded, size: 12, color: AppColors.primary),
+                      SizedBox(width: 4),
+                      Text(
+                        'Atur Range',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Quick Budget Selector Chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildQuickBudgetChip(20000, 'Rp 20.000'),
+                const SizedBox(width: 6),
+                _buildQuickBudgetChip(35000, 'Rp 35.000'),
+                const SizedBox(width: 6),
+                _buildQuickBudgetChip(50000, 'Rp 50.000'),
+              ],
+            ),
+          ),
+          const Divider(height: 18),
+          // AI Healthy Activity Recommendation
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.directions_walk_rounded, size: 16, color: AppColors.primary),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Kegiatan Sehat Pendamping (AI)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Jalan santai ringan 15–20 menit pasca makan untuk membantu regulasi glukosa darah & menjaga kesehatan retina.',
+                      style: TextStyle(fontSize: 10.5, color: Color(0xFF475569), height: 1.3),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DailyCareAgendaScreen(),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Agenda',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.primary),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 9, color: AppColors.primary),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickBudgetChip(double budgetVal, String label) {
+    final isSelected = (_budget - budgetVal).abs() < 1000;
+    return InkWell(
+      onTap: () => _updateBudgetAndApply(budgetVal),
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+          ),
+        ),
       ),
     );
   }

@@ -105,6 +105,7 @@ class SmartMealItem {
   final List<MealAlternative> affordableAlternatives;
   final MealNutrition nutrition;
   final Map<String, String> nutritionalImpactExplanation;
+  final List<String> personalizationTags;
   bool isEaten;
   String? eatenAt;
   double? postMealGlucoseMgDl;
@@ -123,6 +124,7 @@ class SmartMealItem {
     required this.affordableAlternatives,
     required this.nutrition,
     required this.nutritionalImpactExplanation,
+    this.personalizationTags = const [],
     this.isEaten = false,
     this.eatenAt,
     this.postMealGlucoseMgDl,
@@ -171,6 +173,14 @@ class SmartMealItem {
       });
     }
 
+    final tags = <String>[];
+    final rawTags = json['personalization_tags'] ?? json['personalizationTags'];
+    if (rawTags is List) {
+      for (final item in rawTags) {
+        tags.add(item.toString());
+      }
+    }
+
     return SmartMealItem(
       id: json['id']?.toString() ?? 'meal-default',
       category: json['category']?.toString() ?? 'MAKAN_SIANG',
@@ -192,6 +202,7 @@ class SmartMealItem {
               glycemicIndex: 'RENDAH',
             ),
       nutritionalImpactExplanation: explanationMap,
+      personalizationTags: tags,
       isEaten: json['is_eaten'] ?? json['isEaten'] ?? false,
       eatenAt: json['eaten_at']?.toString() ?? json['eatenAt']?.toString(),
       postMealGlucoseMgDl: json['post_meal_glucose_mg_dl'] != null
@@ -214,6 +225,7 @@ class SmartMealItem {
     'affordable_alternatives': affordableAlternatives.map((a) => a.toJson()).toList(),
     'nutrition': nutrition.toJson(),
     'nutritional_impact_explanation': nutritionalImpactExplanation,
+    'personalization_tags': personalizationTags,
     'is_eaten': isEaten,
     'eaten_at': eatenAt,
     'post_meal_glucose_mg_dl': postMealGlucoseMgDl,

@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { HttpResponse, CORS_HEADERS } from "@/lib/http-response";
+
+export async function OPTIONS() {
+  return HttpResponse.corsOptions();
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -89,12 +94,12 @@ export async function POST(req: NextRequest) {
       success: true,
       message: "Menu berhasil diganti dengan alternatif pilihan Anda.",
       data: swappedMeal,
-    });
+    }, { headers: CORS_HEADERS });
   } catch (error: any) {
     console.error("[smart-meal swap POST]:", error);
     return NextResponse.json(
       { success: false, error: error?.message || "Failed to swap meal alternative." },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }

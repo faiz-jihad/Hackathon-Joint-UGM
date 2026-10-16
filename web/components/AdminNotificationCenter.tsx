@@ -108,6 +108,43 @@ export function AdminNotificationCenter({ onNavigateTab }: AdminNotificationCent
       combined.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
       setNotifications(combined);
+
+      // 3. Fetch real live database notifications from PostgreSQL via /api/v1/notifications
+      fetch('/api/v1/notifications?limit=20')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.success && Array.isArray(data.data)) {
+            const dbNotifs: AdminNotification[] = data.data.map((item: any) => ({
+              id: `notif-db-${item.id}`,
+              type: item.channel === 'EMAIL' ? ('audit' as const) : ('clinical-review' as const),
+              title:
+                item.title === 'PASSWORD_RESET_OTP'
+                  ? `Pengiriman Kode OTP (${item.user?.role || 'Pengguna'})`
+                  : item.title === 'PASSWORD_RESET_OTP_USED'
+                  ? `Verifikasi OTP Berhasil (${item.user?.fullName || 'Pengguna'})`
+                  : item.title,
+              message: `Notifikasi ${item.channel} ke ${item.user?.fullName || item.user?.email || 'Sistem'}. Status: ${item.status}.`,
+              timestamp: item.createdAt || new Date().toISOString(),
+              isRead: readIds.includes(`notif-db-${item.id}`) || item.status === 'DELIVERED',
+              targetTab: 'audit',
+              badgeText: item.channel,
+              badgeType: item.status === 'DELIVERED' ? ('success' as const) : ('primary' as const),
+            }));
+
+            setNotifications((prev) => {
+              const prevMap = new Map(prev.map((p) => [p.id, p]));
+              for (const n of dbNotifs) {
+                if (!prevMap.has(n.id)) {
+                  prevMap.set(n.id, n);
+                }
+              }
+              const merged = Array.from(prevMap.values());
+              merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+              return merged;
+            });
+          }
+        })
+        .catch(() => {});
     } catch {
       // Fallback
     }

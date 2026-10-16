@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/network/api_client.dart';
 import '../../data/models/patient_model.dart';
 import 'patient_history_screen.dart';
 import 'daily_care_agenda_screen.dart';
 import 'referral_letter_screen.dart';
 import 'smart_meal_detail_screen.dart';
-import 'auth_screen.dart';
+import 'auth_welcome_screen.dart';
+import '../widgets/notification_bell_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   final PatientModel? patient;
@@ -16,15 +19,64 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  String _patientName = '';
+  String _patientNik = '';
+  String _patientEmail = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString('user_name');
+    final savedEmail = prefs.getString('user_email');
+    final savedNik = prefs.getString('user_nik');
+
+    final name = (widget.patient?.fullName.isNotEmpty == true)
+        ? widget.patient!.fullName
+        : ((savedName != null && savedName.isNotEmpty)
+            ? savedName
+            : (ApiClient().currentUser?.fullName.isNotEmpty == true
+                ? ApiClient().currentUser!.fullName
+                : 'Pengguna RETIVA'));
+
+    final email = (savedEmail != null && savedEmail.isNotEmpty)
+        ? savedEmail
+        : (ApiClient().currentUser?.email.isNotEmpty == true
+            ? ApiClient().currentUser!.email
+            : (widget.patient != null
+                ? '${widget.patient!.fullName.toLowerCase().replaceAll(' ', '.')}@gmail.com'
+                : 'pengguna@retiva.id'));
+
+    final nik = (widget.patient?.nik.isNotEmpty == true)
+        ? widget.patient!.nik
+        : ((savedNik != null && savedNik.isNotEmpty)
+            ? savedNik
+            : '3404011204650001');
+
+    if (mounted) {
+      setState(() {
+        _patientName = name;
+        _patientEmail = email;
+        _patientNik = nik;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final patientName = widget.patient?.fullName.isNotEmpty == true
-        ? widget.patient!.fullName
-        : 'Bpk. Bambang Sutrisno';
-    final patientNik = widget.patient?.nik.isNotEmpty == true
-        ? widget.patient!.nik
-        : '3404011204650001';
-    final patientEmail = 'bambang.sutrisno@gmail.com';
+    final patientName = _patientName.isNotEmpty
+        ? _patientName
+        : (widget.patient?.fullName.isNotEmpty == true ? widget.patient!.fullName : 'Pengguna RETIVA');
+    final patientNik = _patientNik.isNotEmpty
+        ? _patientNik
+        : (widget.patient?.nik.isNotEmpty == true ? widget.patient!.nik : '3404011204650001');
+    final patientEmail = _patientEmail.isNotEmpty
+        ? _patientEmail
+        : 'pengguna@retiva.id';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -46,24 +98,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: Color(0xFF0F172A),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur edit profil tersimpan')),
-              );
-            },
-            child: const Text(
-              'Edit profile',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
+        actions: const [
+          Center(child: NotificationBellWidget()),
+          SizedBox(width: 16),
         ],
       ),
       body: SingleChildScrollView(
@@ -162,7 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // Health Overview (CareSync 2x2 Grid)
             const Text(
-              'Health Overview',
+              'Ikhtisar Kesehatan',
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 16,
@@ -179,7 +216,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.favorite_rounded,
                     iconColor: const Color(0xFF246BFD),
                     iconBg: const Color(0xFFEFF6FF),
-                    label: 'Heart Rate',
+                    label: 'Detak Jantung',
                     value: '72',
                     unit: 'bpm',
                     extraWidget: _buildEcgWave(),
@@ -189,12 +226,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Expanded(
                   child: _buildHealthCard(
                     icon: Icons.bloodtype_rounded,
-                    iconColor: const Color(0xFF00C566),
-                    iconBg: const Color(0xFFE8F8F0),
-                    label: 'Blood Sugar',
+                    iconColor: const Color(0xFFEF4444),
+                    iconBg: const Color(0xFFFEE2E2),
+                    label: 'Gula Darah',
                     value: '90',
                     unit: 'mg/dL',
                     subtitle: 'Normal (Puasa)',
+                    subtitleColor: const Color(0xFFEF4444),
                   ),
                 ),
               ],
@@ -205,31 +243,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Expanded(
                   child: _buildHealthCard(
                     icon: Icons.speed_rounded,
-                    iconColor: const Color(0xFF3B82F6),
+                    iconColor: const Color(0xFF246BFD),
                     iconBg: const Color(0xFFEFF6FF),
-                    label: 'Blood Pressure',
+                    label: 'Tekanan Darah',
                     value: '120/80',
                     unit: 'mmHg',
                     subtitle: 'Optimal Perdami',
+                    subtitleColor: const Color(0xFF246BFD),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildHealthCard(
                     icon: Icons.medication_rounded,
-                    iconColor: const Color(0xFF8B5CF6),
-                    iconBg: const Color(0xFFF5F3FF),
-                    label: 'Pill Reminder',
+                    iconColor: const Color(0xFF246BFD),
+                    iconBg: const Color(0xFFEFF6FF),
+                    label: 'Jadwal Obat',
                     value: '2/3',
                     unit: 'Diminum',
                     subtitle: 'Jadwal Obat Aktif',
+                    subtitleColor: const Color(0xFF246BFD),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
 
-            // CareSync Menu List
+            // CareSync Menu List (Semua Ikon Warna Biru Retiva & Bahasa Indonesia)
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -249,7 +289,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.description_outlined,
                     iconColor: const Color(0xFF246BFD),
                     iconBg: const Color(0xFFEFF6FF),
-                    title: 'My lab test & screening',
+                    title: 'Hasil Lab & Skrining Retina',
                     subtitle: 'Hasil foto fundus & telaah AI',
                     onTap: () => Navigator.push(
                       context,
@@ -259,10 +299,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildDivider(),
                   _buildMenuItem(
                     icon: Icons.calendar_month_outlined,
-                    iconColor: const Color(0xFF00C566),
-                    iconBg: const Color(0xFFE8F8F0),
-                    title: 'My appointment & agenda',
-                    subtitle: 'Jadwal kontrol mata & obat',
+                    iconColor: const Color(0xFF246BFD),
+                    iconBg: const Color(0xFFEFF6FF),
+                    title: 'Janji Temu & Agenda Pasien',
+                    subtitle: 'Jadwal kontrol mata & obat rutin',
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -273,9 +313,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildDivider(),
                   _buildMenuItem(
                     icon: Icons.restaurant_outlined,
-                    iconColor: const Color(0xFFF59E0B),
-                    iconBg: const Color(0xFFFFFBEB),
-                    title: 'Smart nutrition (Pola 3J)',
+                    iconColor: const Color(0xFF246BFD),
+                    iconBg: const Color(0xFFEFF6FF),
+                    title: 'Nutrisi Pintar (Diet 3J)',
                     subtitle: 'Rekomendasi gizi stabil diabetes',
                     onTap: () => Navigator.push(
                       context,
@@ -285,9 +325,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildDivider(),
                   _buildMenuItem(
                     icon: Icons.local_hospital_outlined,
-                    iconColor: const Color(0xFF8B5CF6),
-                    iconBg: const Color(0xFFF5F3FF),
-                    title: 'My consultation & referral',
+                    iconColor: const Color(0xFF246BFD),
+                    iconBg: const Color(0xFFEFF6FF),
+                    title: 'Konsultasi & Rujukan Medis',
                     subtitle: 'Surat rujukan BPJS & RS rujukan',
                     onTap: () => Navigator.push(
                       context,
@@ -298,29 +338,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   _buildDivider(),
                   _buildMenuItem(
-                    icon: Icons.people_outline_rounded,
-                    iconColor: const Color(0xFF06B6D4),
-                    iconBg: const Color(0xFFECFEFF),
-                    title: 'Add family member',
-                    subtitle: 'Daftarkan keluarga & caregiver',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Pendaftaran anggota keluarga siap')),
-                      );
-                    },
-                  ),
-                  _buildDivider(),
-                  _buildMenuItem(
                     icon: Icons.settings_outlined,
-                    iconColor: const Color(0xFF64748B),
-                    iconBg: const Color(0xFFF8FAFC),
-                    title: 'Settings',
+                    iconColor: const Color(0xFF246BFD),
+                    iconBg: const Color(0xFFEFF6FF),
+                    title: 'Pengaturan Aplikasi',
                     subtitle: 'Notifikasi, bahasa & privasi medis',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Pengaturan sistem')),
-                      );
-                    },
+                    onTap: () => _showSettingsModal(context),
                   ),
                 ],
               ),
@@ -339,11 +362,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AuthScreen()),
-                    );
+                  onTap: () async {
+                    await ApiClient().clearToken();
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AuthWelcomeScreen()),
+                        (route) => false,
+                      );
+                    }
                   },
                   borderRadius: BorderRadius.circular(16),
                   child: const Center(
@@ -382,6 +409,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String value,
     required String unit,
     String? subtitle,
+    Color? subtitleColor,
     Widget? extraWidget,
   }) {
     return Container(
@@ -461,15 +489,216 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF059669),
+                color: subtitleColor ?? AppColors.primary,
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  void _showSettingsModal(BuildContext context) {
+    bool notifObat = true;
+    bool notifKontrol = true;
+    bool syncSatuSehat = true;
+    bool offlineMode = true;
+    bool largeTextMode = false;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.82,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Pengaturan Aplikasi',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const Divider(color: Color(0xFFF1F5F9)),
+                Expanded(
+                  child: ListView(
+                    children: [
+                      // Section 1: Pengingat & Notifikasi
+                      const Text(
+                        'PENGINGAT & NOTIFIKASI MEDIS',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: AppColors.primary,
+                        title: const Text('Pengingat Minum Obat Harian', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                        subtitle: const Text('Alarm otomatis sesuai dosis resep dokter', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                        value: notifObat,
+                        onChanged: (v) => setModalState(() => notifObat = v),
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: AppColors.primary,
+                        title: const Text('Pengingat Skrining Retina Berkala', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                        subtitle: const Text('Notifikasi skrining ulang 6-12 bulan sesuai rekomendasi Perdami', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                        value: notifKontrol,
+                        onChanged: (v) => setModalState(() => notifKontrol = v),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Section 2: Integrasi Faskes
+                      const Text(
+                        'INTEGRASI FASKES & REKAM MEDIS',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: AppColors.primary,
+                        title: const Text('Sinkronisasi SatuSehat Kemenkes RI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                        subtitle: const Text('Kirim telaah AI fundus ke rekam medis nasional', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                        value: syncSatuSehat,
+                        onChanged: (v) => setModalState(() => syncSatuSehat = v),
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: AppColors.primary,
+                        title: const Text('Mode Skrining Tanpa Sinyal (Offline AI)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                        subtitle: const Text('Inferensi model di perangkat jika koneksi Puskesmas terputus', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                        value: offlineMode,
+                        onChanged: (v) => setModalState(() => offlineMode = v),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Section 3: Aksesibilitas
+                      const Text(
+                        'BAHASA & AKSESIBILITAS PASIEN',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.language_rounded, color: AppColors.primary),
+                        title: const Text('Bahasa Aplikasi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFDBEAFE)),
+                          ),
+                          child: const Text('Bahasa Indonesia', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                        ),
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: AppColors.primary,
+                        title: const Text('Mode Huruf Besar (Aksesibilitas Lansia)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                        subtitle: const Text('Meningkatkan keterbacaan hasil diagnosis retinopati', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                        value: largeTextMode,
+                        onChanged: (v) => setModalState(() => largeTextMode = v),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Section 4: Privasi & Data
+                      const Text(
+                        'PRIVASI & PENYIMPANAN DATA',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Cache foto fundus dan data temporer berhasil dibersihkan!'),
+                              backgroundColor: AppColors.primary,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.cleaning_services_rounded, size: 16, color: AppColors.primary),
+                        label: const Text('Bersihkan Cache Foto Retina Lokal', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFBFDBFE)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Center(
+                        child: Text(
+                          'Retiva CareSync Mobile v2.4.0 (Build 2026.10)\nPlatform Skrining Nasional Retinopati Diabetik',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10, color: Colors.grey.shade400, height: 1.4),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

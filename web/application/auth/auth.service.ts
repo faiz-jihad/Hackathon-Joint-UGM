@@ -128,12 +128,26 @@ export class AuthService {
     role?: UserRole;
     facilityId?: string;
   }): Promise<AuthResponseDTO> {
-    const user = await this.userRepository.findByEmail(profile.email);
+    const cleanEmail = profile.email.toLowerCase().trim();
+    let user = await this.userRepository.findByEmail(cleanEmail);
 
     if (!user) {
-      throw new UnauthorizedError(
-        `Email ${profile.email} belum terdaftar di sistem RETIVA. Silakan daftar terlebih dahulu atau gunakan email yang terdaftar.`
+      // Auto-provision user baru via Google Auth (Role Pengguna / PATIENT secara default)
+      const targetRole = normalizeUserRole(profile.role) || "PATIENT";
+      const randomPasswordHash = await this.passwordHasher.hash(
+        `retiva-google-oauth-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
       );
+
+      const newUser = User.create({
+        email: cleanEmail,
+        passwordHash: randomPasswordHash,
+        fullName: profile.fullName?.trim() || cleanEmail.split("@")[0],
+        role: targetRole,
+        facilityId: profile.facilityId || null,
+        isActive: true,
+      });
+
+      user = await this.userRepository.create(newUser);
     }
 
     if (!user.isActive) {

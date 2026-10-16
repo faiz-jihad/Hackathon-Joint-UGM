@@ -10,7 +10,6 @@ import { AdminSidebar } from './AdminSidebar';
 import { AdminTopBar } from './AdminTopBar';
 import { DashboardView } from './DashboardView';
 import { ScreeningWorkflowView } from './ScreeningWorkflowView';
-import { OphthalmologistReviewView } from './OphthalmologistReviewView';
 import { PatientsDirectoryView } from './PatientsDirectoryView';
 import { ReferralsFacilityView } from './ReferralsFacilityView';
 import { AuditRegistryView } from './AuditRegistryView';
@@ -19,6 +18,12 @@ import { clinicalStore } from '../lib/clinical-store';
 
 import { CareCompanionAdminView } from './CareCompanionAdminView';
 import { EmergencyMonitoringView } from './EmergencyMonitoringView';
+import { FacilitiesMasterView } from './FacilitiesMasterView';
+
+const OphthalmologistReviewView = dynamic(
+  () => import('./OphthalmologistReviewView').then((mod) => mod.OphthalmologistReviewView),
+  { ssr: false }
+);
 
 const DoctorVerificationView = dynamic(
   () => import('./DoctorVerificationView').then((mod) => mod.DoctorVerificationView),
@@ -43,14 +48,21 @@ export function ClinicalDashboardShell({
 
   useEffect(() => {
     try {
+      const isDoctor = role === 'dokter';
       if (!tabParam) {
         const savedTab = sessionStorage.getItem('retiva_admin_tab');
         if (savedTab) {
-          setActiveTab(savedTab);
+          if (isDoctor && (savedTab === 'users' || savedTab === 'facilities-master' || savedTab === 'doctor-verification')) {
+            setActiveTab('dashboard');
+          } else {
+            setActiveTab(savedTab);
+          }
         }
+      } else if (isDoctor && (tabParam === 'users' || tabParam === 'facilities-master' || tabParam === 'doctor-verification')) {
+        setActiveTab('dashboard');
       }
     } catch {}
-  }, []);
+  }, [role, tabParam]);
 
   useEffect(() => {
     if (tabParam && tabParam !== activeTab) {
@@ -71,19 +83,22 @@ export function ClinicalDashboardShell({
     refreshCounts();
   };
 
-  const [selectedScreeningId, setSelectedScreeningId] = useState<string>('SCR-2026-0891');
-  const [referralPatient, setReferralPatient] = useState<string>('Bambang Sudarmono');
-  const [screeningNik, setScreeningNik] = useState<string>('3404071203720001');
+  const [selectedScreeningId, setSelectedScreeningId] = useState<string>('RTV-20261024-36');
+  const [referralPatient, setReferralPatient] = useState<string>('Bapak Hendro Kusumo');
+  const [screeningNik, setScreeningNik] = useState<string>('3404051908740002');
   const [pendingReviewCount, setPendingReviewCount] = useState<number>(0);
   const [patientCount, setPatientCount] = useState<number>(0);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
 
   // NextAuth active session hook
   const { data: session, status: sessionStatus } = useSession();
 
   const getDefaultUser = (r: CharacterRole) => ({
-    fullName: r === 'dokter' ? 'dr. Harianto, Sp.M(K)' : r === 'admin' ? 'Administrator RETIVA' : 'Ny. Siti Aminah',
-    email: r === 'dokter' ? 'dr.harianto@spesialis.retiva.id' : r === 'admin' ? 'admin@gmail.com' : 'siti.aminah@pasien.retiva.id',
+    fullName: r === 'dokter' ? 'dr. Yunani Setyandriana, Sp.M' : r === 'admin' ? 'Administrator RETIVA' : 'Ny. Siti Aminah',
+    email: r === 'dokter' ? 'tioramadhan3106@gmail.com' : r === 'admin' ? 'admin@gmail.com' : 'siti.aminah@pasien.retiva.id',
     role: r.toUpperCase(),
+    hospital: r === 'dokter' ? 'RS Mata Dr. Yap' : 'Puskesmas Mlati II',
+    facilityType: r === 'dokter' ? 'RS Khusus Mata Tipe A' : 'FKTP Sleman',
   });
 
   // Dynamic Logged-in User State initialized identically on server and client to prevent hydration mismatch
@@ -91,6 +106,8 @@ export function ClinicalDashboardShell({
     fullName?: string;
     email?: string;
     role?: string;
+    hospital?: string;
+    facilityType?: string;
   }>(getDefaultUser(role));
 
   const isLoggingOutRef = useRef(false);
@@ -134,8 +151,21 @@ export function ClinicalDashboardShell({
     }
   }, [role, session, sessionStatus]);
 
-  const refreshCounts = () => {
-    setPendingReviewCount(clinicalStore.getPendingReviews().length);
+  const refreshCounts = async () => {
+    let count = clinicalStore.getPendingReviews().length;
+    try {
+      const res = await fetch('/api/v1/reviews/pending', {
+        headers: { 'x-retiva-clinical': 'true' },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json.data)) {
+          const pendingFromServer = json.data.filter((d: any) => d.humanReview?.status === 'PENDING').length;
+          count = Math.max(count, pendingFromServer);
+        }
+      }
+    } catch (_) {}
+    setPendingReviewCount(count);
     setPatientCount(clinicalStore.getPatients().length);
   };
 
@@ -144,7 +174,11 @@ export function ClinicalDashboardShell({
     const unsubscribe = clinicalStore.subscribe(() => {
       refreshCounts();
     });
-    return () => unsubscribe();
+    const interval = setInterval(refreshCounts, 3000);
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, [activeTab]);
 
   const handleLogout = async () => {
@@ -201,7 +235,16 @@ export function ClinicalDashboardShell({
   // 2. ROLE ADMIN & ROLE DOKTER (Clinical Management Shell)
   return (
     <div className="admin-shell">
-      {/* Left Fixed Admin Sidebar */}
+      {/* Mobile Backdrop Overlay */}
+      {isMobileNavOpen && (
+        <div
+          className="admin-sidebar-backdrop"
+          onClick={() => setIsMobileNavOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Left Admin Sidebar */}
       <AdminSidebar
         activeTab={activeTab}
         onTabChange={handleTabChange}
@@ -210,6 +253,8 @@ export function ClinicalDashboardShell({
         currentUser={currentUser}
         currentRole={role}
         onLogout={handleLogout}
+        isOpenMobile={isMobileNavOpen}
+        onCloseMobile={() => setIsMobileNavOpen(false)}
       />
 
       {/* Right Admin Viewport */}
@@ -220,6 +265,7 @@ export function ClinicalDashboardShell({
           onStartScreening={() => setActiveTab('screening')}
           onSwitchCharacter={handleSwitchCharacter}
           onLogout={handleLogout}
+          onToggleMobileMenu={() => setIsMobileNavOpen((prev) => !prev)}
           currentRole={role}
           currentUser={currentUser}
         />
@@ -227,8 +273,11 @@ export function ClinicalDashboardShell({
         <main className="admin-scrollable-content">
           {activeTab === 'dashboard' && (
             <DashboardView
+              role={role}
+              currentUser={currentUser}
               onStartScreening={() => setActiveTab('screening')}
               onOpenReview={handleOpenReview}
+              onNavigateTab={handleTabChange}
             />
           )}
 
@@ -239,6 +288,7 @@ export function ClinicalDashboardShell({
           {activeTab === 'roles' && <UsersMasterView initialTab="roles" />}
 
           {activeTab === 'care-companion-master' && <CareCompanionAdminView />}
+          {activeTab === 'facilities-master' && <FacilitiesMasterView />}
 
           {activeTab === 'doctor-verification' && <DoctorVerificationView />}
 

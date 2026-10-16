@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/infrastructure/database/prisma/client";
+import { HttpResponse, CORS_HEADERS } from "@/lib/http-response";
+import { generatePersonalizedMeal } from "@/lib/smart-meal-engine";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://127.0.0.1:8000";
+
+export async function OPTIONS() {
+  return HttpResponse.corsOptions();
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -41,8 +47,11 @@ export async function GET(req: NextRequest) {
     }).catch(() => null);
 
     // Parse allergies & restrictions from consultation summary if any
-    const allergies: string[] = [];
-    const restrictions: string[] = [];
+    const queryAllergies = (searchParams.get("allergies") || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+    const queryRestrictions = (searchParams.get("restrictions") || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+    const queryIngredients = (searchParams.get("availableIngredients") || searchParams.get("ingredients") || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+    const allergies: string[] = [...queryAllergies];
+    const restrictions: string[] = [...queryRestrictions];
     if (consultSummary?.additionalRestrictions) {
       const restText = consultSummary.additionalRestrictions.toLowerCase();
       if (restText.includes("seafood") || restText.includes("udang")) allergies.push("seafood");
@@ -57,6 +66,7 @@ export async function GET(req: NextRequest) {
       const aiRes = await fetch(`${AI_SERVICE_URL}/api/v1/daily-care/smart-meal-recommendation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(1000),
         body: JSON.stringify({
           patient_id: patientId,
           meal_category: category,
@@ -75,14 +85,20 @@ export async function GET(req: NextRequest) {
           data: aiData.meal,
           clinicalSafetyValidation: aiData.clinical_safety_validation,
           disclaimer: aiData.disclaimer,
-        });
+        }, { headers: CORS_HEADERS });
       }
     } catch {
       // AI Service offline, use robust built-in Indonesian clinical dataset
     }
 
     // Built-in fallback
-    const fallbackMeal = getBuiltinMeal(category, allergies, restrictions);
+    const fallbackMeal = generatePersonalizedMeal({
+      category,
+      dailyBudget: 35000,
+      allergies,
+      dietaryRestrictions: restrictions,
+      availableIngredients: queryIngredients,
+    });
     return NextResponse.json({
       success: true,
       data: fallbackMeal,
@@ -98,12 +114,12 @@ export async function GET(req: NextRequest) {
       },
       disclaimer:
         "Estimasi nilai gizi dan harga bahan lokal pasar. Bukan pengganti terapi medis atau resep insulin dokter.",
-    });
+    }, { headers: CORS_HEADERS });
   } catch (error: any) {
     console.error("[smart-meal GET]:", error);
     return NextResponse.json(
       { success: false, error: error?.message || "Failed to retrieve smart meal recommendation." },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }
@@ -129,6 +145,7 @@ export async function POST(req: NextRequest) {
       const aiRes = await fetch(`${AI_SERVICE_URL}/api/v1/daily-care/smart-meal-recommendation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(1000),
         body: JSON.stringify({
           patient_id: patientId,
           meal_category: mealCategory,
@@ -150,221 +167,49 @@ export async function POST(req: NextRequest) {
           data: aiData.meal,
           clinicalSafetyValidation: aiData.clinical_safety_validation,
           disclaimer: aiData.disclaimer,
-        });
+        }, { headers: CORS_HEADERS });
       }
     } catch {
       // Fallback
     }
 
-    const fallbackMeal = getBuiltinMeal(mealCategory, allergies, dietaryRestrictions);
+    const fallbackMeal = generatePersonalizedMeal({
+      category: mealCategory,
+      dailyBudget: Number(dailyBudget) || 35000,
+      allergies: Array.isArray(allergies) ? allergies : [],
+      dietaryRestrictions: Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [],
+      availableIngredients: Array.isArray(availableIngredients) ? availableIngredients : [],
+    });
+
+    const isKidneySafe = dietaryRestrictions.some((r: string) => r.toLowerCase().includes("nefropati"));
+    const isLowSodium = dietaryRestrictions.some((r: string) => r.toLowerCase().includes("rendah_garam") || r.toLowerCase().includes("garam"));
+
     return NextResponse.json({
       success: true,
       data: fallbackMeal,
       clinicalSafetyValidation: {
         passed_safety_checks: true,
         allergy_cleared: true,
-        kidney_safe: dietaryRestrictions.includes("nefropati"),
+        kidney_safe: isKidneySafe,
+        low_sodium_cleared: isLowSodium,
         low_carb_safeguard_active: true,
         safety_notes: [
-          "Personalisasi berhasil diterapkan berdasarkan preferensi dan anggaran Anda.",
-          "Nilai karbohidrat kompleks dipertahankan aman untuk mencegah hipoglikemia.",
+          `Lauk dipersonalisasi khusus: "${fallbackMeal.main_dish}".`,
+          isKidneySafe
+            ? "Safeguard Nefropati: Batasan protein moderat (10-12g) menjaga kestabilan filtrasi ginjal."
+            : isLowSodium
+            ? "Safeguard Hipertensi: Pengolahan rempah aromatik alami tanpa garam tambahan menjaga tekanan retina."
+            : "Komposisi Piring Model T menyeimbangkan glukosa darah 2 jam pasca makan.",
         ],
       },
       disclaimer:
         "Estimasi gizi dan harga bahan lokal pasar. Pola makan seimbang mendukung kestabilan glukosa darah.",
-    });
+    }, { headers: CORS_HEADERS });
   } catch (error: any) {
     console.error("[smart-meal POST]:", error);
     return NextResponse.json(
       { success: false, error: error?.message || "Failed to personalize smart meal." },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
-}
-
-function getBuiltinMeal(category: string, allergies: string[] = [], restrictions: string[] = []) {
-  const cat = category.toUpperCase();
-
-  if (cat === "BREAKFAST") {
-    return {
-      id: "meal-bf-01",
-      category: "SARAPAN",
-      time_recommendation: "07.15",
-      name: "Nasi Merah Telur Rebus & Sayur Bening Bayam",
-      main_dish: "Telur Rebus Bebas Minyak (1 Butir)",
-      complementary_foods: ["Nasi Beras Merah 100g (1 centong)", "Sayur Bening Bayam Segar 1 Mangkuk"],
-      suggested_portion: "Piring Model T: 1/2 piring sayur bayam, 1/4 nasi merah, 1/4 protein telur.",
-      ingredients: [
-        { name: "Beras Merah Pulen", quantity: "75 gram", est_cost_idr: 2000 },
-        { name: "Telur Ayam Ras", quantity: "1 butir", est_cost_idr: 2500 },
-        { name: "Bayam Hijau Segar", quantity: "1/2 ikat", est_cost_idr: 2000 },
-        { name: "Bawang Merah & Putih", quantity: "Secukupnya", est_cost_idr: 1000 },
-      ],
-      estimated_cost_idr: 7500,
-      affordable_alternatives: [
-        {
-          title: "Substitusi Nasi Jagung & Tempe Kukus",
-          savings_idr: 1500,
-          description: "Ganti telur dengan 2 potong tempe kukus bumbu ketumbar dan gunakan beras jagung lokal.",
-          substitution_type: "PLANT_BASED_BUDGET",
-        },
-      ],
-      nutrition: {
-        calories_kcal: 295,
-        carbs_grams: 28,
-        fiber_grams: 6.5,
-        protein_grams: 13,
-        glycemic_index: "RENDAH",
-        sodium_mg: 180,
-      },
-      nutritional_impact_explanation: {
-        carbohydrate_impact: "Karbohidrat kompleks (28g) diserap bertahap tanpa lonjakan glukosa mendadak.",
-        fiber_impact: "Serat tinggi (6.5g) bayam memperlambat laju penyerapan gula dan memperpanjang rasa kenyang.",
-        protein_vascular_impact: "Protein telur rebus (13g) mendukung regenerasi sel tanpa lemak jenuh berlebih.",
-        glucose_stability_summary: "Piring Model T menjaga kestabilan glukosa pagi dan mencegah hipoglikemia.",
-      },
-      is_eaten: false,
-      eaten_at: null,
-      post_meal_glucose_mg_dl: null,
-    };
-  }
-
-  if (cat === "DINNER") {
-    return {
-      id: "meal-di-01",
-      category: "MAKAN_MALAM",
-      time_recommendation: "19.00",
-      name: "Pecel Kangkung Tauge & Tahu Tempe Bakar Teflon",
-      main_dish: "Tempe & Tahu Bakar Teflon Bumbu Rempah",
-      complementary_foods: ["Rebusan Kangkung & Tauge 1 Piring", "Bumbu Pecel Encer Rendah Gula 2 sdm", "Nasi Merah Porsi Kecil (50g)"],
-      suggested_portion: "Makan malam ringan: 2/3 piring sayuran rebus pecel, 1/3 protein tempe tahu.",
-      ingredients: [
-        { name: "Kangkung Segar", quantity: "1 ikat", est_cost_idr: 2500 },
-        { name: "Tauge Kacang Hijau", quantity: "50 gram", est_cost_idr: 1500 },
-        { name: "Tempe & Tahu Kedelai", quantity: "Masing-masing 1 potong", est_cost_idr: 2500 },
-        { name: "Bumbu Pecel Rendah Gula Encer", quantity: "2 sdm", est_cost_idr: 2000 },
-      ],
-      estimated_cost_idr: 8500,
-      affordable_alternatives: [
-        {
-          title: "Substitusi Bumbu Sambal Tomat Rebus",
-          savings_idr: 1000,
-          description: "Ganti bumbu kacang dengan sambal tomat kukus segar tanpa gula aren untuk opsi lebih rendah kalori.",
-          substitution_type: "LOW_CALORIE_SAVING",
-        },
-      ],
-      nutrition: {
-        calories_kcal: 310,
-        carbs_grams: 24,
-        fiber_grams: 8.0,
-        protein_grams: 16,
-        glycemic_index: "RENDAH",
-        sodium_mg: 190,
-      },
-      nutritional_impact_explanation: {
-        carbohydrate_impact: "Porsi karbohidrat terkontrol (24g) mencegah hiperglikemia saat tidur malam.",
-        fiber_impact: "Serat tinggi (8g) membantu pencernaan malam dan menjaga mikrobioma usus.",
-        protein_vascular_impact: "Protein kedelai isoflavon (16g) bersahabat bagi elastisitas pembuluh darah.",
-        glucose_stability_summary: "Komposisi rendah karbohidrat tinggi serat menahan gula darah nokturnal tetap rata.",
-      },
-      is_eaten: false,
-      eaten_at: null,
-      post_meal_glucose_mg_dl: null,
-    };
-  }
-
-  // Default: LUNCH
-  const hasSeafoodAllergy = allergies.some((a) => ["seafood", "udang", "ikan"].includes(a.toLowerCase()));
-  if (hasSeafoodAllergy) {
-    return {
-      id: "meal-lu-02",
-      category: "MAKAN_SIANG",
-      time_recommendation: "12.30",
-      name: "Nasi Jagung Pulen, Pepes Tahu Tempe Kemangi & Sayur Asem",
-      main_dish: "Pepes Tahu & Tempe Kukus Daun Kemangi (2 Bungkus)",
-      complementary_foods: ["Nasi Jagung Pulen 100g", "Sayur Asem Bening Labu Siam & Kacang Panjang", "Lalap Timun"],
-      suggested_portion: "Piring Model T: 1/2 sayur asem labu siam, 1/4 nasi jagung, 1/4 pepes tahu tempe.",
-      ingredients: [
-        { name: "Beras Jagung Lokal", quantity: "80 gram", est_cost_idr: 1800 },
-        { name: "Tempe Segar", quantity: "2 potong (70g)", est_cost_idr: 2500 },
-        { name: "Tahu Putih Lembut", quantity: "1 kotak (60g)", est_cost_idr: 1700 },
-        { name: "Sayuran Asem", quantity: "1 mangkuk", est_cost_idr: 2500 },
-        { name: "Bumbu Pepes", quantity: "Secukupnya", est_cost_idr: 1500 },
-      ],
-      estimated_cost_idr: 10000,
-      affordable_alternatives: [
-        {
-          title: "Substitusi Telur Rebus Sambal Tomat",
-          savings_idr: 500,
-          description: "Kombinasikan 1 butir telur rebus dengan 1 potong tahu untuk variasi rasa.",
-          substitution_type: "PROTEIN_VARIATION",
-        },
-      ],
-      nutrition: {
-        calories_kcal: 340,
-        carbs_grams: 34,
-        fiber_grams: 8.5,
-        protein_grams: 17,
-        glycemic_index: "RENDAH",
-        sodium_mg: 190,
-      },
-      nutritional_impact_explanation: {
-        carbohydrate_impact: "Nasi jagung dicerna perlahan dan memberikan cadangan energi siang hari yang stabil.",
-        fiber_impact: "Serat tinggi (8.5g) dari kacang panjang dan labu siam menjaga rasa kenyang lebih lama.",
-        protein_vascular_impact: "Protein nabati murni aman bagi penderita yang memiliki riwayat alergi seafood.",
-        glucose_stability_summary: "Bebas alergen dan menahan respon glikemik 2 jam pasca makan di bawah 140 mg/dL.",
-      },
-      is_eaten: false,
-      eaten_at: null,
-      post_meal_glucose_mg_dl: null,
-    };
-  }
-
-  return {
-    id: "meal-lu-01",
-    category: "MAKAN_SIANG",
-    time_recommendation: "12.30",
-    name: "Nasi Merah, Ikan Kembung Kukus Bumbu Kuning & Tumis Buncis",
-    main_dish: "Ikan Kembung Kukus Bumbu Kuning (1 Ekor 80g)",
-    complementary_foods: ["Nasi Beras Merah 100g (1 centong sedang)", "Tumis Buncis Muda & Wortel", "Lalap Timun Kemangi"],
-    suggested_portion: "Piring Model T: 1/2 piring tumis buncis & lalapan, 1/4 nasi beras merah, 1/4 ikan kembung.",
-    ingredients: [
-      { name: "Beras Merah Pulen", quantity: "75 gram", est_cost_idr: 2000 },
-      { name: "Ikan Kembung Segar", quantity: "1 ekor (80g)", est_cost_idr: 7000 },
-      { name: "Buncis Muda & Wortel", quantity: "100 gram", est_cost_idr: 2500 },
-      { name: "Kunyit, Jahe, Serai, Minyak Kelapa Sedikit", quantity: "Secukupnya", est_cost_idr: 2000 },
-    ],
-    estimated_cost_idr: 13500,
-    affordable_alternatives: [
-      {
-        title: "Substitusi Pepes Tahu Tempe Daun Pisang",
-        savings_idr: 4500,
-        description: "Ganti ikan kembung dengan pepes tahu tempe berbumbu rempah kemangi. Tetap kaya protein dan hemat Rp 4.500.",
-        substitution_type: "VEGETARIAN_ECONOMICAL",
-      },
-      {
-        title: "Substitusi Nasi Jagung Pulen",
-        savings_idr: 1000,
-        description: "Ganti nasi merah dengan nasi jagung lokal yang memiliki indeks glikemik serupa namun harga lebih terjangkau.",
-        substitution_type: "LOCAL_CARB",
-      },
-    ],
-    nutrition: {
-      calories_kcal: 385,
-      carbs_grams: 32,
-      fiber_grams: 7.5,
-      protein_grams: 22,
-      glycemic_index: "RENDAH",
-      sodium_mg: 220,
-    },
-    nutritional_impact_explanation: {
-      carbohydrate_impact: "Karbohidrat kompleks (32g) dari nasi merah dicerna perlahan, mencegah lonjakan glukosa mendadak.",
-      fiber_impact: "Serat tinggi (7.5g) dari buncis memperlambat penyerapan gula dan memperpanjang rasa kenyang.",
-      protein_vascular_impact: "Protein omega-3 (22g) dari ikan kembung mendukung regenerasi jaringan mikrovaskular retina mata.",
-      glucose_stability_summary: "Komposisi Piring Model T menahan lonjakan glukosa darah 2 jam pasca makan agar tetap aman.",
-    },
-    is_eaten: false,
-    eaten_at: null,
-    post_meal_glucose_mg_dl: null,
-  };
 }

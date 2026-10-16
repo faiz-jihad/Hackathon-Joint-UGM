@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
 import '../../data/models/patient_model.dart';
+import '../widgets/notification_bell_widget.dart';
 
 class HealthProgressScreen extends StatefulWidget {
   final PatientModel? patient;
@@ -50,6 +51,10 @@ class _HealthProgressScreenState extends State<HealthProgressScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Color(0xFF1E293B)),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: const [
+          Center(child: NotificationBellWidget()),
+          SizedBox(width: 16),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -170,12 +175,16 @@ class _HealthProgressScreenState extends State<HealthProgressScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Kadar Glukosa Darah Terakhir',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+              const Expanded(
+                child: Text(
+                  'Kadar Glukosa Darah Terakhir',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(4)),
@@ -249,9 +258,13 @@ class _HealthProgressScreenState extends State<HealthProgressScreen> {
             children: [
               Icon(Icons.auto_awesome_rounded, color: AppColors.primary, size: 18),
               SizedBox(width: 8),
-              Text(
-                'Ringkasan AI Mingguan (Berdasarkan Data Riil)',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1E3A8A)),
+              Expanded(
+                child: Text(
+                  'Ringkasan AI Mingguan (Berdasarkan Data Riil)',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1E3A8A)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),

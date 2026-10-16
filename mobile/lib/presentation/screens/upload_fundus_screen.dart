@@ -1,10 +1,11 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/patient_model.dart';
+import '../widgets/notification_bell_widget.dart';
 import 'quality_scanning_screen.dart';
 
 /// Screens 02 & 03: 02. Upload I & 03. Upload II (Figma Frames 28:189 & 28:375)
@@ -39,9 +40,9 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
     try {
       final picked = await _picker.pickImage(
         source: source,
-        maxWidth: 1600,
-        maxHeight: 1600,
-        imageQuality: 90,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 98,
       );
       if (picked != null) {
         final bytes = await picked.readAsBytes();
@@ -67,15 +68,6 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
     }
   }
 
-  void _useSampleFigmaImage() {
-    setState(() {
-      _hasSelectedImage = true;
-      _fileName = 'fundus_024.jpg';
-      _fileSize = '2.4 MB';
-      _imageBytes = null;
-      _imageFile = null;
-    });
-  }
 
   void _showImageSourcePicker() {
     showModalBottomSheet(
@@ -88,86 +80,69 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFCBD5E1),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Pilih Sumber Foto Fundus',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.figmaBlue,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.figmaBlueSurface,
-                      borderRadius: BorderRadius.circular(8),
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    child: const Icon(Icons.photo_library_outlined, color: AppColors.figmaBlue),
                   ),
-                  title: const Text(
-                    'Galeri Perangkat',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
-                  subtitle: const Text('Pilih foto fundus yang tersimpan di memori', style: TextStyle(fontSize: 12)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _pickImage(ImageSource.gallery);
-                  },
-                ),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.figmaBlueSurface,
-                      borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Pilih Sumber Foto Fundus',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.figmaBlue,
                     ),
-                    child: const Icon(Icons.camera_alt_outlined, color: AppColors.figmaBlue),
                   ),
-                  title: const Text(
-                    'Kamera Fundus Portabel',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
-                  subtitle: const Text('Ambil foto langsung via lensa adapter fundus', style: TextStyle(fontSize: 12)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _pickImage(ImageSource.camera);
-                  },
-                ),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE7F6FF),
-                      borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.figmaBlueSurface,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.photo_library_outlined, color: AppColors.figmaBlue),
                     ),
-                    child: const Icon(Icons.image_search, color: AppColors.figmaBlueDark),
+                    title: const Text(
+                      'Galeri Perangkat',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    subtitle: const Text('Pilih foto fundus yang tersimpan di memori', style: TextStyle(fontSize: 12)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _pickImage(ImageSource.gallery);
+                    },
                   ),
-                  title: const Text(
-                    'Gunakan Sampel Figma (fundus_024.jpg)',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.figmaBlueDark),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.figmaBlueSurface,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.camera_alt_outlined, color: AppColors.figmaBlue),
+                    ),
+                    title: const Text(
+                      'Kamera Fundus Portabel',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    subtitle: const Text('Ambil foto langsung via lensa adapter fundus', style: TextStyle(fontSize: 12)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _pickImage(ImageSource.camera);
+                    },
                   ),
-                  subtitle: const Text('Sampel citra retina terverifikasi standar Figma', style: TextStyle(fontSize: 12)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _useSampleFigmaImage();
-                  },
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -185,8 +160,9 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
           imageFile: _imageFile,
           imageBytes: _imageBytes,
           eyePosition: _selectedEye,
-          demoBranch: 'NORMAL',
+          demoBranch: 'AUTO',
           patient: _selectedPatient,
+          filename: _fileName,
         ),
       ),
     );
@@ -276,15 +252,18 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
           ),
           const SizedBox(width: 12),
           // Heading 2: Upload Foto Retina
-          const Text(
-            'Upload Foto Retina',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.figmaBlue,
+          const Expanded(
+            child: Text(
+              'Upload Foto Retina',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.figmaBlue,
+              ),
             ),
           ),
+          const NotificationBellWidget(),
         ],
       ),
     );
@@ -296,42 +275,49 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          children: [
-            // Circular Step 1 Badge (24x24 rounded 9999px, #0D47A1)
-            Container(
-              width: 24,
-              height: 24,
-              decoration: const BoxDecoration(
-                color: AppColors.figmaBlue,
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Text(
-                  '1',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: 0.4,
+        Expanded(
+          child: Row(
+            children: [
+              // Circular Step 1 Badge (24x24 rounded 9999px, #0D47A1)
+              Container(
+                width: 24,
+                height: 24,
+                decoration: const BoxDecoration(
+                  color: AppColors.figmaBlue,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text(
+                    '1',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 0.4,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 6),
-            const Text(
-              'Langkah 1 dari 4: Unggah Berkas',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.figmaBlueDark,
-                letterSpacing: 0.3,
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'Langkah 1 dari 4: Unggah Berkas',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.figmaBlueDark,
+                    letterSpacing: 0.3,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        const SizedBox(width: 8),
 
         // 4 Step Pills (Active 24px, Inactive 8px each)
         Row(
@@ -550,6 +536,7 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.check_circle,
@@ -558,7 +545,7 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
                   ),
                   SizedBox(width: 6),
                   Text(
-                    'Foto Sudah Diupload',
+                    'Foto Terpilih',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 12,
@@ -568,19 +555,24 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.figmaBlueSurface,
-                  borderRadius: BorderRadius.circular(9999),
-                ),
-                child: Text(
-                  _fileName,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2196F3),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.figmaBlueSurface,
+                    borderRadius: BorderRadius.circular(9999),
+                  ),
+                  child: Text(
+                    _fileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2196F3),
+                    ),
                   ),
                 ),
               ),
@@ -711,31 +703,39 @@ class _UploadFundusScreenState extends State<UploadFundusScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: Image.asset(
-                    'assets/images/pose_menjelaskan.png',
-                    width: 20,
-                    height: 20,
-                    fit: BoxFit.contain,
+            Expanded(
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.asset(
+                      'assets/images/pose_menjelaskan.png',
+                      width: 20,
+                      height: 20,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                const Text(
-                  'PANDUAN KUALITAS RETIVA',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF434652),
-                    letterSpacing: 0.55,
+                  const SizedBox(width: 6),
+                  const Expanded(
+                    child: Text(
+                      'PANDUAN KUALITAS RETIVA',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF434652),
+                        letterSpacing: 0.55,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+            const SizedBox(width: 8),
             const Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   Icons.verified_user_outlined,

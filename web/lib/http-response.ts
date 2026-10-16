@@ -18,7 +18,20 @@ export interface ApiResponse<T = any> {
   };
 }
 
+export const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-retiva-clinical",
+};
+
 export class HttpResponse {
+  public static corsOptions(): NextResponse {
+    return new NextResponse(null, {
+      status: 204,
+      headers: CORS_HEADERS,
+    });
+  }
+
   public static success<T>(data: T, status = 200, meta?: Partial<ApiResponse["meta"]>): NextResponse {
     const responseBody: ApiResponse<T> = {
       success: true,
@@ -29,7 +42,7 @@ export class HttpResponse {
         ...meta,
       },
     };
-    return NextResponse.json(responseBody, { status });
+    return NextResponse.json(responseBody, { status, headers: CORS_HEADERS });
   }
 
   public static created<T>(data: T, meta?: Partial<ApiResponse["meta"]>): NextResponse {
@@ -49,7 +62,7 @@ export class HttpResponse {
         version: "v1",
       },
     };
-    return NextResponse.json(responseBody, { status });
+    return NextResponse.json(responseBody, { status, headers: CORS_HEADERS });
   }
 
   public static handleException(err: unknown): NextResponse {

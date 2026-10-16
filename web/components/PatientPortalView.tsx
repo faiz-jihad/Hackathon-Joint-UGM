@@ -5,6 +5,7 @@ import Image from 'next/image';
 import {
   EyeIcon,
   ShieldCheckIcon,
+  HeartHandshakeIcon,
   HospitalIcon,
   ClockIcon,
   CheckIcon,
@@ -349,7 +350,7 @@ export function PatientPortalView({
             }}
             onClick={() => setActiveSubTab('care-companion')}
           >
-            <ShieldCheckIcon size={16} />
+            <HeartHandshakeIcon size={16} />
             <span>Pendamping Perawatan (AI Care Companion)</span>
             <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', backgroundColor: '#dbeafe', color: '#1e40af', borderRadius: '4px', fontWeight: 800 }}>
               AI AKTIF

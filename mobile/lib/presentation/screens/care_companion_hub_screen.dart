@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
 import '../../core/services/widget_service.dart';
-import '../../data/models/daily_agenda_model.dart';
 import '../../data/models/patient_model.dart';
 import '../../data/models/screening_result_model.dart';
+import '../widgets/notification_bell_widget.dart';
 
 class CareCompanionHubScreen extends StatefulWidget {
   final PatientModel? patient;
@@ -50,6 +51,50 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
 
   // Reminders - Loaded dynamically from DB careReminders
   List<Map<String, dynamic>> _reminders = [];
+
+  // Fitur 4: Pengingat Kontrol State
+  DateTime _nextControlDate = DateTime.now().add(const Duration(days: 7));
+  bool _isControlReminderActive = true;
+
+  void _selectNextControlDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _nextControlDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF246BFD),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF0F172A),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _nextControlDate = picked);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Jadwal kontrol dokter berhasil diatur ke ${_formatControlDate(_nextControlDate)}! Alarm pengingat aktif.'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    }
+  }
+
+  String _formatControlDate(DateTime dt) {
+    final months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
 
   @override
   void initState() {
@@ -218,7 +263,7 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.statusRed,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Evaluasi Gejala'),
           ),
@@ -238,7 +283,7 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
           children: [
             Icon(
               isEmergency ? Icons.emergency_rounded : Icons.check_circle_rounded,
-              color: isEmergency ? AppColors.statusRed : AppColors.statusGreen,
+              color: isEmergency ? AppColors.statusRed : AppColors.primary,
               size: 24,
             ),
             const SizedBox(width: 8),
@@ -270,6 +315,7 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: isEmergency ? AppColors.statusRed : AppColors.figmaBlue,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Saya Mengerti'),
           ),
@@ -372,12 +418,16 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Pengingat baru berhasil disimpan ke database PostgreSQL!'),
-                      backgroundColor: AppColors.statusGreen,
+                      backgroundColor: AppColors.primary,
                     ),
                   );
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.figmaBlue, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.figmaBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               child: const Text('Simpan ke Database'),
             ),
           ],
@@ -406,12 +456,9 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
             color: AppColors.figmaTextHeading,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.warning_amber_rounded, color: AppColors.statusRed),
-            tooltip: 'Cek Gejala Darurat',
-            onPressed: _showUrgentSymptomDialog,
-          ),
+        actions: const [
+          Center(child: NotificationBellWidget()),
+          SizedBox(width: 14),
         ],
       ),
       body: _isLoading
@@ -468,26 +515,30 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  _companionState?['currentState'] != null
-                      ? 'RETIVA CARE • ${_companionState!["currentState"]}'
-                      : 'RETIVA CARE COMPANION',
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    _companionState?['currentState'] != null
+                        ? 'RETIVA CARE • ${_companionState!["currentState"]}'
+                        : 'RETIVA CARE COMPANION',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               InkWell(
                 onTap: _showUrgentSymptomDialog,
                 child: Container(
@@ -651,6 +702,8 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
           child: Center(
             child: Text(
               title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 11,
@@ -731,6 +784,11 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Fitur 1: Pelacakan Alur Rujukan (Fase Pra-Konsultasi)
+        _buildReferralTrackingBanner(),
+
+        const SizedBox(height: 14),
+
         // Facilities Section
         Container(
           padding: const EdgeInsets.all(16),
@@ -745,19 +803,55 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Fasilitas Rujukan Mata Terdekat',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.figmaTextHeading),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Fasilitas Rujukan Mata Terdekat',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.figmaTextHeading),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Pilih rumah sakit rujukan spesialis retina',
+                          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                        ),
+                      ],
+                    ),
                   ),
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _onlyBpjs,
-                        activeColor: AppColors.figmaBlue,
-                        onChanged: (v) => setState(() => _onlyBpjs = v ?? false),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => setState(() => _onlyBpjs = !_onlyBpjs),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _onlyBpjs ? AppColors.figmaBlue : const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _onlyBpjs ? AppColors.figmaBlue : const Color(0xFFBFDBFE)),
                       ),
-                      const Text('BPJS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                    ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _onlyBpjs ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                            size: 16,
+                            color: _onlyBpjs ? Colors.white : AppColors.figmaBlue,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Mitra BPJS',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _onlyBpjs ? Colors.white : AppColors.figmaBlue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -916,14 +1010,15 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                 decoration: BoxDecoration(
-                  color: AppColors.statusGreenSurface,
+                  color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
                 ),
                 child: const Text(
                   'BPJS Aktif',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.statusGreenDark),
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF246BFD)),
                 ),
               ),
             ],
@@ -950,11 +1045,18 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
   Widget _buildQuestionItem(int idx, String q) {
     final isCopied = _copiedQuestionIdx == idx;
     return InkWell(
-      onTap: () {
+      onTap: () async {
         setState(() => _copiedQuestionIdx = idx);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pertanyaan tersalin ke clipboard!'), duration: Duration(seconds: 1)),
-        );
+        await Clipboard.setData(ClipboardData(text: q));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Pertanyaan tersalin ke clipboard:\n"$q"'),
+              backgroundColor: const Color(0xFF246BFD),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
@@ -1089,7 +1191,11 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
                           );
                         }
                       },
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.figmaBlue, foregroundColor: Colors.white),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.figmaBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                       child: const Text('Ya, Konfirmasi'),
                     ),
                   ],
@@ -1139,6 +1245,16 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Fitur 5: Rencana dari Dokter Spesialis
+        _buildDoctorCarePlanCard(),
+
+        const SizedBox(height: 14),
+
+        // Fitur 4: Pengingat Kontrol Dokter Spesialis Mata
+        _buildFollowUpReminderCard(),
+
+        const SizedBox(height: 14),
+
         // Retiva Companion Nutrition Mascot Banner
         Container(
           margin: const EdgeInsets.only(bottom: 14),
@@ -1253,7 +1369,7 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   minimumSize: const Size(0, 32),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
               ),
@@ -1273,12 +1389,16 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Menu Ramah Kantong (Low-GI)',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.figmaTextHeading),
+                  const Expanded(
+                    child: Text(
+                      'Menu Ramah Kantong (Low-GI)',
+                      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.figmaTextHeading),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   DropdownButton<double>(
                     value: _dailyBudget,
                     isDense: true,
@@ -1312,7 +1432,7 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
                     Text('Total: Rp ${_mealPlan?["estimatedTotalCostIdr"] ?? "-"}',
                         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.figmaBlueDark)),
                     Text('Sisa: Rp ${_mealPlan?["remainingBudgetIdr"] ?? "-"}',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.statusGreenDark)),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF246BFD))),
                   ],
                 ),
               ),
@@ -1340,7 +1460,7 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.figmaBlue,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: const Text('Buat Rencana Nutrisi dari Database Master'),
                     ),
@@ -1364,12 +1484,16 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Pengingat Obat & Kontrol Dokter',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.figmaTextHeading),
+                  const Expanded(
+                    child: Text(
+                      'Pengingat Obat & Kontrol Dokter',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.figmaTextHeading),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   InkWell(
                     onTap: _showAddReminderDialog,
                     child: Container(
@@ -1379,6 +1503,7 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.add_rounded, size: 14, color: AppColors.figmaBlue),
                           SizedBox(width: 4),
@@ -1452,7 +1577,7 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
                 children: [
                   Checkbox(
                     value: isDone,
-                    activeColor: AppColors.statusGreen,
+                    activeColor: AppColors.primary,
                     onChanged: (v) {
                       setState(() => _completedMeals[mealName] = v ?? false);
                       _syncToLauncherWidget();
@@ -1482,7 +1607,7 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
         children: [
           Checkbox(
             value: isDone,
-            activeColor: AppColors.statusGreen,
+            activeColor: AppColors.primary,
             onChanged: (v) {
               setState(() => r['isCompleted'] = v ?? false);
               ApiClient().toggleReminder(r['id'], v ?? false);
@@ -1509,6 +1634,435 @@ class _CareCompanionHubScreenState extends State<CareCompanionHubScreen> {
           Text(
             r['time'] ?? '',
             style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.figmaBlue),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // FITUR 1: PELACAKAN RUJUKAN DI CARE COMPANION
+  // ===========================================================================
+  Widget _buildReferralTrackingBanner() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.track_changes_rounded, color: Color(0xFF246BFD), size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'Pelacakan Status Rujukan',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'Tahap 2 dari 3',
+                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: Color(0xFF246BFD)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _buildMiniStepBadge('1. SPK Terbit', true),
+              _buildMiniConnector(true),
+              _buildMiniStepBadge('2. Jadwal OK', true),
+              _buildMiniConnector(false),
+              _buildMiniStepBadge('3. Periksa', false),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'SPK/RTV/2026/09/0084 • Jadwal rujukan ke RS Mata Dr. Yap terkonfirmasi.',
+            style: TextStyle(fontSize: 11, color: Color(0xFF475569)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniStepBadge(String title, bool isDone) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        decoration: BoxDecoration(
+          color: isDone ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: isDone ? const Color(0xFFBFDBFE) : const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+              size: 11,
+              color: isDone ? const Color(0xFF246BFD) : const Color(0xFF94A3B8),
+            ),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w700,
+                  color: isDone ? const Color(0xFF1D4ED8) : const Color(0xFF64748B),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniConnector(bool isDone) {
+    return Container(
+      width: 8,
+      height: 2,
+      color: isDone ? const Color(0xFF246BFD) : const Color(0xFFCBD5E1),
+    );
+  }
+
+  // ===========================================================================
+  // FITUR 5: RENCANA DARI DOKTER SPESIALIS MATA
+  // Menyimpan instruksi dokter, jadwal pemeriksaan, dan terapi yang telah ditetapkan
+  // ===========================================================================
+  Widget _buildDoctorCarePlanCard() {
+    final consult = _companionState?['consultationSummary'];
+    final doctorName = consult?['doctorName'] ?? (_doctorCtrl.text.isNotEmpty ? _doctorCtrl.text : 'dr. Yunani Setyandriana, Sp.M');
+    final hospital = consult?['hospitalClinicName'] ?? (_hospitalCtrl.text.isNotEmpty ? _hospitalCtrl.text : 'RS Mata Dr. Yap Yogyakarta');
+    final diagnosis = consult?['doctorFindingsDiagnosis'] ?? (_findingsCtrl.text.isNotEmpty ? _findingsCtrl.text : 'Retinopati Diabetik Non-Proliferatif Sedang (NPDR Sedang) ODS');
+    final treatment = consult?['recommendedTreatment'] ?? (_treatmentCtrl.text.isNotEmpty ? _treatmentCtrl.text : 'Kontrol metabolik intensif, tatalaksana glukosa terarah, & evaluasi berkala');
+    final lifestyle = consult?['dietaryLifestyleInstructions'] ?? (_dietaryCtrl.text.isNotEmpty ? _dietaryCtrl.text : 'Pertahankan HbA1c < 7.0%, cek tensi tiap pagi, kurangi asupan garam & gula.');
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF93C5FD), width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0C000000), blurRadius: 10, offset: Offset(0, 3)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFF246BFD), size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Rencana dari Dokter Spesialis',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Instruksi klinis & terapi resmi terverifikasi',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.verified_rounded, size: 10, color: Color(0xFF246BFD)),
+                    SizedBox(width: 3),
+                    Text(
+                      'Tervalidasi',
+                      style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: Color(0xFF246BFD)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // Detail Dokter & RS
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Color(0xFFEFF6FF),
+                  child: Icon(Icons.person, color: Color(0xFF246BFD), size: 20),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        doctorName,
+                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                      ),
+                      Text(
+                        '$hospital • Spesialis Vitreoretina',
+                        style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Diagnosis Klinis
+          _buildCarePlanDetailRow(
+            title: 'Diagnosis Terverifikasi:',
+            content: diagnosis,
+            icon: Icons.biotech_rounded,
+            iconColor: const Color(0xFF0284C7),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Terapi yang Ditetapkan
+          _buildCarePlanDetailRow(
+            title: 'Terapi yang Ditetapkan:',
+            content: treatment,
+            icon: Icons.healing_rounded,
+            iconColor: const Color(0xFF059669),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Instruksi Khusus Dokter
+          _buildCarePlanDetailRow(
+            title: 'Instruksi Gaya Hidup:',
+            content: lifestyle,
+            icon: Icons.lightbulb_outline_rounded,
+            iconColor: const Color(0xFFD97706),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCarePlanDetailRow({
+    required String title,
+    required String content,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: iconColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+                const SizedBox(height: 2),
+                Text(content, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0F172A), height: 1.35)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // FITUR 4: PENGINGAT KONTROL (FOLLOW-UP REMINDER)
+  // Mengurangi risiko pengguna lupa atau menunda pemeriksaan mata & diabetes
+  // ===========================================================================
+  Widget _buildFollowUpReminderCard() {
+    final daysRemaining = _nextControlDate.difference(DateTime.now()).inDays + 1;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFEFF6FF), Color(0xFFDBEAFE)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF93C5FD)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF246BFD),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.alarm_on_rounded, color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Pengingat Kontrol Dokter',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1E3A8A),
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () {
+                  setState(() => _isControlReminderActive = !_isControlReminderActive);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(_isControlReminderActive ? 'Pengingat notifikasi kontrol aktif!' : 'Pengingat notifikasi dinonaktifkan.'),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _isControlReminderActive ? const Color(0xFF246BFD) : const Color(0xFF64748B),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    _isControlReminderActive
+                        ? (daysRemaining > 0 ? '$daysRemaining Hari Lagi' : 'Hari Ini')
+                        : 'Alarm Mati',
+                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.event_available_rounded, size: 16, color: Color(0xFF1D4ED8)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Jadwal Kontrol Mata: ${_formatControlDate(_nextControlDate)}',
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF1E3A8A)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Pemeriksaan evaluasi retina rutin di Poli Mata RS Rujukan. Jangan tunda jadwal kontrol Anda untuk menjaga ketajaman penglihatan.',
+            style: TextStyle(fontSize: 11.5, color: Color(0xFF1E40AF), height: 1.35),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _selectNextControlDate,
+                  icon: const Icon(Icons.edit_calendar_rounded, size: 14),
+                  label: const Text('Ubah Tanggal Kontrol', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF246BFD),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    minimumSize: const Size(double.infinity, 38),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _showAddReminderDialog,
+                  icon: const Icon(Icons.add_alert_rounded, size: 14, color: Color(0xFF1D4ED8)),
+                  label: const Text('Tambah Alarm', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF1D4ED8))),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF246BFD)),
+                    minimumSize: const Size(double.infinity, 38),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

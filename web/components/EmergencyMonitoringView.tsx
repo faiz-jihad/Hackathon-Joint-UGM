@@ -4,6 +4,12 @@ import {
   EmergencyIncidentStatus,
   EmergencyUrgencyLevel,
 } from "@/infrastructure/database/emergency-store";
+import {
+  AlertTriangleIcon,
+  CheckIcon,
+  ClockIcon,
+  HospitalIcon,
+} from "./Icons";
 
 export function EmergencyMonitoringView() {
   const [incidents, setIncidents] = useState<EmergencyIncidentDto[]>([]);
@@ -331,62 +337,6 @@ export function EmergencyMonitoringView() {
               Retiva SOS — Pusat Monitoring Kedaruratan
             </h1>
           </div>
-          <p style={{ margin: 0, color: "#64748B", fontSize: "0.925rem" }}>
-            Pemantauan insiden darurat diabetes dan retinopati diabetik secara real-time terintegrasi FKTP &amp; RS Mata.
-          </p>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          {/* Live Sync Status */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.45rem",
-              padding: "0.5rem 0.85rem",
-              borderRadius: "9999px",
-              background: sseConnected ? "#ECFDF5" : "#FEF2F2",
-              border: `1px solid ${sseConnected ? "#A7F3D0" : "#FECDD3"}`,
-              fontSize: "0.825rem",
-              fontWeight: 600,
-              color: sseConnected ? "#065F46" : "#991B1B",
-            }}
-          >
-            <span
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                background: sseConnected ? "#10B981" : "#EF4444",
-                boxShadow: sseConnected ? "0 0 8px #10B981" : "none",
-              }}
-            />
-            <span>{sseConnected ? "Live Sync SSE Terhubung" : "Polling Mode"}</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={fetchIncidents}
-            disabled={loading}
-            style={{
-              padding: "0.5rem 0.9rem",
-              borderRadius: "8px",
-              background: "#FFFFFF",
-              border: "1px solid #E2E8F0",
-              color: "#334155",
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.4rem",
-            }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-            </svg>
-            <span>Segarkan</span>
-          </button>
         </div>
       </div>
 
@@ -399,100 +349,171 @@ export function EmergencyMonitoringView() {
           marginBottom: "1.5rem",
         }}
       >
+        {/* Card 1 */}
         <div
           style={{
             background: "#FFFFFF",
-            borderRadius: "12px",
-            border: "1px solid #FCA5A5",
-            borderLeft: "5px solid #EF4444",
-            padding: "1.1rem 1.25rem",
-            boxShadow: "0 2px 8px rgba(239,68,68,0.06)",
+            borderRadius: "14px",
+            border: "1px solid #E2E8F0",
+            padding: "1.25rem",
+            boxShadow: "0 2px 6px rgba(15,23,42,0.04)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#991B1B", textTransform: "uppercase" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.03em" }}>
               Insiden Aktif (Butuh Respon)
             </span>
-            {stats.active > 0 && (
-              <span
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  background: "#EF4444",
-                  boxShadow: "0 0 10px #EF4444",
-                }}
-              />
-            )}
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "10px",
+                backgroundColor: stats.active > 0 ? "#FEE2E2" : "#EFF6FF",
+                color: stats.active > 0 ? "#DC2626" : "#0F5FC2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AlertTriangleIcon size={18} />
+            </div>
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: "#B91C1C", marginTop: "0.4rem" }}>
-            {stats.active}
-          </div>
-          <div style={{ fontSize: "0.8rem", color: "#64748B", marginTop: "0.2rem" }}>
-            {stats.critical} insiden berkategori KRITIS
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: "#FFFFFF",
-            borderRadius: "12px",
-            border: "1px solid #FDE68A",
-            borderLeft: "5px solid #F59E0B",
-            padding: "1.1rem 1.25rem",
-            boxShadow: "0 2px 8px rgba(245,158,11,0.06)",
-          }}
-        >
-          <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#92400E", textTransform: "uppercase" }}>
-            Sedang Ditangani (In Progress)
-          </div>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: "#D97706", marginTop: "0.4rem" }}>
-            {stats.acknowledged}
-          </div>
-          <div style={{ fontSize: "0.8rem", color: "#64748B", marginTop: "0.2rem" }}>
-            Dalam koordinasi dokter / perawat
+          <div>
+            <div style={{ fontSize: "1.85rem", fontWeight: 800, color: stats.active > 0 ? "#DC2626" : "#0F172A", marginTop: "0.4rem" }}>
+              {stats.active}
+            </div>
+            <div style={{ fontSize: "0.75rem", color: stats.active > 0 ? "#DC2626" : "#64748B", marginTop: "0.3rem", fontWeight: 600 }}>
+              {stats.critical} insiden berkategori KRITIS
+            </div>
           </div>
         </div>
 
+        {/* Card 2 */}
         <div
           style={{
             background: "#FFFFFF",
-            borderRadius: "12px",
-            border: "1px solid #A7F3D0",
-            borderLeft: "5px solid #10B981",
-            padding: "1.1rem 1.25rem",
-            boxShadow: "0 2px 8px rgba(16,185,129,0.06)",
+            borderRadius: "14px",
+            border: "1px solid #E2E8F0",
+            padding: "1.25rem",
+            boxShadow: "0 2px 6px rgba(15,23,42,0.04)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
           }}
         >
-          <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#065F46", textTransform: "uppercase" }}>
-            Tertangani Aman (Resolved)
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+              Sedang Ditangani (In Progress)
+            </span>
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "10px",
+                backgroundColor: "#EFF6FF",
+                color: "#0F5FC2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ClockIcon size={18} />
+            </div>
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: "#059669", marginTop: "0.4rem" }}>
-            {stats.resolved}
-          </div>
-          <div style={{ fontSize: "0.8rem", color: "#64748B", marginTop: "0.2rem" }}>
-            Pasien stabil &amp; dokumentasi tuntas
+          <div>
+            <div style={{ fontSize: "1.85rem", fontWeight: 800, color: "#0F172A", marginTop: "0.4rem" }}>
+              {stats.acknowledged}
+            </div>
+            <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "0.3rem", fontWeight: 600 }}>
+              Dalam koordinasi dokter / perawat
+            </div>
           </div>
         </div>
 
+        {/* Card 3 */}
         <div
           style={{
             background: "#FFFFFF",
-            borderRadius: "12px",
-            border: "1px solid #BFDBFE",
-            borderLeft: "5px solid #2196F3",
-            padding: "1.1rem 1.25rem",
-            boxShadow: "0 2px 8px rgba(33,150,243,0.06)",
+            borderRadius: "14px",
+            border: "1px solid #E2E8F0",
+            padding: "1.25rem",
+            boxShadow: "0 2px 6px rgba(15,23,42,0.04)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
           }}
         >
-          <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#1E40AF", textTransform: "uppercase" }}>
-            Layanan Rujukan Terhubung
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+              Tertangani Aman (Resolved)
+            </span>
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "10px",
+                backgroundColor: "#EFF6FF",
+                color: "#0F5FC2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <CheckIcon size={18} />
+            </div>
           </div>
-          <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0D47A1", marginTop: "0.4rem" }}>
-            SPGDT 119 &amp; RS Mata YAP
+          <div>
+            <div style={{ fontSize: "1.85rem", fontWeight: 800, color: "#0F172A", marginTop: "0.4rem" }}>
+              {stats.resolved}
+            </div>
+            <div style={{ fontSize: "0.75rem", color: "#059669", marginTop: "0.3rem", fontWeight: 600 }}>
+              Pasien stabil &amp; dokumentasi tuntas
+            </div>
           </div>
-          <div style={{ fontSize: "0.8rem", color: "#64748B", marginTop: "0.3rem" }}>
-            Protokol kedaruratan aktif 24 jam
+        </div>
+
+        {/* Card 4 */}
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: "14px",
+            border: "1px solid #E2E8F0",
+            padding: "1.25rem",
+            boxShadow: "0 2px 6px rgba(15,23,42,0.04)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+              Layanan Rujukan Terhubung
+            </span>
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "10px",
+                backgroundColor: "#EFF6FF",
+                color: "#0F5FC2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <HospitalIcon size={18} />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "#0F172A", marginTop: "0.4rem" }}>
+              SPGDT 119 &amp; RS Mata YAP
+            </div>
+            <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "0.3rem", fontWeight: 600 }}>
+              Protokol kedaruratan aktif 24 jam
+            </div>
           </div>
         </div>
       </div>

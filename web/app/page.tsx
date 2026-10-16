@@ -12,10 +12,10 @@ function HomeContent() {
   const isAuth = searchParams.get('auth') === '1';
 
   const [lastRole, setLastRole] = useState<CharacterRole>(() => {
-    if (roleParam && ['pengguna', 'admin', 'dokter'].includes(roleParam)) {
+    if (roleParam && ['admin', 'dokter'].includes(roleParam)) {
       return roleParam;
     }
-    return 'pengguna';
+    return 'admin';
   });
 
   const [currentRole, setCurrentRole] = useState<CharacterRole | null>(() => {
@@ -24,10 +24,10 @@ function HomeContent() {
   });
 
   useEffect(() => {
-    if (roleParam && ['pengguna', 'admin', 'dokter'].includes(roleParam)) {
+    if (roleParam && ['admin', 'dokter'].includes(roleParam)) {
       setLastRole(roleParam);
     } else {
-      setLastRole('pengguna');
+      setLastRole('admin');
     }
   }, [roleParam]);
 

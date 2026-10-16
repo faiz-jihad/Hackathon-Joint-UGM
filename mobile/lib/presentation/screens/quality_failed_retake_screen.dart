@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/screening_result_model.dart';
 import '../../data/models/patient_model.dart';
-import '../widgets/custom_button.dart';
-import 'ai_analyzing_screen.dart';
+import '../widgets/notification_bell_widget.dart';
 
 class QualityFailedRetakeScreen extends StatelessWidget {
   final String eyePosition;
@@ -22,6 +21,26 @@ class QualityFailedRetakeScreen extends StatelessWidget {
     this.imageBytes,
   });
 
+  String get _eyeLabel {
+    final pos = eyePosition.toUpperCase().trim();
+    if (pos == 'OD') return 'Mata Kanan (OD)';
+    if (pos == 'OS') return 'Mata Kiri (OS)';
+    return 'Mata $eyePosition';
+  }
+
+  String get _statusHeaderTitle {
+    final isDark = qualityResult.illuminationScore < 0.60;
+    final isBlur = qualityResult.blurScore < 0.60;
+    if (isDark && isBlur) {
+      return 'Foto Kurang Jelas & Terlalu Gelap';
+    } else if (isDark) {
+      return 'Pencahayaan Foto Kurang Terang';
+    } else if (isBlur) {
+      return 'Foto Mengalami Buram / Tidak Fokus';
+    }
+    return 'Kualitas Foto Belum Memadai';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,24 +48,24 @@ class QualityFailedRetakeScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Standard Figma Retiva Top Bar
+            // Standard Professional Retiva Top Bar
             Container(
               width: double.infinity,
               decoration: const BoxDecoration(
                 color: Colors.white,
                 border: Border(
-                  bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
+                  bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
                 children: [
                   InkWell(
                     onTap: () => Navigator.pop(context),
                     borderRadius: BorderRadius.circular(9999),
                     child: Container(
-                      width: 32,
-                      height: 32,
+                      width: 34,
+                      height: 34,
                       decoration: const BoxDecoration(
                         color: Color(0xFFF1F5F9),
                         shape: BoxShape.circle,
@@ -59,68 +78,205 @@ class QualityFailedRetakeScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Pemeriksaan Kualitas Citra',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF246BFD),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Evaluasi Kualitas Foto',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        Text(
+                          'Pemeriksaan standar medis retina',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  const NotificationBellWidget(),
                 ],
               ),
             ),
+
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Red Warning Banner
+                    // Badge Status Soft
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: AppColors.statusRedSurface,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.statusRed),
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFFECDD3)),
                       ),
-                      child: const Text(
-                        '05. KUALITAS BURAM — FOTO ULANG DIPERLUKAN',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.statusRed,
-                        ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.replay_rounded, size: 14, color: Color(0xFFDC2626)),
+                          SizedBox(width: 5),
+                          Text(
+                            'PENGAMBILAN ULANG DIPERLUKAN',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFFDC2626),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
                     const SizedBox(height: 12),
 
-                    const Text(
-                      'Citra Fundus Ditolak oleh Quality Gate',
-                      style: TextStyle(
+                    Text(
+                      _statusHeaderTitle,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                        color: Color(0xFF0F172A),
                         letterSpacing: -0.3,
                       ),
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Prinsip Keamanan Medis: Model AI tidak diperkenankan memproses citra yang gagal kendali mutu untuk mencegah false negative akibat lesi yang tertutup artefak.',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                      'Untuk menjamin akurasi evaluasi retina dan mencegah kesalahan diagnosis medis, foto retina perlu diambil ulang dengan pencahayaan dan fokus yang optimal.',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12.5,
+                        color: Color(0xFF64748B),
+                        height: 1.45,
+                      ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
 
-                    // Diagnostic Failure Card
+                    // Foto Preview Card (if available)
+                    if (imageBytes != null) ...[
+                      Container(
+                        width: double.infinity,
+                        height: 190,
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x10000000),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.memory(
+                                imageBytes!,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            // Dark gradient overlay at bottom
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Colors.transparent, Color(0xB3000000)],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 12,
+                              left: 12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xCC000000),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.remove_red_eye_rounded, size: 13, color: Colors.white),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      _eyeLabel,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 12,
+                              left: 12,
+                              right: 12,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFDC2626),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Expanded(
+                                    child: Text(
+                                      'Foto saat ini belum memenuhi kriteria ketajaman/cahaya',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                    ],
+
+                    // Parameter Kualitas Citra (Gauges Card)
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.statusRed.withOpacity(0.3)),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x06000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,27 +285,35 @@ class QualityFailedRetakeScreen extends StatelessWidget {
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(8),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.statusRedSurface,
-                                  shape: BoxShape.circle,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Icon(Icons.blur_on, color: AppColors.statusRed, size: 24),
+                                child: const Icon(
+                                  Icons.analytics_rounded,
+                                  color: Color(0xFF246BFD),
+                                  size: 18,
+                                ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
+                              const SizedBox(width: 10),
+                              const Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Alasan Penolakan Citra:',
-                                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                    Text(
+                                      'Pemeriksaan Parameter Mutu',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF0F172A),
+                                      ),
                                     ),
                                     Text(
-                                      qualityResult.retakeReason ?? 'Citra Buram & Kurang Pencahayaan',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.statusRed,
+                                      'Standar minimal setiap parameter adalah 60%',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF64748B),
                                       ),
                                     ),
                                   ],
@@ -157,25 +321,94 @@ class QualityFailedRetakeScreen extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const Divider(height: 24),
-                          _buildMetricRow('Indeks Ketajaman Laplacian', '${(qualityResult.blurScore * 100).toInt()}%', '< 40% (Gagal)'),
-                          const SizedBox(height: 8),
-                          _buildMetricRow('Keseimbangan Pencahayaan', '${(qualityResult.illuminationScore * 100).toInt()}%', 'Kurang Optimal'),
-                          const SizedBox(height: 8),
-                          _buildMetricRow('Mata yang Diperiksa', 'Oculus $eyePosition', 'Mata $eyePosition'),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          ),
+
+                          // Parameter 1: Ketajaman & Fokus
+                          _buildQualityProgressRow(
+                            title: 'Fokus & Ketajaman Foto',
+                            score: qualityResult.blurScore,
+                            threshold: 0.60,
+                            icon: Icons.filter_center_focus_rounded,
+                            failureLabel: 'Kurang Fokus / Buram',
+                            passLabel: 'Fokus Optimal',
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // Parameter 2: Pencahayaan
+                          _buildQualityProgressRow(
+                            title: 'Tingkat Pencahayaan',
+                            score: qualityResult.illuminationScore,
+                            threshold: 0.60,
+                            icon: Icons.light_mode_rounded,
+                            failureLabel: 'Terlalu Gelap',
+                            passLabel: 'Pencahayaan Pas',
+                          ),
+
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          ),
+
+                          // Info Mata yang Diperiksa
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.remove_red_eye_outlined, size: 15, color: Color(0xFF64748B)),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Mata yang Diperiksa',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFDBEAFE)),
+                                ),
+                                child: Text(
+                                  _eyeLabel,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF1D4ED8),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
 
-                    // Corrective Guidance for Nakes
+                    // Doctor Guidance Card
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x06000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,8 +416,8 @@ class QualityFailedRetakeScreen extends StatelessWidget {
                           Row(
                             children: [
                               Container(
-                                width: 36,
-                                height: 36,
+                                width: 38,
+                                height: 38,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFEF3C7),
                                   borderRadius: BorderRadius.circular(10),
@@ -200,55 +433,110 @@ class QualityFailedRetakeScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 10),
                               const Expanded(
-                                child: Text(
-                                  'Petunjuk Koreksi dari Dokter Retiva:',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Panduan Pengambilan Ulang',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                    Text(
+                                      'Tips dokter agar foto langsung berhasil',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          _buildInstructionStep('1', 'Pastikan jarak moncong kamera fundus 1.5 - 2 cm dari kornea mata pasien.'),
-                          _buildInstructionStep('2', 'Instruksikan pasien untuk memfiksasi pandangan pada titik lampu target dan tidak berkedip.'),
-                          _buildInstructionStep('3', 'Sesuaikan dial diopter lensa kamera jika media refrakta pasien memiliki kelainan kacamata.'),
-                          _buildInstructionStep('4', 'Lakukan pengambilan ulang foto (Retake).'),
+                          const SizedBox(height: 14),
+
+                          _buildTipItem(
+                            icon: Icons.camera_alt_outlined,
+                            title: 'Jarak & Posisi Kamera Stabil',
+                            desc: 'Jaga jarak moncong lensa kamera sekitar 1.5 - 2 cm tegak lurus di depan mata pasien.',
+                          ),
+                          _buildTipItem(
+                            icon: Icons.visibility_outlined,
+                            title: 'Fiksasi Pandangan Pasien',
+                            desc: 'Minta pasien melihat lurus ke titik target lampu pemandu dan tahan kedipan selama beberapa detik.',
+                          ),
+                          _buildTipItem(
+                            icon: Icons.wb_sunny_outlined,
+                            title: 'Pencahayaan Ruangan Seimbang',
+                            desc: 'Pastikan ruangan dalam kondisi cukup redup agar pupil melebar alami tanpa pantulan kilau.',
+                          ),
                         ],
                       ),
                     ),
 
                     const SizedBox(height: 24),
 
-                    // Action Retake Button
-                    CustomButton(
-                      label: 'Ambil Ulang Foto Sekarang (Retake)',
-                      icon: Icons.replay,
-                      backgroundColor: AppColors.primary,
-                      onPressed: () {
-                        Navigator.pop(context); // Back to upload screen
-                      },
+                    // Primary Action Button (Retake)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context); // Kembali untuk memotret ulang
+                        },
+                        icon: const Icon(Icons.camera_alt_rounded, size: 18),
+                        label: const Text(
+                          'Ambil Ulang Foto Sekarang',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
-                    // Human-in-the-Loop Clinical Override Button
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary, width: 1.5),
-                        minimumSize: const Size(double.infinity, 48),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    // Secondary Action Button (Cancel / Back)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF64748B),
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Batal & Kembali',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                      icon: const Icon(Icons.assignment_ind_outlined, size: 18),
-                      label: const Text(
-                        'Tetap Teruskan ke Telaah Sp.M (Override)',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                      ),
-                      onPressed: () => _escalateToDoctorReview(context),
                     ),
+
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -259,128 +547,132 @@ class QualityFailedRetakeScreen extends StatelessWidget {
     );
   }
 
-  void _escalateToDoctorReview(BuildContext context) {
-    final base = screeningResult ??
-        CompleteScreeningResult(
-          screeningId: 'scr-override-${DateTime.now().millisecondsSinceEpoch}',
-          status: 'HUMAN_REVIEW',
-          qualityOD: qualityResult,
-          aiResult: AIInferenceResult(
-            predictedClass: 'MODERATE_DR',
-            confidence: 0.65,
-            rawProbabilities: {
-              'NO_DR': 0.05,
-              'MILD_DR': 0.20,
-              'MODERATE_DR': 0.65,
-              'SEVERE_DR': 0.08,
-              'PROLIFERATIVE_DR': 0.02,
-            },
-            isHighRisk: false,
-          ),
-          reliability: ReliabilityResult(
-            status: 'HUMAN_REVIEW',
-            score: 0.65,
-            requiresHumanReview: true,
-            reasoning: 'Kualitas citra borderline. Nakes mengajukan telaah visual langsung oleh Dokter Spesialis Mata (Sp.M).',
-          ),
-          recommendation: RecommendationResult(
-            summary: 'Kasus dialihkan ke antrean telaah dokter spesialis mata (Sp.M). Menunggu validasi klinis.',
-            recommendedAction: 'SPECIALIST_OPHTHALMOLOGY_REVIEW',
-            urgencyLevel: 'MEDIUM',
-            referralIndicated: true,
-            clinicalGuideline: 'Alur Human-in-the-Loop Pedoman Perdami 2024',
-          ),
-        );
+  Widget _buildQualityProgressRow({
+    required String title,
+    required double score,
+    required double threshold,
+    required IconData icon,
+    required String failureLabel,
+    required String passLabel,
+  }) {
+    final isFail = score < threshold;
+    final percent = (score * 100).toInt().clamp(0, 100);
+    final color = isFail ? const Color(0xFFEF4444) : const Color(0xFF10B981);
+    final bgColor = isFail ? const Color(0xFFFEF2F2) : const Color(0xFFECFDF5);
+    final borderColor = isFail ? const Color(0xFFFECDD3) : const Color(0xFFA7F3D0);
 
-    final overrideResult = CompleteScreeningResult(
-      screeningId: base.screeningId,
-      status: 'HUMAN_REVIEW',
-      qualityOD: QualityCheckResult(
-        passed: true,
-        overallScore: qualityResult.overallScore > 0 ? qualityResult.overallScore : 0.62,
-        blurScore: qualityResult.blurScore,
-        illuminationScore: qualityResult.illuminationScore,
-        fovScore: qualityResult.fovScore,
-        retakeReason: 'MUTU_DISEPAKATI_NAKES_OVERRIDE',
-        retakeInstructions: 'Nakes memilih eskalasi langsung ke telaah Sp.M.',
-      ),
-      aiResult: base.aiResult.predictedClass != 'UNKNOWN'
-          ? base.aiResult
-          : AIInferenceResult(
-              predictedClass: 'MODERATE_DR',
-              confidence: 0.65,
-              rawProbabilities: {
-                'NO_DR': 0.05,
-                'MILD_DR': 0.20,
-                'MODERATE_DR': 0.65,
-                'SEVERE_DR': 0.08,
-                'PROLIFERATIVE_DR': 0.02,
-              },
-              isHighRisk: false,
-            ),
-      reliability: ReliabilityResult(
-        status: 'HUMAN_REVIEW',
-        score: 0.65,
-        requiresHumanReview: true,
-        reasoning: 'Kualitas citra borderline. Nakes mengajukan telaah visual langsung oleh Dokter Spesialis Mata (Sp.M).',
-      ),
-      recommendation: base.recommendation,
-    );
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AiAnalyzingScreen(
-          result: overrideResult,
-          eyePosition: eyePosition,
-          demoBranch: 'HUMAN_REVIEW',
-          patient: patient,
-          imageBytes: imageBytes,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetricRow(String label, String value, String note) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 15, color: const Color(0xFF64748B)),
+                const SizedBox(width: 6),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: borderColor),
+              ),
+              child: Text(
+                isFail ? failureLabel : passLabel,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         Row(
           children: [
-            Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.statusRed)),
-            const SizedBox(width: 6),
-            Text('($note)', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: score.clamp(0.0, 1.0),
+                  minHeight: 8,
+                  backgroundColor: const Color(0xFFF1F5F9),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '$percent%',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildInstructionStep(String number, String text) {
+  Widget _buildTipItem({
+    required IconData icon,
+    required String title,
+    required String desc,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 20,
-            height: 20,
+            padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: AppColors.primarySurface,
-              borderRadius: BorderRadius.circular(6),
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-            alignment: Alignment.center,
-            child: Text(
-              number,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primaryDark),
-            ),
+            child: Icon(icon, size: 16, color: const Color(0xFF246BFD)),
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.3),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  desc,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF64748B),
+                    height: 1.35,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

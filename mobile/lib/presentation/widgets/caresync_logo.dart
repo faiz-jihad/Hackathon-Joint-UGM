@@ -29,40 +29,31 @@ class CareSyncLogo extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(size * 0.32),
+            borderRadius: BorderRadius.circular(size * 0.28),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.18),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          child: Center(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(
-                  Icons.favorite_rounded,
-                  color: color,
-                  size: size * 0.65,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(size * 0.28),
+            child: Image.asset(
+              'assets/images/retiva_app_badge.png',
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(size * 0.28),
                 ),
-                Positioned(
-                  bottom: size * 0.15,
-                  child: Container(
-                    width: size * 0.22,
-                    height: size * 0.22,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: size * 0.1,
-                        height: size * 0.1,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ),
+                child: Center(
+                  child: Icon(Icons.remove_red_eye_rounded, color: color, size: size * 0.65),
                 ),
-              ],
+              ),
             ),
           ),
         ),

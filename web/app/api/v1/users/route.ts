@@ -7,18 +7,21 @@ export async function GET(req: NextRequest) {
   try {
     const users = await prisma.$queryRaw<any[]>`
       SELECT 
-        id, 
-        email, 
-        full_name as "fullName", 
-        role, 
-        phone_number as "phoneNumber", 
-        is_active as "isActive", 
-        facility_id as "facilityId", 
-        created_at as "createdAt", 
-        updated_at as "updatedAt", 
-        deleted_at as "deletedAt"
-      FROM users
-      ORDER BY created_at ASC
+        u.id, 
+        u.email, 
+        u.full_name as "fullName", 
+        u.role, 
+        u.phone_number as "phoneNumber", 
+        u.is_active as "isActive", 
+        u.facility_id as "facilityId", 
+        f.name as "hospital",
+        f.address as "facilityAddress",
+        u.created_at as "createdAt", 
+        u.updated_at as "updatedAt", 
+        u.deleted_at as "deletedAt"
+      FROM users u
+      LEFT JOIN facilities f ON u.facility_id = f.id
+      ORDER BY u.created_at ASC
     `;
 
     return HttpResponse.success(users, 200, {
@@ -32,7 +35,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, fullName, role, phoneNumber, isActive = true } = body;
+    const { email, password, fullName, role, phoneNumber, isActive = true, hospital, facilityId } = body;
 
     if (!email || !fullName || !role) {
       return HttpResponse.error("Email, nama lengkap, dan role wajib diisi.", "VALIDATION_ERROR", 400);
@@ -53,6 +56,20 @@ export async function POST(req: NextRequest) {
     if (role === "DOKTER") userRole = "OPHTHALMOLOGIST";
     if (role === "PENGGUNA") userRole = "PATIENT";
 
+    let resolvedFacilityId = facilityId;
+    if (!resolvedFacilityId && hospital) {
+      const cleanHospName = hospital.split('(')[0].trim();
+      const matchedFac = await prisma.facility.findFirst({
+        where: {
+          OR: [
+            { name: hospital },
+            { name: { contains: cleanHospName, mode: 'insensitive' } },
+          ],
+        },
+      });
+      if (matchedFac) resolvedFacilityId = matchedFac.id;
+    }
+
     const newUser = await prisma.user.create({
       data: {
         email: email.toLowerCase().trim(),
@@ -60,6 +77,7 @@ export async function POST(req: NextRequest) {
         fullName: fullName.trim(),
         role: userRole,
         phoneNumber: phoneNumber?.trim() || null,
+        facilityId: resolvedFacilityId || null,
         isActive: isActive !== false,
       },
       select: {
@@ -68,12 +86,16 @@ export async function POST(req: NextRequest) {
         fullName: true,
         role: true,
         phoneNumber: true,
+        facilityId: true,
         isActive: true,
         createdAt: true,
       },
     });
 
-    return HttpResponse.created(newUser);
+    return HttpResponse.created({
+      ...newUser,
+      hospital: hospital || null,
+    });
   } catch (error) {
     return HttpResponse.handleException(error);
   }

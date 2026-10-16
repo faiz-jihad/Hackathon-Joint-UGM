@@ -1,5 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authService } from "@/lib/container";
 import { HttpResponse } from "@/lib/http-response";
+import { UserRole } from "@/domain/auth/user.entity";
+
+export async function OPTIONS() {
+  return HttpResponse.corsOptions();
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { email, fullName, role } = body;
+
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      return HttpResponse.error(
+        "Email Google tidak valid atau belum diisi",
+        "VALIDATION_ERROR",
+        400
+      );
+    }
+
+    let mappedRole: UserRole = "PATIENT";
+    if (role === "dokter" || role === "OPHTHALMOLOGIST") {
+      mappedRole = "OPHTHALMOLOGIST";
+    } else if (role === "admin" || role === "ADMIN") {
+      mappedRole = "ADMIN";
+    }
+
+    const authResult = await authService.loginWithGoogleProfile({
+      email,
+      fullName: fullName || email.split("@")[0],
+      role: mappedRole,
+    });
+
+    return HttpResponse.success(authResult);
+  } catch (error) {
+    return HttpResponse.handleException(error);
+  }
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

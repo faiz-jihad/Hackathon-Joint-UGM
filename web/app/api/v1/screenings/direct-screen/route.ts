@@ -326,8 +326,8 @@ export async function POST(req: NextRequest) {
         blurScore: Number(aiData.quality?.blur_score ?? 0.90),
         illuminationScore: Number(aiData.quality?.illumination_score ?? 0.93),
         fovScore: Number(aiData.quality?.fov_score ?? 0.95),
-        retakeReason: aiData.quality?.retake_reason,
-        retakeInstructions: aiData.quality?.retake_instructions,
+        retakeReason: aiData.quality?.retake_reason || aiData.quality?.reason,
+        retakeInstructions: aiData.quality?.retake_instructions || aiData.quality?.instructions,
       },
       aiResult: {
         predictedClass,
