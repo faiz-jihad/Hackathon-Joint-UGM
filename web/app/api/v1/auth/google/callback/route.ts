@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authService } from "@/lib/container";
 import { UserRole } from "@/domain/auth/user.entity";
+import { getPublicBaseUrl, resolveRedirectUrl } from "@/lib/url-utils";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -8,12 +9,12 @@ export async function GET(req: NextRequest) {
   const state = searchParams.get("state") || "pengguna";
   const errorParam = searchParams.get("error");
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = getPublicBaseUrl(req);
   const redirectUri = `${appUrl}/api/v1/auth/google/callback`;
 
   if (errorParam || !code) {
     return NextResponse.redirect(
-      new URL(`/login/${state}?error=${errorParam || "no_code"}`, req.url)
+      resolveRedirectUrl(req, `/login/${state}?error=${errorParam || "no_code"}`)
     );
   }
 
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     if (!clientId || !clientSecret) {
       return NextResponse.redirect(
-        new URL(`/login/${state}?error=google_not_configured`, req.url)
+        resolveRedirectUrl(req, `/login/${state}?error=google_not_configured`)
       );
     }
 
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
     if (!tokenResponse.ok || !tokenData.access_token) {
       console.error("Google OAuth token exchange failed:", tokenData);
       return NextResponse.redirect(
-        new URL(`/login/${state}?error=token_exchange_failed`, req.url)
+        resolveRedirectUrl(req, `/login/${state}?error=token_exchange_failed`)
       );
     }
 
@@ -61,7 +62,7 @@ export async function GET(req: NextRequest) {
     if (!profileResponse.ok || !profileData.email) {
       console.error("Google user profile fetch failed:", profileData);
       return NextResponse.redirect(
-        new URL(`/login/${state}?error=profile_fetch_failed`, req.url)
+        resolveRedirectUrl(req, `/login/${state}?error=profile_fetch_failed`)
       );
     }
 
@@ -136,7 +137,7 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error("Google OAuth error:", err);
     return NextResponse.redirect(
-      new URL(`/login/${state}?error=unregistered_email`, req.url)
+      resolveRedirectUrl(req, `/login/${state}?error=unregistered_email`)
     );
   }
 }

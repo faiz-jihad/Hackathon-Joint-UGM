@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authService } from "@/lib/container";
 import { HttpResponse } from "@/lib/http-response";
 import { UserRole } from "@/domain/auth/user.entity";
+import { getPublicBaseUrl, resolveRedirectUrl } from "@/lib/url-utils";
 
 export async function OPTIONS() {
   return HttpResponse.corsOptions();
@@ -44,13 +45,13 @@ export async function GET(req: NextRequest) {
   const role = searchParams.get("role") || "pengguna";
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = getPublicBaseUrl(req);
   const redirectUri = `${appUrl}/api/v1/auth/google/callback`;
 
   if (!clientId || clientId.trim() === "") {
     // If Google Client ID is not yet configured in .env, redirect back with error code
     return NextResponse.redirect(
-      new URL(`/login/${role}?error=google_not_configured`, req.url)
+      resolveRedirectUrl(req, `/login/${role}?error=google_not_configured`)
     );
   }
 

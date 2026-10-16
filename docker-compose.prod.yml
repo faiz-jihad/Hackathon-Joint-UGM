@@ -126,7 +126,10 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - NEXTAUTH_SECRET=${JWT_SECRET:-retiva-healthcare-jwt-secret-replace-in-production-min-32-chars}
-      - NEXTAUTH_URL=${APP_URL:-http://localhost}
+      - NEXTAUTH_URL=${APP_URL:-https://hackathon.mataceria.my.id}
+      - NEXT_PUBLIC_APP_URL=${APP_URL:-https://hackathon.mataceria.my.id}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy

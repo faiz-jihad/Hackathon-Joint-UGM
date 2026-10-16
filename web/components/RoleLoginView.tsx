@@ -314,8 +314,12 @@ export function RoleLoginView({
 
     try {
       document.cookie = `retiva_login_role=${role}; path=/; max-age=3600; SameSite=Lax`;
+      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+      const callbackPath = `/dashboard/${role}`;
+      const targetCallback = currentOrigin ? `${currentOrigin}${callbackPath}` : callbackPath;
+
       await signIn('google', {
-        callbackUrl: `/dashboard/${role}`,
+        callbackUrl: targetCallback,
       });
     } catch (err) {
       console.error('NextAuth error:', err);

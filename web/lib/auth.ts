@@ -54,6 +54,37 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
+    async redirect({ url, baseUrl }) {
+      const liveHost = "hackathon.mataceria.my.id";
+      const liveOrigin = "https://hackathon.mataceria.my.id";
+
+      // If in production or live domain, ensure redirection stays on the public domain
+      const isLive =
+        (typeof process !== "undefined" && process.env.NODE_ENV === "production") ||
+        (process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.includes(liveHost));
+
+      const fallbackBase = isLive ? liveOrigin : baseUrl;
+
+      // Allows relative callback URLs (e.g. "/dashboard/dokter")
+      if (url.startsWith("/")) {
+        return `${fallbackBase}${url}`;
+      }
+
+      // Allows callback URLs on the same origin or official live domain
+      try {
+        const parsedUrl = new URL(url);
+        if (
+          parsedUrl.origin === baseUrl ||
+          parsedUrl.origin === liveOrigin ||
+          parsedUrl.hostname === liveHost ||
+          parsedUrl.hostname.includes("mataceria.my.id")
+        ) {
+          return url;
+        }
+      } catch {}
+
+      return fallbackBase;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = (user as any).dbId || user.id;

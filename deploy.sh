@@ -78,7 +78,11 @@ if [ ! -f ".env.production" ]; then
   SERVER_IP=$(curl -s -4 ifconfig.me || curl -s -4 icanhazip.com || echo "localhost")
 
   cat <<EOF > .env.production
-APP_URL=http://${SERVER_IP}
+APP_URL=https://hackathon.mataceria.my.id
+NEXTAUTH_URL=https://hackathon.mataceria.my.id
+NEXT_PUBLIC_APP_URL=https://hackathon.mataceria.my.id
+GOOGLE_CLIENT_ID=\${GOOGLE_CLIENT_ID:-}
+GOOGLE_CLIENT_SECRET=\${GOOGLE_CLIENT_SECRET:-}
 POSTGRES_USER=retiva_admin
 POSTGRES_PASSWORD=${NEW_DB_PASS}
 POSTGRES_DB=retiva_production

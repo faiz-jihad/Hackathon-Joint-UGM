@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { resolveRedirectUrl } from "@/lib/url-utils";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -14,5 +15,7 @@ export async function GET(req: NextRequest) {
     }
   } catch {}
 
-  return NextResponse.redirect(new URL(`/login/${role}?error=${encodeURIComponent(error)}`, req.url));
+  return NextResponse.redirect(
+    resolveRedirectUrl(req, `/login/${role}?error=${encodeURIComponent(error)}`)
+  );
 }
