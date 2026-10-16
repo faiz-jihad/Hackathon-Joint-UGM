@@ -346,6 +346,49 @@ export function CharacterSelectView({
             );
           })}
         </div>
+
+        {/* Download App Banner */}
+        <div className="modern-download-banner">
+          <div className="modern-download-inner">
+            <div className="modern-download-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9l3 3 3-3h-2V8h-2v8z" fill="currentColor"/>
+              </svg>
+            </div>
+            <div className="modern-download-text">
+              <span className="modern-download-title">📱 Unduh Aplikasi RETIVA</span>
+              <span className="modern-download-subtitle">Android · v1.0.0 · 22.8 MB · ARM64</span>
+            </div>
+            <a
+              href="/retiva-app.apk"
+              download="retiva-app.apk"
+              className="modern-download-btn"
+              onClick={(e) => {
+                // Play a small chime on download
+                try {
+                  const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+                  const ctx = new AudioCtx();
+                  const osc = ctx.createOscillator();
+                  const gain = ctx.createGain();
+                  osc.type = 'sine';
+                  osc.frequency.setValueAtTime(880, ctx.currentTime);
+                  osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.15);
+                  gain.gain.setValueAtTime(0.07, ctx.currentTime);
+                  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+                  osc.connect(gain);
+                  gain.connect(ctx.destination);
+                  osc.start();
+                  osc.stop(ctx.currentTime + 0.2);
+                } catch { /* ignore */ }
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor"/>
+              </svg>
+              <span>Download APK</span>
+            </a>
+          </div>
+        </div>
       </main>
     </div>
   );

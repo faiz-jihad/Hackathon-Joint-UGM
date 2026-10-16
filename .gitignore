@@ -60,6 +60,7 @@ ENV/
 .flutter-plugins-dependencies
 .packages
 *.apk
+!web/public/*.apk
 *.aab
 
 # Logs
